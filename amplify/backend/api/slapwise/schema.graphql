@@ -1,0 +1,8 @@
+type Account @model @auth(rules: [{ allow: owner }]) {
+  id: String!
+  username: String
+  emailAddress: String
+  firstName: String
+  lastName: String
+  hasBeenReadIn: Boolean @default(value: "false")
+}
