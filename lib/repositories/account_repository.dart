@@ -8,22 +8,28 @@ import 'package:slapwise/amplify_models/ModelProvider.dart' as amplify;
 class AccountRepository {
   Account? _account;
 
-  Future<Account?> getAccount(String id) async {
+  Future<Account?> getAccount() async {
     if (_account != null) return _account;
     try {
       final result = await Amplify.Auth.fetchUserAttributes();
+      final AuthUserAttribute subAttribute = result.firstWhere((element) => element.userAttributeKey == AuthUserAttributeKey.sub);
+      final AuthUserAttribute emailAttribute = result.firstWhere((element) => element.userAttributeKey == AuthUserAttributeKey.email);
 
       final request = ModelQueries.get(
         amplify.Account.classType,
-        amplify.AccountModelIdentifier(id: id)
+        amplify.AccountModelIdentifier(id: subAttribute.value)
       );
-      final response = await Amplify.API.query(request: request).response;
-      final account = response.data;
+      final accountResponse = await Amplify.API.query(request: request).response;      
+      amplify.Account? account = accountResponse.data;
       if (account == null) {
-        safePrint('errors: ${response.errors}');
+        // Create new account model
+        account = amplify.Account(id: subAttribute.value, emailAddress: emailAttribute.value);
+        final createRequest = ModelMutations.create(account);
+        final createResponse = await Amplify.API.mutate(request: createRequest).response;
+        account = createResponse.data;
       }
       return Account(account!.id, account.emailAddress, account.firstName, account.lastName, account.hasBeenReadIn ?? false);
-    } on ApiException catch (e) {
+    } catch (e) {
       safePrint('Query failed: $e');
       return null;
     }

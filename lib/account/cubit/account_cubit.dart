@@ -17,7 +17,7 @@ class AccountCubit extends Cubit<AccountState> {
     try {
       emit(AccountLoading());
 
-      final account = await repository.getAccount("something");
+      final account = await repository.getAccount();
 
       if (account == null) {
         throw 'Account is null';

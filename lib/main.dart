@@ -5,6 +5,8 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:slapwise/account/account.dart';
+import 'package:slapwise/account/cubit/account_cubit.dart';
 import 'package:slapwise/repositories/account_repository.dart';
 import 'amplifyconfiguration.dart';
 import 'amplify_models/ModelProvider.dart';
@@ -28,10 +30,10 @@ class _MyAppState extends State<MyApp> {
   void _configureAmplify() async {
     try {
       await Amplify.addPlugin(AmplifyAuthCognito());
-      await Amplify.configure(amplifyconfig);
       final api = AmplifyAPI(modelProvider: ModelProvider.instance);
       await Amplify.addPlugin(api);
 
+      await Amplify.configure(amplifyconfig);
       safePrint('Successfully configured');
     } on Exception catch (e) {
       safePrint('Error configuring Amplify: $e');
@@ -121,21 +123,21 @@ class _MyAppState extends State<MyApp> {
             tabBuilder: (context, index) {
               return CupertinoTabView(
                 builder: (context) {
-                  return CupertinoPageScaffold(
-                    navigationBar: CupertinoNavigationBar(
-                      middle: (index == 0)
-                          ? const Text("Add")
-                          : const Text('Other Tab'),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'This is Tab #$index',
-                        style: CupertinoTheme.of(context)
-                            .textTheme
-                            .navLargeTitleTextStyle,
-                      ),
-                    ),
-                  );
+                  switch (index) {
+                    case 0:
+                      return const CupertinoPageScaffold(
+                        navigationBar:
+                            CupertinoNavigationBar(middle: Text("Add")),
+                        child: Center(child: Text("Add Screen")),
+                      );
+                    case 1:
+                      return BlocProvider(
+                        create: (context) => AccountCubit(repository: context.read<AccountRepository>()),
+                        child: const AccountPage(),
+                      );
+                    default:
+                      throw 'No page for index $index';
+                  }
                 },
               );
             },
