@@ -1,0 +1,168 @@
+type Player {
+  playerId: ID!
+  username: String!
+  email: String!
+  createdAt: AWSDateTime!
+  pinpointEndpointId: String
+  pushEnabled: Boolean!
+}
+
+type Group {
+  groupId: ID!
+  name: String!
+  creatorId: ID!
+  adminIds: [ID!]!
+  inviteCode: String!
+  readInGameName: String
+  createdAt: AWSDateTime!
+}
+
+type Member {
+  playerId: ID!
+  groupId: ID!
+  joinedAt: AWSDateTime!
+  isReadIn: Boolean!
+  readInConfirmedAt: AWSDateTime
+}
+
+type Confirmation {
+  outcome: ResolutionOutcome!
+  submittedAt: AWSDateTime!
+}
+
+type SlapDebt {
+  debtId: ID!
+  groupId: ID!
+  gameType: GameType!
+  customGameId: ID
+  status: DebtStatus!
+  shameStatus: Boolean!
+  debtorId: ID
+  creditorId: ID
+  challengerId: ID
+  statementMakerId: ID
+  statement: String
+  reason: String
+  createdAt: AWSDateTime!
+  resolvedAt: AWSDateTime
+  deliveredAt: AWSDateTime
+  voidedAt: AWSDateTime
+  voidReason: String
+  challengerConfirmation: Confirmation
+  statementMakerConfirmation: Confirmation
+  debtorDeliveryConfirmed: Boolean!
+  creditorDeliveryConfirmed: Boolean!
+}
+
+type CustomGame {
+  gameId: ID!
+  groupId: ID!
+  name: String!
+  rules: String!
+  createdBy: ID!
+  createdAt: AWSDateTime!
+}
+
+type ChugEvent {
+  eventId: ID!
+  groupId: ID!
+  callerId: ID!
+  chuggedPlayerIds: [ID!]!
+  createdAt: AWSDateTime!
+}
+
+type FeedEntry {
+  entryId: ID!
+  groupId: ID!
+  type: FeedEntryType!
+  readInOnly: Boolean!
+  refId: ID!
+  summary: String!
+  createdAt: AWSDateTime!
+}
+
+type Notification {
+  notifId: ID!
+  playerId: ID!
+  type: String!
+  title: String!
+  body: String!
+  read: Boolean!
+  createdAt: AWSDateTime!
+  refId: ID
+}
+
+type NetSummary {
+  playerId: ID!
+  username: String!
+  netSlaps: Int!
+}
+
+enum GameType {
+  manchester
+  custom
+  read_in
+}
+
+enum DebtStatus {
+  pending
+  pending_confirmation
+  resolved
+  disputed
+  delivered
+  voided
+}
+
+enum ResolutionOutcome {
+  followed_through
+  did_not_follow_through
+}
+
+enum FeedEntryType {
+  manchester_created
+  manchester_resolved
+  custom_debt_created
+  custom_debt_resolved
+  chug_event
+}
+
+type Query {
+  getGroups: [Group!]!
+  getGroupMembers(groupId: ID!): [Member!]!
+  getPendingDebts(groupId: ID!): [SlapDebt!]!
+  getDebts(groupId: ID!, gameType: GameType, playerId: ID, status: DebtStatus): [SlapDebt!]!
+  getNetSummary(groupId: ID!): [NetSummary!]!
+  getGames(groupId: ID!): [CustomGame!]!
+  getReadInPlayers(groupId: ID!): [Member!]!
+  getChugEvents(groupId: ID!): [ChugEvent!]!
+  getFeed(groupId: ID!): [FeedEntry!]!
+  getInboxNotifications: [Notification!]!
+}
+
+type Mutation {
+  designateAdmin(groupId: ID!, playerId: ID!): Group!
+  regenerateInviteCode(groupId: ID!): Group!
+  createChallenge(groupId: ID!, statementMakerId: ID!, statement: String!): SlapDebt!
+  submitResolutionConfirmation(debtId: String!, groupId: ID!, outcome: ResolutionOutcome!): SlapDebt!
+  confirmDelivery(debtId: String!, groupId: ID!): SlapDebt!
+  createGame(groupId: ID!, name: String!, rules: String!): CustomGame!
+  createDebt(groupId: ID!, gameId: ID!, debtorId: ID!, creditorId: ID!, reason: String!): SlapDebt!
+  confirmReadIn(groupId: ID!): Member!
+  setReadInGameName(groupId: ID!, name: String!): Group!
+  recordGameCall(groupId: ID!, chuggedPlayerIds: [ID!]!): ChugEvent!
+  markRead(notifId: ID!): Notification!
+}
+
+type Subscription {
+  onGroupUpdated(groupId: ID!): Group
+    @aws_subscribe(mutations: ["designateAdmin", "regenerateInviteCode", "setReadInGameName"])
+
+  onDebtUpdated(groupId: ID!): SlapDebt
+    @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "confirmDelivery", "createDebt"])
+
+  onFeedUpdated(groupId: ID!): FeedEntry
+    @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "createDebt", "recordGameCall"])
+
+  onNotificationAdded(playerId: ID!): Notification
+    @aws_subscribe(mutations: ["markRead"])
+}

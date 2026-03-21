@@ -1,0 +1,32 @@
+{
+  "name": "slapwise",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "test": "vitest --run",
+    "test:coverage": "vitest --run --coverage"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-native": "0.75.4",
+    "aws-amplify": "^6.6.0",
+    "@aws-amplify/auth": "^6.6.0",
+    "@aws-amplify/api": "^6.6.0",
+    "zustand": "^4.5.5",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.11.0",
+    "react-native-svg": "^15.3.0",
+    "react-native-reanimated": "^3.15.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/react": "^18.3.3",
+    "@types/react-native": "^0.73.0",
+    "vitest": "^2.1.1",
+    "@vitest/coverage-v8": "^2.1.1",
+    "fast-check": "^3.22.0"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "social-slap-tracker-infra",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "deploy": "cdk deploy --all --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
+    "synth": "cdk synth"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "20.x",
+    "aws-cdk": "2.170.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.4.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.170.0",
+    "constructs": "^10.0.0",
+    "source-map-support": "^0.5.21"
+  }
+}
