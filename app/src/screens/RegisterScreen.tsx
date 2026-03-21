@@ -7,11 +7,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
 
+type NavProp = NativeStackNavigationProp<RootStackParamList>;
+
 export default function RegisterScreen() {
-  const navigation = useNavigation();
-  const [username, setUsername] = useState('');
+  const navigation = useNavigation<NavProp>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +23,7 @@ export default function RegisterScreen() {
   async function handleSubmit() {
     setError(null);
 
-    if (!username.trim() || !email.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       setError('All fields are required.');
       return;
     }
@@ -31,16 +34,15 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await AuthService.register(username.trim(), email.trim(), password);
-      navigation.navigate('Login' as never);
+      await AuthService.register(email.trim(), password);
+      navigation.navigate('ConfirmEmail', { email: email.trim() });
     } catch (err: unknown) {
       const e = err as Error;
-      if (e.message === 'USERNAME_TAKEN') {
-        setError('That username is already taken. Please choose another.');
-      } else if (e.message === 'EMAIL_TAKEN') {
+      console.error('Registration error:', JSON.stringify(err), e?.message, e?.name);
+      if (e.message === 'EMAIL_TAKEN') {
         setError('An account with that email already exists.');
       } else {
-        setError('Registration failed. Please try again.');
+        setError(`Registration failed: ${e.message}`);
       }
     } finally {
       setLoading(false);
@@ -53,13 +55,6 @@ export default function RegisterScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        autoCapitalize="none"
-        value={username}
-        onChangeText={setUsername}
-      />
-      <TextInput
-        style={styles.input}
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -68,7 +63,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="Password (min 8 chars, uppercase + number)"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -90,16 +85,8 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-  },
+  container: { flex: 1, padding: 24, justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 24 },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -108,10 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 16,
   },
-  error: {
-    color: 'red',
-    marginBottom: 12,
-  },
+  error: { color: 'red', marginBottom: 12 },
   button: {
     backgroundColor: '#007AFF',
     borderRadius: 8,
@@ -119,9 +103,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

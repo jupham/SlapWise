@@ -1,0 +1,90 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { GroupService } from '../services/GroupService';
+import { Group } from '../types';
+import type { RootStackParamList } from '../navigation/types';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'GroupList'>;
+
+export default function GroupListScreen({ navigation }: Props) {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await GroupService.getGroups();
+      setGroups(data);
+    } catch (err: unknown) {
+      const e = err as Error;
+      console.error('getGroups error:', JSON.stringify(err), e?.message);
+      setError(`Failed to load groups: ${e?.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  // Re-fetch when navigating back to this screen
+  useEffect(() => {
+    const unsub = navigation.addListener('focus', () => { void load(); });
+    return unsub;
+  }, [navigation, load]);
+
+  if (loading) {
+    return <ActivityIndicator style={styles.center} />;
+  }
+
+  return (
+    <View style={styles.container}>
+      {error && <Text style={styles.error}>{error}</Text>}
+      <FlatList
+        data={groups}
+        keyExtractor={(g) => g.groupId}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => navigation.navigate('GroupDetail', { groupId: item.groupId, groupName: item.name })}
+          >
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.sub}>Created {new Date(item.createdAt).toLocaleDateString()}</Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={styles.empty}>No groups yet</Text>}
+      />
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('CreateGroup')}>
+          <Text style={styles.btnText}>Create Group</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={() => navigation.navigate('JoinGroup')}>
+          <Text style={styles.btnText}>Join Group</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  center: { flex: 1 },
+  row: { padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
+  name: { fontSize: 16, fontWeight: '600' },
+  sub: { fontSize: 12, color: '#888', marginTop: 2 },
+  empty: { textAlign: 'center', marginTop: 40, color: '#aaa' },
+  error: { color: 'red', padding: 12, textAlign: 'center' },
+  actions: { flexDirection: 'row', padding: 16, gap: 12 },
+  btn: { flex: 1, backgroundColor: '#007AFF', padding: 14, borderRadius: 8, alignItems: 'center' },
+  btnSecondary: { backgroundColor: '#34C759' },
+  btnText: { color: '#fff', fontWeight: '600' },
+});

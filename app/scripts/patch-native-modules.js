@@ -1,0 +1,109 @@
+#!/usr/bin/env node
+/**
+ * Patches node_modules CMakeLists.txt files to link c++_shared.
+ * Required because NDK 27 with c++_shared STL needs explicit linking.
+ * Run automatically via postinstall.
+ */
+const fs = require('fs');
+const path = require('path');
+
+function patchFile(relPath, patchFn) {
+  const filePath = path.join(__dirname, '..', relPath);
+  if (!fs.existsSync(filePath)) {
+    console.warn(`[patch] WARNING: ${relPath} not found, skipping`);
+    return;
+  }
+  const original = fs.readFileSync(filePath, 'utf8');
+  const patched = patchFn(original);
+  if (patched === original) {
+    console.log(`[patch] ${relPath} — already patched or pattern not found`);
+  } else {
+    fs.writeFileSync(filePath, patched, 'utf8');
+    console.log(`[patch] ${relPath} — patched OK`);
+  }
+}
+
+// react-native-reanimated: add c++_shared before react-native-worklets::worklets
+patchFile(
+  'node_modules/react-native-reanimated/android/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    return src.replace(
+      'react-native-worklets::worklets)',
+      'c++_shared\n  react-native-worklets::worklets)'
+    );
+  }
+);
+
+// react-native-worklets: add c++_shared after fbjni::fbjni
+patchFile(
+  'node_modules/react-native-worklets/android/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    return src.replace('fbjni::fbjni)', 'fbjni::fbjni c++_shared)');
+  }
+);
+
+// react-native-svg: add c++_shared to the fbjni-only target_link_libraries block
+patchFile(
+  'node_modules/react-native-svg/android/src/main/jni/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    return src.replace(
+      /target_link_libraries\(\s*react_codegen_rnsvg\s*fbjni\s*\)/,
+      'target_link_libraries(\n  react_codegen_rnsvg\n  fbjni\n  c++_shared\n)'
+    );
+  }
+);
+
+// react-native-safe-area-context: add c++_shared to both MERGED_SO branches
+patchFile(
+  'node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    // Add to the REACTNATIVE_MERGED_SO branch (reactnative at end)
+    src = src.replace(
+      /target_link_libraries\(\s*\$\{LIB_TARGET_NAME\}\s*fbjni\s*jsi\s*reactnative\s*\)/,
+      'target_link_libraries(\n          ${LIB_TARGET_NAME}\n          fbjni\n          jsi\n          reactnative\n          c++_shared\n  )'
+    );
+    // Add to the else branch (yoga at end)
+    src = src.replace(
+      /(\s*rrc_view\s*turbomodulejsijni\s*yoga\s*\))/,
+      '\n          rrc_view\n          turbomodulejsijni\n          yoga\n          c++_shared\n  )'
+    );
+    return src;
+  }
+);
+
+// react-native-screens jni: add c++_shared after fbjni::fbjni
+patchFile(
+  'node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    return src.replace(
+      /target_link_libraries\(\s*\$\{LIB_TARGET_NAME\}\s*ReactAndroid::reactnative\s*ReactAndroid::jsi\s*fbjni::fbjni\s*\)/,
+      'target_link_libraries(\n  ${LIB_TARGET_NAME}\n  ReactAndroid::reactnative\n  ReactAndroid::jsi\n  fbjni::fbjni\n  c++_shared\n)'
+    );
+  }
+);
+
+// react-native-screens android: add c++_shared to both new arch and old arch branches
+patchFile(
+  'node_modules/react-native-screens/android/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    // New arch branch ends with android)
+    src = src.replace(
+      /target_link_libraries\(rnscreens\s*ReactAndroid::reactnative\s*ReactAndroid::jsi\s*fbjni::fbjni\s*android\s*\)/,
+      'target_link_libraries(rnscreens\n        ReactAndroid::reactnative\n        ReactAndroid::jsi\n        fbjni::fbjni\n        android\n        c++_shared\n    )'
+    );
+    // Old arch branch ends with android)
+    src = src.replace(
+      /target_link_libraries\(rnscreens\s*ReactAndroid::jsi\s*android\s*\)/,
+      'target_link_libraries(rnscreens\n        ReactAndroid::jsi\n        android\n        c++_shared\n    )'
+    );
+    return src;
+  }
+);
+
+console.log('[patch] All patches applied.');

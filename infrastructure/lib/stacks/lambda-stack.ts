@@ -44,7 +44,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-pre-sign-up',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/pre-sign-up')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/pre-sign-up')),
       environment: { TABLE_NAME: table.tableName },
     });
     table.grantReadData(this.preSignUpFn);
@@ -54,7 +54,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-post-confirmation',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/post-confirmation')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/post-confirmation')),
       environment: { TABLE_NAME: table.tableName },
     });
     table.grantWriteData(this.postConfirmationFn);
@@ -64,7 +64,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-create-group',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/create-group')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-group')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.createGroupFn);
@@ -74,7 +74,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-join-group',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/join-group')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/join-group')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.joinGroupFn);
@@ -84,7 +84,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-submit-resolution-confirmation',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/submit-resolution-confirmation')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/submit-resolution-confirmation')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.submitResolutionConfirmationFn);
@@ -95,7 +95,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-confirm-delivery',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/confirm-delivery')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-delivery')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.confirmDeliveryFn);
@@ -106,7 +106,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-record-game-call',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/record-game-call')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/record-game-call')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.recordGameCallFn);
@@ -117,7 +117,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-leave-group',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/leave-group')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/leave-group')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.leaveGroupFn);
@@ -128,7 +128,7 @@ export class LambdaStack extends cdk.Stack {
       ...lambdaDefaults,
       functionName: 'slap-tracker-notification-dispatcher',
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/notification-dispatcher')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/notification-dispatcher')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.notificationDispatcherFn);

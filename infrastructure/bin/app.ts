@@ -10,6 +10,10 @@ import { ApiGatewayStack } from '../lib/stacks/apigateway-stack';
 
 const app = new cdk.App();
 
+// Tag all resources in every stack for cost tracking
+cdk.Tags.of(app).add('Project', 'SlapTracker');
+cdk.Tags.of(app).add('ManagedBy', 'CDK');
+
 const env = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1',

@@ -7,11 +7,15 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
 import { useStore } from '../store';
 
+type NavProp = NativeStackNavigationProp<RootStackParamList>;
+
 export default function LoginScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +29,22 @@ export default function LoginScreen() {
       await AuthService.login(email.trim(), password);
       const player = await AuthService.currentPlayer();
       useStore.getState().setPlayer(player);
-      navigation.navigate('Home' as never);
+      navigation.navigate('GroupList');
     } catch (err: unknown) {
       const e = err as Error;
       if (e.message === 'INVALID_CREDENTIALS') {
         setError('Invalid email or password.');
+      } else if (e.message === 'NOT_CONFIRMED') {
+        // Resend the code automatically then send them to confirm
+        try {
+          const { resendSignUpCode } = await import('aws-amplify/auth');
+          await resendSignUpCode({ username: email.trim() });
+        } catch {
+          // ignore resend errors — they'll see the resend button on the confirm screen
+        }
+        navigation.navigate('ConfirmEmail', { email: email.trim() });
       } else {
-        setError('Login failed. Please try again.');
+        setError(`Login failed: ${e.message}`);
       }
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
@@ -18,6 +19,20 @@ export class ApiGatewayStack extends cdk.Stack {
 
     const { userPool, createGroupFn, joinGroupFn } = props;
 
+    // Required account-level setting: CloudWatch Logs role for API Gateway
+    const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
+      assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'service-role/AmazonAPIGatewayPushToCloudWatchLogs'
+        ),
+      ],
+    });
+
+    new apigateway.CfnAccount(this, 'ApiGatewayAccount', {
+      cloudWatchRoleArn: cloudWatchRole.roleArn,
+    });
+
     this.api = new apigateway.RestApi(this, 'SlapTrackerRestApi', {
       restApiName: 'SlapTrackerApi',
       description: 'SlapWise REST API for group management',
@@ -31,6 +46,9 @@ export class ApiGatewayStack extends cdk.Stack {
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
+
+    // Ensure account setting is applied before the stage is created
+    this.api.node.addDependency(cloudWatchRole);
 
     const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(
       this,

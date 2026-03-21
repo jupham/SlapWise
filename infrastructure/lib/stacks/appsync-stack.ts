@@ -63,7 +63,7 @@ export class AppSyncStack extends cdk.Stack {
 
     // ── Query Resolvers (DynamoDB VTL) ────────────────────────────────────────
 
-    // getGroups: query GSI1 with PLAYER#<playerId>
+    // getGroups: query GSI1 with PLAYER#<playerId>, filter to MEMBER records only
     ddbDataSource.createResolver('GetGroupsResolver', {
       typeName: 'Query',
       fieldName: 'getGroups',
@@ -73,9 +73,10 @@ export class AppSyncStack extends cdk.Stack {
   "operation": "Query",
   "index": "GSI1",
   "query": {
-    "expression": "GSI1PK = :pk",
+    "expression": "GSI1PK = :pk AND begins_with(GSI1SK, :sk)",
     "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("PLAYER#$ctx.identity.sub")
+      ":pk": $util.dynamodb.toDynamoDBJson("PLAYER#$ctx.identity.sub"),
+      ":sk": $util.dynamodb.toDynamoDBJson("GROUP#")
     }
   }
 }

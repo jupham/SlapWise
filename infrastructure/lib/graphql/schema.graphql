@@ -20,6 +20,7 @@ type Group {
 type Member {
   playerId: ID!
   groupId: ID!
+  username: String
   joinedAt: AWSDateTime!
   isReadIn: Boolean!
   readInConfirmedAt: AWSDateTime
@@ -159,9 +160,6 @@ type Subscription {
 
   onDebtUpdated(groupId: ID!): SlapDebt
     @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "confirmDelivery", "createDebt"])
-
-  onFeedUpdated(groupId: ID!): FeedEntry
-    @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "createDebt", "recordGameCall"])
 
   onNotificationAdded(playerId: ID!): Notification
     @aws_subscribe(mutations: ["markRead"])

@@ -15,10 +15,24 @@ infrastructure/cdk-outputs.json
 
 # ─── React Native ────────────────────────────────────────────────────────────
 app/.expo/
-app/android/
-app/ios/
 app/.metro-health-check*
 app/amplifyconfiguration.json
+
+# React Native build artifacts (not the project files themselves)
+app/android/build/
+app/android/.gradle/
+app/android/app/build/
+app/android/app/.cxx/
+app/android/**/*.so
+app/android/**/*.o
+app/android/**/*.a
+app/android/**/*.class
+app/android/**/*.apk
+app/android/**/*.aab
+app/ios/build/
+app/ios/Pods/
+app/ios/DerivedData/
+app/ios/**/*.xcworkspace/xcuserdata/
 
 # Metro bundler
 .metro-cache/
@@ -48,3 +62,8 @@ yarn-error.log*
 
 # ─── TypeScript ──────────────────────────────────────────────────────────────
 *.tsbuildinfo
+
+# ─── React Native generated ──────────────────────────────────────────────────
+app/android/app/src/main/assets/index.android.bundle
+app/android/app/src/main/assets/index.android.bundle.map
+app/.kotlin/

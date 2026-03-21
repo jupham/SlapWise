@@ -28,6 +28,7 @@ export interface Member {
   SK: string;
   playerId: string;
   groupId: string;
+  username: string;
   joinedAt: string;
   isReadIn: boolean;
   readInConfirmedAt: string | null;

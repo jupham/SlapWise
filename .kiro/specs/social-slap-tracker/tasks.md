@@ -71,35 +71,35 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
 
 - [ ] 3. Checkpoint — ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement group management
-  - [ ] 4.1 Implement `createGroup` Lambda function
+- [x] 4. Implement group management
+  - [x] 4.1 Implement `createGroup` Lambda function
     - Write the handler code for the Lambda already declared in `LambdaStack` (function definition, API Gateway integration, IAM role, and environment variables are in CDK)
     - Handler creates `GROUP#<groupId> / METADATA` item with `creatorId`, `adminIds`, and generated `inviteCode`; writes `GROUP#<groupId> / MEMBER#<playerId>` item; writes `GROUP#<groupId> / INVITE#<code>` item
     - _Requirements: 1.1, 1.2, 1.3_
 
-  - [ ] 4.2 Implement `joinGroup` Lambda function
+  - [x] 4.2 Implement `joinGroup` Lambda function
     - Write the handler code for the Lambda already declared in `LambdaStack`
     - Handler validates invite code (checks `active` flag and TTL), adds `MEMBER` item via DynamoDB transaction, returns group data; returns `INVALID_INVITE_CODE` (HTTP 400) on failure
     - _Requirements: 1.4, 1.5_
 
-  - [ ] 4.3 Implement AppSync resolvers for `getGroups` and `getGroupMembers`
+  - [x] 4.3 Implement AppSync resolvers for `getGroups` and `getGroupMembers`
     - Write the resolver logic (VTL) for resolvers already attached in `AppSyncStack` (data source and resolver attachment are in CDK)
     - `getGroups`: query GSI1 with `PLAYER#<playerId>` to return all groups for the current player
     - `getGroupMembers`: query `GROUP#<groupId> / MEMBER#*` items
     - Wire AppSync subscriptions to Zustand store slices
     - _Requirements: 1.6, 1.7_
 
-  - [ ] 4.4 Implement `designateAdmin` AppSync mutation resolver
+  - [x] 4.4 Implement `designateAdmin` AppSync mutation resolver
     - Write the resolver logic (VTL) for the resolver already attached in `AppSyncStack`
     - Resolver checks caller is `creatorId`; if not, returns `PERMISSION_DENIED`; otherwise appends `playerId` to `adminIds` set
     - _Requirements: 1.8, 1.9_
 
-  - [ ] 4.5 Implement `regenerateInviteCode` mutation
+  - [x] 4.5 Implement `regenerateInviteCode` mutation
     - Write the resolver logic (VTL or Lambda handler) for the resolver already attached in `AppSyncStack`
     - Deactivates old invite code item; writes new `INVITE#<code>` item; updates `inviteCode` on group metadata
     - _Requirements: 1.3_
 
-  - [ ] 4.6 Build group list, group detail, and invite screens
+  - [x] 4.6 Build group list, group detail, and invite screens
     - Group list screen showing all player groups
     - Group detail screen with member list and admin controls
     - Invite code display and share sheet
@@ -128,16 +128,16 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
 
 - [ ] 5. Checkpoint — ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement Manchester challenge creation
-  - [ ] 6.1 Implement `createChallenge` AppSync mutation and resolver
+- [x] 6. Implement Manchester challenge creation
+  - [x] 6.1 Implement `createChallenge` AppSync mutation and resolver
     - Resolver validates challenger ≠ statementMaker (returns `SELF_CHALLENGE_ERROR`), validates statement text present; writes `DEBT#<debtId>` item with `status: "pending"`, `gameType: "manchester"`, `GSI2PK` set to `GROUP#<groupId>#STATUS#pending`
     - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
-  - [ ] 6.2 Implement `getPendingDebts` AppSync query
+  - [x] 6.2 Implement `getPendingDebts` AppSync query
     - Query GSI2 with `GROUP#<groupId>#STATUS#pending` to return pending debts; wire subscription for real-time updates
     - _Requirements: 2.4_
 
-  - [ ] 6.3 Build Manchester challenge creation screen
+  - [x] 6.3 Build Manchester challenge creation screen
     - Statement maker picker (excludes self), statement text input, submit button with validation errors
     - Pending debts list screen
     - _Requirements: 2.1, 2.2, 2.4, 2.5_

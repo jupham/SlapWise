@@ -27,10 +27,10 @@ for (const stackOutputs of Object.values(outputs)) {
 const amplifyConfig = {
   Auth: {
     Cognito: {
-      userPoolId: flat.SlapTrackerUserPoolId,
-      userPoolClientId: flat.SlapTrackerUserPoolClientId,
-      identityPoolId: flat.SlapTrackerIdentityPoolId,
-      region: flat.SlapTrackerUserPoolRegion,
+      userPoolId: flat.UserPoolId,
+      userPoolClientId: flat.UserPoolClientId,
+      identityPoolId: flat.IdentityPoolId,
+      region: flat.UserPoolRegion,
       loginWith: {
         email: true,
       },
@@ -38,22 +38,22 @@ const amplifyConfig = {
   },
   API: {
     GraphQL: {
-      endpoint: flat.SlapTrackerAppSyncEndpoint,
-      region: flat.SlapTrackerAppSyncRegion,
+      endpoint: flat.AppSyncEndpoint,
+      region: flat.AppSyncRegion,
       defaultAuthMode: 'userPool',
     },
     REST: {
       SlapTrackerRest: {
-        endpoint: flat.SlapTrackerApiGatewayEndpoint,
-        region: flat.SlapTrackerAppSyncRegion,
+        endpoint: flat.ApiGatewayEndpoint,
+        region: flat.AppSyncRegion,
       },
     },
   },
   Notifications: {
     PushNotification: {
       AWSPinpoint: {
-        appId: flat.SlapTrackerPinpointAppId,
-        region: flat.SlapTrackerAppSyncRegion,
+        appId: flat.PinpointAppId,
+        region: flat.AppSyncRegion,
       },
     },
   },
