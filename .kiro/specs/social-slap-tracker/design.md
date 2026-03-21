@@ -8,7 +8,7 @@ The app is built as a cross-platform mobile application (React Native) backed by
 
 ### Key Design Decisions
 
-- **AWS CDK (TypeScript) for all infrastructure provisioning**: All AWS resources — Cognito User Pool + Identity Pool, AppSync API + schema + resolvers, DynamoDB table with GSIs, Lambda functions, API Gateway, SNS topics, Pinpoint app, and IAM roles/policies — are defined and deployed via AWS CDK stacks in a dedicated `infra/` directory. The `infra/` directory is a standalone TypeScript CDK project that lives alongside the React Native app (e.g. at the repo root: `infra/` and `app/`). There is no `amplify init`, `amplify push`, or any Amplify CLI involvement in infrastructure provisioning.
+- **AWS CDK (TypeScript) for all infrastructure provisioning**: All AWS resources — Cognito User Pool + Identity Pool, AppSync API + schema + resolvers, DynamoDB table with GSIs, Lambda functions, API Gateway, SNS topics, Pinpoint app, and IAM roles/policies — are defined and deployed via AWS CDK stacks in a dedicated `infrastructure/` directory. The `infrastructure/` directory is a standalone TypeScript CDK project that lives alongside the React Native app (e.g. at the repo root: `infrastructure/` and `app/`). There is no `amplify init`, `amplify push`, or any Amplify CLI involvement in infrastructure provisioning.
 - **AWS AppSync + DynamoDB**: AppSync provides real-time GraphQL subscriptions that replace Firestore real-time listeners, giving sub-5-second sync out of the box. DynamoDB single-table design supports all required access patterns efficiently.
 - **Amazon Cognito**: Handles user registration, authentication, and session management. A post-confirmation Lambda trigger enforces username uniqueness and writes the player profile to DynamoDB. The Cognito User Pool and Identity Pool are provisioned via the CDK `CognitoStack`.
 - **AWS Amplify SDK + DataStore (client-side only)**: The Amplify SDK is used exclusively on the React Native client for auth (Cognito), AppSync GraphQL calls, DataStore (offline), and Pinpoint push token registration. It is configured manually via an `amplifyconfiguration.json` (or an `Amplify.configure()` call) generated from CDK stack outputs — never from the Amplify CLI. CDK stack outputs (e.g. `UserPoolId`, `UserPoolClientId`, `AppSyncEndpoint`, `PinpointAppId`) are exported and used to populate this config. DataStore queues writes locally and syncs on reconnect.
@@ -22,11 +22,11 @@ The app is built as a cross-platform mobile application (React Native) backed by
 
 ## Architecture
 
-> **Project layout**: The repository contains two top-level directories — `infra/` (standalone AWS CDK TypeScript project that provisions all AWS resources) and `app/` (React Native project). The Amplify SDK is used client-side only inside `app/`; it is configured manually using outputs exported by the CDK stacks, not by the Amplify CLI.
+> **Project layout**: The repository contains two top-level directories — `infrastructure/` (standalone AWS CDK TypeScript project that provisions all AWS resources) and `app/` (React Native project). The Amplify SDK is used client-side only inside `app/`; it is configured manually using outputs exported by the CDK stacks, not by the Amplify CLI.
 
 ```mermaid
 graph TD
-    subgraph CDK["infra/ — AWS CDK (TypeScript) — provisioning only"]
+    subgraph CDK["infrastructure/ — AWS CDK (TypeScript) — provisioning only"]
         CognitoStack[CognitoStack]
         DynamoStack[DynamoStack]
         LambdaStack[LambdaStack]

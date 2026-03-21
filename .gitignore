@@ -10,8 +10,8 @@ out/
 *.js.map
 
 # CDK
-infra/cdk.out/
-infra/cdk-outputs.json
+infrastructure/cdk.out/
+infrastructure/cdk-outputs.json
 
 # ─── React Native ────────────────────────────────────────────────────────────
 app/.expo/

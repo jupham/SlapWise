@@ -32,12 +32,12 @@ export class LambdaStack extends cdk.Stack {
       SNS_TOPIC_ARN: snsTopic.topicArn,
     };
 
-    const lambdaDefaults: Partial<lambda.FunctionProps> = {
-      runtime: lambda.Runtime.NODEJS_20_X,
+    const lambdaDefaults = {
+      runtime: lambda.Runtime.NODEJS_24_X,
       architecture: lambda.Architecture.ARM_64,
       timeout: cdk.Duration.seconds(30),
       memorySize: 256,
-    };
+    } satisfies Partial<lambda.FunctionProps>;
 
     // Pre-sign-up trigger (username uniqueness check)
     this.preSignUpFn = new lambda.Function(this, 'PreSignUpFn', {

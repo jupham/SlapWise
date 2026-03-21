@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const cdkOutputsPath = path.join(__dirname, '..', 'cdk-outputs.json');
-const amplifyConfigPath = path.join(__dirname, '..', '..', 'app', 'amplifyconfiguration.json');
+const amplifyConfigPath = path.join(__dirname, '..', '..', 'app', 'amplifyconfiguration.json'); // app/ is sibling of infrastructure/
 
 if (!fs.existsSync(cdkOutputsPath)) {
   console.error('cdk-outputs.json not found. Run `cdk deploy --outputs-file cdk-outputs.json` first.');

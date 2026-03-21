@@ -1,11 +1,12 @@
 {
-  "extends": "@tsconfig/react-native/tsconfig.json",
+  "extends": "./node_modules/@tsconfig/react-native/tsconfig.json",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["react-native"]
   },
   "include": ["src", "index.js", "app.json"]
 }

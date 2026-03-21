@@ -2,13 +2,13 @@
 
 ## Overview
 
-Incremental implementation of the Social Slap Tracker React Native app. Infrastructure is provisioned via AWS CDK (TypeScript) in a dedicated `infra/` directory (a standalone CDK project alongside the React Native `app/` directory). The React Native client uses the Amplify SDK (auth, AppSync, DataStore, Pinpoint) configured manually via `Amplify.configure()` using values from CDK stack outputs — no Amplify CLI is used. Tasks build from infrastructure setup through authentication, group management, game mechanics, notifications, and feed — wiring everything together at the end.
+Incremental implementation of the Social Slap Tracker React Native app. Infrastructure is provisioned via AWS CDK (TypeScript) in a dedicated `infrastructure/` directory (a standalone CDK project alongside the React Native `app/` directory). The React Native client uses the Amplify SDK (auth, AppSync, DataStore, Pinpoint) configured manually via `Amplify.configure()` using values from CDK stack outputs — no Amplify CLI is used. Tasks build from infrastructure setup through authentication, group management, game mechanics, notifications, and feed — wiring everything together at the end.
 
 ## Tasks
 
 - [x] 1. Set up project structure, CDK infrastructure, and core TypeScript types
   - Initialise React Native project in `app/` (without Amplify CLI)
-  - Create `infra/` CDK app (TypeScript) with the following stacks:
+  - Create `infrastructure/` CDK app (TypeScript) with the following stacks:
     - `CognitoStack`: User Pool with pre-sign-up and post-confirmation Lambda triggers, app client, Identity Pool
     - `DynamoStack`: `SlapTracker` single-table with all GSIs (GSI1, GSI2, GSI3) and TTL attribute on invite code items
     - `LambdaStack`: all Lambda functions — pre-sign-up trigger, post-confirmation trigger, `createGroup`, `joinGroup`, `submitResolutionConfirmation`, `confirmDelivery`, `recordGameCall`, `leaveGroup`, `notificationDispatcher` — with IAM roles and environment variables
@@ -23,7 +23,7 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
   - Configure Jest/Vitest with fast-check for property-based testing
   - _Requirements: 0.1, 1.1, 7.1_
 
-  - [x] 1.1 Write CDK stacks in `infra/`
+  - [x] 1.1 Write CDK stacks in `infrastructure/`
     - `CognitoStack`: `UserPool` with `preSignUp` and `postConfirmation` Lambda triggers, `UserPoolClient`, `IdentityPool`
     - `DynamoStack`: `Table` with `PK`/`SK` keys, GSI1 (`GSI1PK`/`GSI1SK`), GSI2 (`GSI2PK`/`GSI2SK`), GSI3 (`GSI3PK`/`GSI3SK`), TTL attribute `TTL`
     - `LambdaStack`: `NodejsFunction` constructs for each handler with correct IAM grants (`table.grantReadWriteData`, `snsTopic.grantPublish`) and environment variables (`TABLE_NAME`, `SNS_TOPIC_ARN`, etc.)
@@ -33,23 +33,23 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
     - Wire stack dependencies and export outputs; add a `cdk-outputs.json` → `amplifyconfiguration.json` generation script so the React Native app can call `Amplify.configure()` with CDK-deployed resource values
     - _Requirements: 0.1, 1.1, 1.2, 1.3, 6.1, 7.1_
 
-- [ ] 2. Implement authentication module
-  - [ ] 2.1 Implement Cognito pre-sign-up Lambda trigger for username uniqueness
+- [x] 2. Implement authentication module
+  - [x] 2.1 Implement Cognito pre-sign-up Lambda trigger for username uniqueness
     - Write the handler code for the Lambda already declared in `LambdaStack` (function definition, IAM role, and Cognito trigger attachment are in CDK)
     - Handler checks `USERNAME#<username>` item in DynamoDB; throws `UserLambdaValidationException` with code `USERNAME_TAKEN` if taken
     - _Requirements: 0.3_
 
-  - [ ] 2.2 Implement Cognito post-confirmation Lambda trigger
+  - [x] 2.2 Implement Cognito post-confirmation Lambda trigger
     - Write the handler code for the Lambda already declared in `LambdaStack`
     - Handler writes `PLAYER#<playerId> / PROFILE` item and `USERNAME#<username> / LOOKUP` item to DynamoDB on successful confirmation
     - _Requirements: 0.1, 0.7_
 
-  - [ ] 2.3 Implement `AuthService` (register, login, logout, currentPlayer)
+  - [x] 2.3 Implement `AuthService` (register, login, logout, currentPlayer)
     - Wire Amplify Auth `signUp`, `signIn`, `signOut`, `getCurrentUser` to the `AuthService` interface
     - Map Cognito errors (`UsernameExistsException`, `NotAuthorizedException`) to `REGISTRATION_CONFLICT` / generic login error
     - _Requirements: 0.1, 0.2, 0.4, 0.5, 0.6_
 
-  - [ ] 2.4 Build registration and login screens
+  - [x] 2.4 Build registration and login screens
     - Registration form: username, email, password fields with inline validation
     - Login form: email, password with error display
     - _Requirements: 0.1, 0.2, 0.3, 0.4, 0.5_

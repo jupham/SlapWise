@@ -1,0 +1,17 @@
+{
+  "name": "slapwise-root",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:infra && npm run build:app",
+    "build:infra": "npm --prefix infrastructure run build",
+    "build:app": "npm --prefix app run typecheck",
+    "test:app": "npm --prefix app run test",
+    "install:all": "npm --prefix infrastructure install && npm --prefix app install",
+    "clean": "rimraf infrastructure/node_modules infrastructure/dist app/node_modules",
+    "clean:install": "npm run clean && npm run install:all"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
+}
