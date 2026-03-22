@@ -1,0 +1,55 @@
+#set($groupId = $ctx.args.groupId)
+#set($status = $ctx.args.status)
+#set($gameType = $ctx.args.gameType)
+#set($playerId = $ctx.args.playerId)
+
+#if($status)
+  #set($gsi2pk = "GROUP#${groupId}#STATUS#${status}")
+  {
+    "version": "2018-05-29",
+    "operation": "Query",
+    "index": "GSI2",
+    "query": {
+      "expression": "GSI2PK = :gsi2pk",
+      "expressionValues": {
+        ":gsi2pk": $util.dynamodb.toDynamoDBJson($gsi2pk)
+      }
+    }
+    #if($gameType || $playerId)
+    ,"filter": {
+      "expression": #if($gameType && $playerId) "gameType = :gameType AND (debtorId = :playerId OR creditorId = :playerId)"
+                   #elseif($gameType) "gameType = :gameType"
+                   #else "(debtorId = :playerId OR creditorId = :playerId)" #end,
+      "expressionValues": {
+        #if($gameType) ":gameType": $util.dynamodb.toDynamoDBJson($gameType) #end
+        #if($gameType && $playerId) , #end
+        #if($playerId) ":playerId": $util.dynamodb.toDynamoDBJson($playerId) #end
+      }
+    }
+    #end
+  }
+#else
+  {
+    "version": "2018-05-29",
+    "operation": "Query",
+    "query": {
+      "expression": "PK = :pk AND begins_with(SK, :skPrefix)",
+      "expressionValues": {
+        ":pk": $util.dynamodb.toDynamoDBJson("GROUP#${groupId}"),
+        ":skPrefix": $util.dynamodb.toDynamoDBJson("DEBT#")
+      }
+    }
+    #if($gameType || $playerId)
+    ,"filter": {
+      "expression": #if($gameType && $playerId) "gameType = :gameType AND (debtorId = :playerId OR creditorId = :playerId)"
+                   #elseif($gameType) "gameType = :gameType"
+                   #else "(debtorId = :playerId OR creditorId = :playerId)" #end,
+      "expressionValues": {
+        #if($gameType) ":gameType": $util.dynamodb.toDynamoDBJson($gameType) #end
+        #if($gameType && $playerId) , #end
+        #if($playerId) ":playerId": $util.dynamodb.toDynamoDBJson($playerId) #end
+      }
+    }
+    #end
+  }
+#end

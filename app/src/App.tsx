@@ -14,6 +14,11 @@ import CreateGroupScreen from './screens/CreateGroupScreen';
 import JoinGroupScreen from './screens/JoinGroupScreen';
 import CreateChallengeScreen from './screens/CreateChallengeScreen';
 import PendingDebtsScreen from './screens/PendingDebtsScreen';
+import ResolutionConfirmationScreen from './screens/ResolutionConfirmationScreen';
+import LedgerScreen from './screens/LedgerScreen';
+import MySlateScreen from './screens/MySlateScreen';
+import GroupFeedScreen from './screens/GroupFeedScreen';
+import RecordGameCallScreen from './screens/RecordGameCallScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -46,6 +51,11 @@ export default function App() {
         <Stack.Screen name="JoinGroup" component={JoinGroupScreen} options={{ title: 'Join Group' }} />
         <Stack.Screen name="CreateChallenge" component={CreateChallengeScreen} options={{ title: 'Call Manchester' }} />
         <Stack.Screen name="PendingDebts" component={PendingDebtsScreen} options={({ route }) => ({ title: `Pending — ${route.params.groupName}` })} />
+        <Stack.Screen name="ResolutionConfirmation" component={ResolutionConfirmationScreen} options={{ title: 'Confirm Resolution' }} />
+        <Stack.Screen name="Ledger" component={LedgerScreen} options={({ route }) => ({ title: `Ledger — ${route.params.groupName}` })} />
+        <Stack.Screen name="MySlate" component={MySlateScreen} options={{ title: 'My Slate' }} />
+        <Stack.Screen name="GroupFeed" component={GroupFeedScreen} options={({ route }) => ({ title: `Feed — ${route.params.groupName}` })} />
+        <Stack.Screen name="RecordGameCall" component={RecordGameCallScreen} options={{ title: 'Record Game Call' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

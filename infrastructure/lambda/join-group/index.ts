@@ -16,44 +16,39 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
   }
 
-  const body = JSON.parse(event.body ?? '{}') as { inviteCode?: string; groupId?: string };
+  const body = JSON.parse(event.body ?? '{}') as { inviteCode?: string };
   if (!body.inviteCode?.trim()) {
     return { statusCode: 400, body: JSON.stringify({ message: 'inviteCode is required' }) };
   }
-  if (!body.groupId?.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ message: 'groupId is required' }) };
-  }
 
   const code = body.inviteCode.trim().toUpperCase();
-  const groupId = body.groupId.trim();
   const now = new Date().toISOString();
   const nowEpoch = Math.floor(Date.now() / 1000);
 
-  // Fetch the invite code item
-  const inviteResult = await dynamo.send(new GetItemCommand({
+  // Look up groupId from the top-level invite code item
+  const lookupResult = await dynamo.send(new GetItemCommand({
     TableName: TABLE,
-    Key: {
-      PK: { S: `GROUP#${groupId}` },
-      SK: { S: `INVITE#${code}` },
-    },
+    Key: { PK: { S: `INVITE#${code}` }, SK: { S: 'LOOKUP' } },
   }));
 
-  const invite = inviteResult.Item;
+  const lookup = lookupResult.Item;
   if (
-    !invite ||
-    invite.active?.BOOL !== true ||
-    (invite.TTL?.N !== undefined && Number(invite.TTL.N) < nowEpoch)
+    !lookup ||
+    lookup.active?.BOOL !== true ||
+    (lookup.TTL?.N !== undefined && Number(lookup.TTL.N) < nowEpoch)
   ) {
+    return { statusCode: 400, body: JSON.stringify({ code: 'INVALID_INVITE_CODE', message: 'Invite code is invalid or expired' }) };
+  }
+
+  const groupId = lookup.groupId?.S;
+  if (!groupId) {
     return { statusCode: 400, body: JSON.stringify({ code: 'INVALID_INVITE_CODE', message: 'Invite code is invalid or expired' }) };
   }
 
   // Fetch group metadata
   const groupResult = await dynamo.send(new GetItemCommand({
     TableName: TABLE,
-    Key: {
-      PK: { S: `GROUP#${groupId}` },
-      SK: { S: 'METADATA' },
-    },
+    Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: 'METADATA' } },
   }));
 
   const g = groupResult.Item;
@@ -105,8 +100,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     body: JSON.stringify({
       groupId,
       name: g.name?.S,
-      creatorId: g.creatorId?.S,
-      adminIds: g.adminIds?.SS ?? [],
       inviteCode: g.inviteCode?.S,
       createdAt: g.createdAt?.S,
       joinedAt: now,

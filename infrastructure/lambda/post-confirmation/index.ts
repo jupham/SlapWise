@@ -5,7 +5,7 @@ const client = new DynamoDBClient({});
 const TABLE_NAME = process.env.TABLE_NAME!;
 
 export const handler: PostConfirmationTriggerHandler = async (event: PostConfirmationTriggerEvent) => {
-  const playerId = event.userName;
+  const playerId = event.request.userAttributes.sub;
   const email = event.request.userAttributes.email;
   const createdAt = new Date().toISOString();
 

@@ -4,13 +4,19 @@ import { Group, Member } from '../types';
 
 const client = generateClient({ authMode: 'userPool' });
 
-const API_ENDPOINT = 'https://6oberjr6hf.execute-api.us-east-1.amazonaws.com/prod';
-
 async function authFetch(path: string, options: RequestInit): Promise<Response> {
   const { tokens } = await fetchAuthSession();
   const token = tokens?.idToken?.toString();
   if (!token) throw new Error('Not authenticated');
-  return fetch(`${API_ENDPOINT}${path}`, {
+
+  // Import the REST endpoint from amplifyconfiguration at runtime
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const config = require('../../amplifyconfiguration.json') as {
+    API: { REST: { SlapTrackerRest: { endpoint: string } } };
+  };
+  const base = config.API.REST.SlapTrackerRest.endpoint.replace(/\/$/, '');
+
+  return fetch(`${base}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -80,10 +86,10 @@ export const GroupService = {
     return res.json() as Promise<CreateGroupResponse>;
   },
 
-  async joinGroup(groupId: string, inviteCode: string): Promise<JoinGroupResponse> {
+  async joinGroup(inviteCode: string): Promise<JoinGroupResponse> {
     const res = await authFetch('/groups/join', {
       method: 'POST',
-      body: JSON.stringify({ groupId, inviteCode }),
+      body: JSON.stringify({ inviteCode }),
     });
     if (!res.ok) {
       const err = await res.json() as { code?: string; message?: string };
@@ -109,5 +115,22 @@ export const GroupService = {
   async regenerateInviteCode(groupId: string): Promise<string> {
     const result = await client.graphql({ query: REGENERATE_INVITE, variables: { groupId } });
     return (result as { data: { regenerateInviteCode: { inviteCode: string } } }).data.regenerateInviteCode.inviteCode;
+  },
+
+  async getGroup(groupId: string): Promise<Group> {
+    const res = await authFetch(`/groups/${groupId}`, { method: 'GET' });
+    if (!res.ok) {
+      const err = await res.json() as { message?: string };
+      throw new Error(err.message ?? 'Failed to fetch group');
+    }
+    return res.json() as Promise<Group>;
+  },
+
+  async deleteGroup(groupId: string): Promise<void> {
+    const res = await authFetch(`/groups/${groupId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json() as { message?: string };
+      throw new Error(err.message ?? 'Failed to delete group');
+    }
   },
 };

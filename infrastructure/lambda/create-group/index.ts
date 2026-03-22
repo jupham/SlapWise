@@ -76,13 +76,28 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           },
         },
       },
-      // Active invite code
+      // Active invite code (under group for batch delete)
       {
         Put: {
           TableName: TABLE,
           Item: {
             PK: { S: `GROUP#${groupId}` },
             SK: { S: `INVITE#${inviteCode}` },
+            code: { S: inviteCode },
+            groupId: { S: groupId },
+            createdAt: { S: now },
+            active: { BOOL: true },
+            TTL: { N: String(ttl) },
+          },
+        },
+      },
+      // Top-level invite code lookup (for join-by-code-only)
+      {
+        Put: {
+          TableName: TABLE,
+          Item: {
+            PK: { S: `INVITE#${inviteCode}` },
+            SK: { S: 'LOOKUP' },
             code: { S: inviteCode },
             groupId: { S: groupId },
             createdAt: { S: now },

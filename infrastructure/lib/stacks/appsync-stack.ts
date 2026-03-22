@@ -7,6 +7,7 @@ import { Construct } from 'constructs';
 import { LambdaStack } from './lambda-stack';
 
 export interface AppSyncStackProps extends cdk.StackProps {
+  stage: string;
   table: dynamodb.Table;
   userPool: cognito.UserPool;
   lambdaStack: LambdaStack;
@@ -18,10 +19,10 @@ export class AppSyncStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AppSyncStackProps) {
     super(scope, id, props);
 
-    const { table, userPool, lambdaStack } = props;
+    const { stage, table, userPool, lambdaStack } = props;
 
     this.api = new appsync.GraphqlApi(this, 'SlapTrackerApi', {
-      name: 'SlapTrackerApi',
+      name: `${stage}-SlapTrackerApi`,
       schema: appsync.SchemaFile.fromAsset(
         path.join(__dirname, '../graphql/schema.graphql')
       ),
@@ -41,6 +42,11 @@ export class AppSyncStack extends cdk.Stack {
 
     const ddbDataSource = this.api.addDynamoDbDataSource('SlapTrackerDdbSource', table);
 
+    const createChallengeDs = this.api.addLambdaDataSource(
+      'CreateChallengeDs',
+      lambdaStack.createChallengeFn
+    );
+
     const submitResolutionDs = this.api.addLambdaDataSource(
       'SubmitResolutionDs',
       lambdaStack.submitResolutionConfirmationFn
@@ -51,19 +57,24 @@ export class AppSyncStack extends cdk.Stack {
       lambdaStack.confirmDeliveryFn
     );
 
+    const voidDebtDs = this.api.addLambdaDataSource(
+      'VoidDebtDs',
+      lambdaStack.voidDebtFn
+    );
+
+    const regenerateInviteCodeDs = this.api.addLambdaDataSource(
+      'RegenerateInviteCodeDs',
+      lambdaStack.regenerateInviteCodeFn
+    );
+
     const recordGameCallDs = this.api.addLambdaDataSource(
       'RecordGameCallDs',
       lambdaStack.recordGameCallFn
     );
 
-    const leaveGroupDs = this.api.addLambdaDataSource(
-      'LeaveGroupDs',
-      lambdaStack.leaveGroupFn
-    );
+    // ── Query Resolvers ───────────────────────────────────────────────────────
 
-    // ── Query Resolvers (DynamoDB VTL) ────────────────────────────────────────
-
-    // getGroups: query GSI1 with PLAYER#<playerId>, filter to MEMBER records only
+    // getGroups: query GSI1 — all groups the calling player is a member of
     ddbDataSource.createResolver('GetGroupsResolver', {
       typeName: 'Query',
       fieldName: 'getGroups',
@@ -81,9 +92,7 @@ export class AppSyncStack extends cdk.Stack {
   }
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
     // getGroupMembers: query GROUP#<groupId> / MEMBER#*
@@ -103,39 +112,32 @@ $util.toJson($ctx.result.items)
   }
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
-    // getPendingDebts: query GSI2 with GROUP#<groupId>#STATUS#pending
-    ddbDataSource.createResolver('GetPendingDebtsResolver', {
+    // getDebt: GetItem by PK/SK
+    ddbDataSource.createResolver('GetDebtResolver', {
       typeName: 'Query',
-      fieldName: 'getPendingDebts',
+      fieldName: 'getDebt',
       requestMappingTemplate: appsync.MappingTemplate.fromString(`
 {
   "version": "2017-02-28",
-  "operation": "Query",
-  "index": "GSI2",
-  "query": {
-    "expression": "GSI2PK = :pk",
-    "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId#STATUS#pending")
-    }
+  "operation": "GetItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
+    "SK": $util.dynamodb.toDynamoDBJson("DEBT#$ctx.args.debtId")
   }
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result)`),
     });
 
-    // getDebts: query GSI2 with optional status filter
+    // getDebts: query GSI2 with optional status filter (defaults to pending)
     ddbDataSource.createResolver('GetDebtsResolver', {
       typeName: 'Query',
       fieldName: 'getDebts',
       requestMappingTemplate: appsync.MappingTemplate.fromString(`
-#set($status = $util.defaultIfNullOrBlank($ctx.args.status, "resolved"))
+#set($status = $util.defaultIfNullOrBlank($ctx.args.status, "pending"))
 {
   "version": "2017-02-28",
   "operation": "Query",
@@ -145,60 +147,35 @@ $util.toJson($ctx.result.items)
     "expressionValues": {
       ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId#STATUS#$status")
     }
-  }
+  },
+  "scanIndexForward": false
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
-    // getNetSummary: Lambda resolver (aggregation logic)
-    ddbDataSource.createResolver('GetNetSummaryResolver', {
+    // getMyDebts: query GSI4 — all debts for the calling player in a group (single query, full card data)
+    ddbDataSource.createResolver('GetMyDebtsResolver', {
       typeName: 'Query',
-      fieldName: 'getNetSummary',
+      fieldName: 'getMyDebts',
       requestMappingTemplate: appsync.MappingTemplate.fromString(`
 {
   "version": "2017-02-28",
   "operation": "Query",
-  "index": "GSI2",
+  "index": "GSI4",
   "query": {
-    "expression": "GSI2PK = :pk",
+    "expression": "GSI4PK = :pk",
     "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId#STATUS#resolved")
+      ":pk": $util.dynamodb.toDynamoDBJson("PLAYER#$ctx.identity.sub#GROUP#$ctx.args.groupId")
     }
-  }
+  },
+  "scanIndexForward": false
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-## Stub: aggregation computed client-side for now
-$util.toJson([])
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
-    // getGames: query GROUP#<groupId> / GAME#*
-    ddbDataSource.createResolver('GetGamesResolver', {
-      typeName: 'Query',
-      fieldName: 'getGames',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-{
-  "version": "2017-02-28",
-  "operation": "Query",
-  "query": {
-    "expression": "PK = :pk AND begins_with(SK, :sk)",
-    "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-      ":sk": $util.dynamodb.toDynamoDBJson("GAME#")
-    }
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
-    });
-
-    // getReadInPlayers: query MEMBER#* filtered by isReadIn
+    // getReadInPlayers: query MEMBER#* filtered by isReadIn = true
     ddbDataSource.createResolver('GetReadInPlayersResolver', {
       typeName: 'Query',
       fieldName: 'getReadInPlayers',
@@ -221,9 +198,7 @@ $util.toJson($ctx.result.items)
   }
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
     // getChugEvents: query GROUP#<groupId> / CHUG#*
@@ -240,15 +215,14 @@ $util.toJson($ctx.result.items)
       ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
       ":sk": $util.dynamodb.toDynamoDBJson("CHUG#")
     }
-  }
+  },
+  "scanIndexForward": false
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
-    // getFeed: query GROUP#<groupId> / FEED#*
+    // getFeed: query GROUP#<groupId> / FEED#* — newest first
     ddbDataSource.createResolver('GetFeedResolver', {
       typeName: 'Query',
       fieldName: 'getFeed',
@@ -263,40 +237,15 @@ $util.toJson($ctx.result.items)
       ":sk": $util.dynamodb.toDynamoDBJson("FEED#")
     }
   },
-  "scanIndexForward": true
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
-    });
-
-    // getInboxNotifications: query PLAYER#<playerId> / NOTIF#*
-    ddbDataSource.createResolver('GetInboxNotificationsResolver', {
-      typeName: 'Query',
-      fieldName: 'getInboxNotifications',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-{
-  "version": "2017-02-28",
-  "operation": "Query",
-  "query": {
-    "expression": "PK = :pk AND begins_with(SK, :sk)",
-    "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("PLAYER#$ctx.identity.sub"),
-      ":sk": $util.dynamodb.toDynamoDBJson("NOTIF#")
-    }
-  },
   "scanIndexForward": false
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result.items)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
     // ── Mutation Resolvers ────────────────────────────────────────────────────
 
-    // designateAdmin: check caller is creatorId, append to adminIds
+    // designateAdmin: caller must be creatorId
     ddbDataSource.createResolver('DesignateAdminResolver', {
       typeName: 'Mutation',
       fieldName: 'designateAdmin',
@@ -330,96 +279,23 @@ $util.toJson($ctx.result)
       `),
     });
 
-    // regenerateInviteCode: update inviteCode on group metadata
-    ddbDataSource.createResolver('RegenerateInviteCodeResolver', {
+    // regenerateInviteCode: Lambda (writes new INVITE# lookup item)
+    regenerateInviteCodeDs.createResolver('RegenerateInviteCodeResolver', {
       typeName: 'Mutation',
       fieldName: 'regenerateInviteCode',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-#set($newCode = $util.autoId().substring(0, 8).toUpperCase())
-{
-  "version": "2017-02-28",
-  "operation": "UpdateItem",
-  "key": {
-    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-    "SK": $util.dynamodb.toDynamoDBJson("METADATA")
-  },
-  "update": {
-    "expression": "SET inviteCode = :code",
-    "expressionValues": {
-      ":code": $util.dynamodb.toDynamoDBJson($newCode)
-    }
-  },
-  "condition": {
-    "expression": "creatorId = :callerId OR contains(adminIds, :callerId)",
-    "expressionValues": {
-      ":callerId": $util.dynamodb.toDynamoDBJson("$ctx.identity.sub")
-    }
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-#if($ctx.error)
-  $util.error($ctx.error.message, "PERMISSION_DENIED")
-#end
-$util.toJson($ctx.result)
-      `),
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // createChallenge: write DEBT item with status=pending
-    ddbDataSource.createResolver('CreateChallengeResolver', {
+    // createChallenge: Lambda (TransactWrite — DEBT + 2× PLAYERDEBT + FEED entry)
+    createChallengeDs.createResolver('CreateChallengeResolver', {
       typeName: 'Mutation',
       fieldName: 'createChallenge',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-#if($ctx.args.statementMakerId == $ctx.identity.sub)
-  $util.error("Cannot challenge yourself", "SELF_CHALLENGE_ERROR")
-#end
-#if($util.isNullOrBlank($ctx.args.statement))
-  $util.error("Statement is required", "VALIDATION_ERROR")
-#end
-#set($debtId = $util.autoId())
-#set($now = $util.time.nowISO8601())
-{
-  "version": "2017-02-28",
-  "operation": "PutItem",
-  "key": {
-    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-    "SK": $util.dynamodb.toDynamoDBJson("DEBT#$debtId")
-  },
-  "attributeValues": {
-    "debtId": $util.dynamodb.toDynamoDBJson($debtId),
-    "groupId": $util.dynamodb.toDynamoDBJson("$ctx.args.groupId"),
-    "gameType": $util.dynamodb.toDynamoDBJson("manchester"),
-    "customGameId": $util.dynamodb.toDynamoDBJson(null),
-    "status": $util.dynamodb.toDynamoDBJson("pending"),
-    "shameStatus": $util.dynamodb.toDynamoDBJson(false),
-    "debtorId": $util.dynamodb.toDynamoDBJson(null),
-    "creditorId": $util.dynamodb.toDynamoDBJson(null),
-    "challengerId": $util.dynamodb.toDynamoDBJson("$ctx.identity.sub"),
-    "statementMakerId": $util.dynamodb.toDynamoDBJson("$ctx.args.statementMakerId"),
-    "statement": $util.dynamodb.toDynamoDBJson("$ctx.args.statement"),
-    "reason": $util.dynamodb.toDynamoDBJson(null),
-    "createdAt": $util.dynamodb.toDynamoDBJson($now),
-    "resolvedAt": $util.dynamodb.toDynamoDBJson(null),
-    "deliveredAt": $util.dynamodb.toDynamoDBJson(null),
-    "voidedAt": $util.dynamodb.toDynamoDBJson(null),
-    "voidReason": $util.dynamodb.toDynamoDBJson(null),
-    "challengerConfirmation": $util.dynamodb.toDynamoDBJson(null),
-    "statementMakerConfirmation": $util.dynamodb.toDynamoDBJson(null),
-    "debtorDeliveryConfirmed": $util.dynamodb.toDynamoDBJson(false),
-    "creditorDeliveryConfirmed": $util.dynamodb.toDynamoDBJson(false),
-    "GSI2PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId#STATUS#pending"),
-    "GSI2SK": $util.dynamodb.toDynamoDBJson("DEBT#$debtId"),
-    "GSI3PK": $util.dynamodb.toDynamoDBJson(null),
-    "GSI3SK": $util.dynamodb.toDynamoDBJson(null)
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result)
-      `),
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // submitResolutionConfirmation: Lambda resolver
+    // submitResolutionConfirmation: Lambda
     submitResolutionDs.createResolver('SubmitResolutionConfirmationResolver', {
       typeName: 'Mutation',
       fieldName: 'submitResolutionConfirmation',
@@ -427,7 +303,7 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // confirmDelivery: Lambda resolver
+    // confirmDelivery: Lambda
     confirmDeliveryDs.createResolver('ConfirmDeliveryResolver', {
       typeName: 'Mutation',
       fieldName: 'confirmDelivery',
@@ -435,84 +311,15 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // createGame: write GAME item, check for duplicate name
-    ddbDataSource.createResolver('CreateGameResolver', {
+    // voidDebt: Lambda (hard-delete DEBT + 2× PLAYERDEBT via TransactWrite)
+    voidDebtDs.createResolver('VoidDebtResolver', {
       typeName: 'Mutation',
-      fieldName: 'createGame',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-#set($gameId = $util.autoId())
-#set($now = $util.time.nowISO8601())
-{
-  "version": "2017-02-28",
-  "operation": "PutItem",
-  "key": {
-    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-    "SK": $util.dynamodb.toDynamoDBJson("GAME#$gameId")
-  },
-  "attributeValues": {
-    "gameId": $util.dynamodb.toDynamoDBJson($gameId),
-    "groupId": $util.dynamodb.toDynamoDBJson("$ctx.args.groupId"),
-    "name": $util.dynamodb.toDynamoDBJson("$ctx.args.name"),
-    "rules": $util.dynamodb.toDynamoDBJson("$ctx.args.rules"),
-    "createdBy": $util.dynamodb.toDynamoDBJson("$ctx.identity.sub"),
-    "createdAt": $util.dynamodb.toDynamoDBJson($now)
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result)
-      `),
+      fieldName: 'voidDebt',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // createDebt: write custom DEBT item
-    ddbDataSource.createResolver('CreateDebtResolver', {
-      typeName: 'Mutation',
-      fieldName: 'createDebt',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-#set($debtId = $util.autoId())
-#set($now = $util.time.nowISO8601())
-{
-  "version": "2017-02-28",
-  "operation": "PutItem",
-  "key": {
-    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-    "SK": $util.dynamodb.toDynamoDBJson("DEBT#$debtId")
-  },
-  "attributeValues": {
-    "debtId": $util.dynamodb.toDynamoDBJson($debtId),
-    "groupId": $util.dynamodb.toDynamoDBJson("$ctx.args.groupId"),
-    "gameType": $util.dynamodb.toDynamoDBJson("custom"),
-    "customGameId": $util.dynamodb.toDynamoDBJson("$ctx.args.gameId"),
-    "status": $util.dynamodb.toDynamoDBJson("resolved"),
-    "shameStatus": $util.dynamodb.toDynamoDBJson(false),
-    "debtorId": $util.dynamodb.toDynamoDBJson("$ctx.args.debtorId"),
-    "creditorId": $util.dynamodb.toDynamoDBJson("$ctx.args.creditorId"),
-    "challengerId": $util.dynamodb.toDynamoDBJson(null),
-    "statementMakerId": $util.dynamodb.toDynamoDBJson(null),
-    "statement": $util.dynamodb.toDynamoDBJson(null),
-    "reason": $util.dynamodb.toDynamoDBJson("$ctx.args.reason"),
-    "createdAt": $util.dynamodb.toDynamoDBJson($now),
-    "resolvedAt": $util.dynamodb.toDynamoDBJson($now),
-    "deliveredAt": $util.dynamodb.toDynamoDBJson(null),
-    "voidedAt": $util.dynamodb.toDynamoDBJson(null),
-    "voidReason": $util.dynamodb.toDynamoDBJson(null),
-    "challengerConfirmation": $util.dynamodb.toDynamoDBJson(null),
-    "statementMakerConfirmation": $util.dynamodb.toDynamoDBJson(null),
-    "debtorDeliveryConfirmed": $util.dynamodb.toDynamoDBJson(false),
-    "creditorDeliveryConfirmed": $util.dynamodb.toDynamoDBJson(false),
-    "GSI2PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId#STATUS#resolved"),
-    "GSI2SK": $util.dynamodb.toDynamoDBJson("DEBT#$debtId"),
-    "GSI3PK": $util.dynamodb.toDynamoDBJson("PLAYER#$ctx.args.debtorId"),
-    "GSI3SK": $util.dynamodb.toDynamoDBJson("DEBT#$debtId")
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result)
-      `),
-    });
-
-    // confirmReadIn: set isReadIn=true with conditional expression
+    // confirmReadIn: set isReadIn=true on the calling player's MEMBER record
     ddbDataSource.createResolver('ConfirmReadInResolver', {
       typeName: 'Mutation',
       fieldName: 'confirmReadIn',
@@ -540,12 +347,10 @@ $util.toJson($ctx.result)
   }
 }
       `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result)
-      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result)`),
     });
 
-    // setReadInGameName: admin-only update
+    // setReadInGameName: admin-only update on GROUP METADATA
     ddbDataSource.createResolver('SetReadInGameNameResolver', {
       typeName: 'Mutation',
       fieldName: 'setReadInGameName',
@@ -579,7 +384,7 @@ $util.toJson($ctx.result)
       `),
     });
 
-    // recordGameCall: Lambda resolver
+    // recordGameCall: Lambda (writes CHUG item + FEED entry)
     recordGameCallDs.createResolver('RecordGameCallResolver', {
       typeName: 'Mutation',
       fieldName: 'recordGameCall',
@@ -587,45 +392,21 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // markRead: update notification read status
-    ddbDataSource.createResolver('MarkReadResolver', {
-      typeName: 'Mutation',
-      fieldName: 'markRead',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-{
-  "version": "2017-02-28",
-  "operation": "UpdateItem",
-  "key": {
-    "PK": $util.dynamodb.toDynamoDBJson("PLAYER#$ctx.identity.sub"),
-    "SK": $util.dynamodb.toDynamoDBJson("NOTIF#$ctx.args.notifId")
-  },
-  "update": {
-    "expression": "SET #r = :true",
-    "expressionNames": { "#r": "read" },
-    "expressionValues": {
-      ":true": $util.dynamodb.toDynamoDBJson(true)
-    }
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
-$util.toJson($ctx.result)
-      `),
-    });
+    // ── Outputs ───────────────────────────────────────────────────────────────
 
     new cdk.CfnOutput(this, 'AppSyncEndpoint', {
       value: this.api.graphqlUrl,
-      exportName: 'SlapTrackerAppSyncEndpoint',
+      exportName: `${stage}-SlapTrackerAppSyncEndpoint`,
     });
 
     new cdk.CfnOutput(this, 'AppSyncApiId', {
       value: this.api.apiId,
-      exportName: 'SlapTrackerAppSyncApiId',
+      exportName: `${stage}-SlapTrackerAppSyncApiId`,
     });
 
     new cdk.CfnOutput(this, 'AppSyncRegion', {
       value: this.region,
-      exportName: 'SlapTrackerAppSyncRegion',
+      exportName: `${stage}-SlapTrackerAppSyncRegion`,
     });
   }
 }

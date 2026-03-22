@@ -8,4 +8,9 @@ export type RootStackParamList = {
   JoinGroup: undefined;
   CreateChallenge: { groupId: string; groupName: string };
   PendingDebts: { groupId: string; groupName: string };
+  ResolutionConfirmation: { debtId: string; groupId: string; groupName: string };
+  Ledger: { groupId: string; groupName: string };
+  MySlate: { groupId: string; groupName: string };
+  GroupFeed: { groupId: string; groupName: string };
+  RecordGameCall: { groupId: string; groupName: string };
 };

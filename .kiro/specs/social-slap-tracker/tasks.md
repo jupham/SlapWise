@@ -152,14 +152,14 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
     - **Validates: Requirements 2.3, 2.4**
     - `// Feature: social-slap-tracker, Property 9: Valid challenge creates debt with status=pending visible in pending query`
 
-- [ ] 7. Implement Manchester challenge resolution
-  - [ ] 7.1 Implement `submitResolutionConfirmation` Lambda resolver
+- [x] 7. Implement Manchester challenge resolution
+  - [x] 7.1 Implement `submitResolutionConfirmation` Lambda resolver
     - Validate caller is challenger or statementMaker (else `UNAUTHORIZED`); validate debt is not terminal (else `DEBT_ALREADY_TERMINAL`); validate caller is group member (else `UNAUTHORIZED`)
     - First confirmation: record outcome on `challengerConfirmation` or `statementMakerConfirmation`, set `status: "pending_confirmation"` via conditional DynamoDB write
     - Second confirmation: compare outcomes; if both `followed_through` → set `debtorId=challengerId`, `creditorId=statementMakerId`, `status: "resolved"`, `resolvedAt`; if both `did_not_follow_through` → reverse; if disagree → `status: "disputed"`; update `GSI2PK` and `GSI3PK` accordingly
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10_
 
-  - [ ] 7.2 Build resolution confirmation screen
+  - [x] 7.2 Build resolution confirmation screen
     - Show debt details; outcome selector (followed through / did not follow through); submit button
     - Display pending confirmation state when waiting for second party
     - Display disputed state with manual review flag
@@ -193,19 +193,19 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
 - [ ] 8. Checkpoint — ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. Implement slap debt ledger and delivery confirmation
-  - [ ] 9.1 Implement `getDebts` AppSync query with filters
+  - [x] 9.1 Implement `getDebts` AppSync query with filters
     - Query GSI2 by status; support filter parameters for `gameType`, `playerId`, `status`; wire subscription
     - _Requirements: 4.1, 4.5_
 
-  - [ ] 9.2 Implement `getNetSummary` AppSync resolver
+  - [x] 9.2 Implement `getNetSummary` AppSync resolver
     - Aggregate resolved-but-not-delivered debts per player pair; exclude delivered debts from summary
     - _Requirements: 4.2, 4.4_
 
-  - [ ] 9.3 Implement `confirmDelivery` Lambda resolver
+  - [x] 9.3 Implement `confirmDelivery` Lambda resolver
     - Record `debtorDeliveryConfirmed` or `creditorDeliveryConfirmed` on first call; on second call set `status: "delivered"`, `deliveredAt` via conditional DynamoDB write; update `GSI2PK`
     - _Requirements: 4.3, 4.4_
 
-  - [ ] 9.4 Build ledger screen with filter controls and net summary
+  - [x] 9.4 Build ledger screen with filter controls and net summary
     - Ledger list with debtor, creditor, reason, game, timestamp columns
     - Filter bar (game type, player, status)
     - Net summary section per player pair

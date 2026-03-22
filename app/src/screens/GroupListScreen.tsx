@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
+import { AuthService } from '../services/AuthService';
+import { useStore } from '../store';
 import { Group } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -18,6 +20,13 @@ export default function GroupListScreen({ navigation }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const setPlayer = useStore((s) => s.setPlayer);
+
+  const handleLogout = useCallback(async () => {
+    await AuthService.logout();
+    setPlayer(null);
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  }, [navigation, setPlayer]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +50,16 @@ export default function GroupListScreen({ navigation }: Props) {
     const unsub = navigation.addListener('focus', () => { void load(); });
     return unsub;
   }, [navigation, load]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleLogout} style={{ marginRight: 8 }}>
+          <Text style={{ color: '#FF3B30', fontWeight: '600' }}>Logout</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, handleLogout]);
 
   if (loading) {
     return <ActivityIndicator style={styles.center} />;

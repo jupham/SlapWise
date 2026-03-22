@@ -62,6 +62,7 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (e) {
+      console.error('[CreateChallengeScreen] createChallenge failed:', e);
       const msg = e instanceof Error ? e.message : 'Failed to create challenge';
       if (msg.includes('SELF_CHALLENGE_ERROR')) {
         setErrors({ member: 'You cannot challenge yourself' });
@@ -94,7 +95,7 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
             }}
           >
             <Text style={[styles.memberName, selectedMemberId === item.playerId && styles.memberNameSelected]}>
-              {item.playerId}
+              {item.username ?? item.playerId}
             </Text>
           </TouchableOpacity>
         )}

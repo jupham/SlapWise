@@ -6,9 +6,12 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
 export interface ApiGatewayStackProps extends cdk.StackProps {
+  stage: string;
   userPool: cognito.UserPool;
   createGroupFn: lambda.Function;
   joinGroupFn: lambda.Function;
+  getGroupFn: lambda.Function;
+  deleteGroupFn: lambda.Function;
 }
 
 export class ApiGatewayStack extends cdk.Stack {
@@ -17,7 +20,7 @@ export class ApiGatewayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiGatewayStackProps) {
     super(scope, id, props);
 
-    const { userPool, createGroupFn, joinGroupFn } = props;
+    const { stage, userPool, createGroupFn, joinGroupFn, getGroupFn, deleteGroupFn } = props;
 
     // Required account-level setting: CloudWatch Logs role for API Gateway
     const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
@@ -34,7 +37,7 @@ export class ApiGatewayStack extends cdk.Stack {
     });
 
     this.api = new apigateway.RestApi(this, 'SlapTrackerRestApi', {
-      restApiName: 'SlapTrackerApi',
+      restApiName: `${stage}-SlapTrackerApi`,
       description: 'SlapWise REST API for group management',
       deployOptions: {
         stageName: 'prod',
@@ -81,9 +84,22 @@ export class ApiGatewayStack extends cdk.Stack {
       authMethodOptions
     );
 
+    // DELETE /groups/{groupId}
+    const groupResource = groupsResource.addResource('{groupId}');
+    groupResource.addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(getGroupFn),
+      authMethodOptions
+    );
+    groupResource.addMethod(
+      'DELETE',
+      new apigateway.LambdaIntegration(deleteGroupFn),
+      authMethodOptions
+    );
+
     new cdk.CfnOutput(this, 'ApiGatewayEndpoint', {
       value: this.api.url,
-      exportName: 'SlapTrackerApiGatewayEndpoint',
+      exportName: `${stage}-SlapTrackerApiGatewayEndpoint`,
     });
   }
 }

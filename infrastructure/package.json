@@ -6,7 +6,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "cdk": "cdk",
-    "deploy": "cdk deploy --all --profile slapwise --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
+    "deploy": "tsc && cdk deploy --all --profile slapwise --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
     "synth": "cdk synth --profile slaptracker"
   },
   "devDependencies": {

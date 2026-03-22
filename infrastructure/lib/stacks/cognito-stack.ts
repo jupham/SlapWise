@@ -5,6 +5,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
 export interface CognitoStackProps extends cdk.StackProps {
+  stage: string;
   preSignUpFn: lambda.Function;
   postConfirmationFn: lambda.Function;
 }
@@ -17,10 +18,10 @@ export class CognitoStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: CognitoStackProps) {
     super(scope, id, props);
 
-    const { preSignUpFn, postConfirmationFn } = props;
+    const { stage, preSignUpFn, postConfirmationFn } = props;
 
     this.userPool = new cognito.UserPool(this, 'SlapTrackerUserPool', {
-      userPoolName: 'SlapTrackerUserPool',
+      userPoolName: `${stage}-SlapTrackerUserPool`,
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
@@ -48,7 +49,7 @@ export class CognitoStack extends cdk.Stack {
 
     this.userPoolClient = new cognito.UserPoolClient(this, 'SlapTrackerUserPoolClient', {
       userPool: this.userPool,
-      userPoolClientName: 'SlapTrackerMobileClient',
+      userPoolClientName: `${stage}-SlapTrackerMobileClient`,
       authFlows: {
         userSrp: true,
         userPassword: false,
@@ -61,7 +62,7 @@ export class CognitoStack extends cdk.Stack {
     });
 
     this.identityPool = new cognito.CfnIdentityPool(this, 'SlapTrackerIdentityPool', {
-      identityPoolName: 'SlapTrackerIdentityPool',
+      identityPoolName: `${stage}-SlapTrackerIdentityPool`,
       allowUnauthenticatedIdentities: false,
       cognitoIdentityProviders: [
         {
@@ -92,22 +93,22 @@ export class CognitoStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'UserPoolId', {
       value: this.userPool.userPoolId,
-      exportName: 'SlapTrackerUserPoolId',
+      exportName: `${stage}-SlapTrackerUserPoolId`,
     });
 
     new cdk.CfnOutput(this, 'UserPoolClientId', {
       value: this.userPoolClient.userPoolClientId,
-      exportName: 'SlapTrackerUserPoolClientId',
+      exportName: `${stage}-SlapTrackerUserPoolClientId`,
     });
 
     new cdk.CfnOutput(this, 'IdentityPoolId', {
       value: this.identityPool.ref,
-      exportName: 'SlapTrackerIdentityPoolId',
+      exportName: `${stage}-SlapTrackerIdentityPoolId`,
     });
 
     new cdk.CfnOutput(this, 'UserPoolRegion', {
       value: this.region,
-      exportName: 'SlapTrackerUserPoolRegion',
+      exportName: `${stage}-SlapTrackerUserPoolRegion`,
     });
   }
 }

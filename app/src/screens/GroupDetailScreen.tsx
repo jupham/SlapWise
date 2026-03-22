@@ -11,27 +11,39 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
-import { Member } from '../types';
+import { useStore } from '../store';
+import { Group, Member } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetail' | 'PendingDebts' | 'CreateChallenge'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetail'>;
 
 export default function GroupDetailScreen({ route, navigation }: Props) {
   const { groupId, groupName } = route.params;
   const [members, setMembers] = useState<Member[]>([]);
+  const [group, setGroup] = useState<Group | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const player = useStore((s) => s.player);
+  const groups = useStore((s) => s.groups);
+  const setGroups = useStore((s) => s.setGroups);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await GroupService.getGroupMembers(groupId);
+      const [data, groupDetail] = await Promise.all([
+        GroupService.getGroupMembers(groupId),
+        GroupService.getGroup(groupId),
+      ]);
       setMembers(data);
+      setGroup(groupDetail);
+      if (groupDetail.inviteCode) setInviteCode(groupDetail.inviteCode);
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { void load(); }, [load]);
 
@@ -51,6 +63,36 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
       setRegenerating(false);
     }
   };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Group',
+      `Are you sure you want to delete "${groupName}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await GroupService.deleteGroup(groupId);
+              const updated = groups.filter((g) => g.groupId !== groupId);
+              setGroups(updated);
+              navigation.goBack();
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : 'Failed to delete group';
+              Alert.alert('Error', msg);
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const isCreator = player?.playerId === group?.creatorId;
 
   if (loading) return <ActivityIndicator style={styles.center} />;
 
@@ -79,6 +121,27 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         <Text style={styles.manchesterBtnText}>Pending Challenges</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.manchesterBtn}
+        onPress={() => navigation.navigate('MySlate', { groupId, groupName })}
+      >
+        <Text style={styles.manchesterBtnText}>My Slate</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.manchesterBtn}
+        onPress={() => navigation.navigate('GroupFeed', { groupId, groupName })}
+      >
+        <Text style={styles.manchesterBtnText}>Group Feed</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.manchesterBtn}
+        onPress={() => navigation.navigate('RecordGameCall', { groupId, groupName })}
+      >
+        <Text style={styles.manchesterBtnText}>Record Game Call</Text>
+      </TouchableOpacity>
+
       <Text style={styles.sectionTitle}>Members ({members.length})</Text>
       <FlatList
         data={members}
@@ -90,6 +153,16 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
           </View>
         )}
       />
+
+      {isCreator && (
+        <TouchableOpacity
+          style={[styles.deleteBtn, deleting && styles.btnDisabled]}
+          onPress={handleDelete}
+          disabled={deleting}
+        >
+          <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete Group'}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -111,4 +184,7 @@ const styles = StyleSheet.create({
   memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderColor: '#eee' },
   memberName: { flex: 1, fontSize: 15 },
   badge: { backgroundColor: '#FF9500', color: '#fff', fontSize: 11, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  deleteBtn: { marginTop: 24, backgroundColor: '#FF3B30', padding: 14, borderRadius: 8, alignItems: 'center' },
+  deleteBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  btnDisabled: { opacity: 0.6 },
 });

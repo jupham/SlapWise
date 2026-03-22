@@ -7,6 +7,7 @@ import * as path from 'path';
 import { Construct } from 'constructs';
 
 export interface LambdaStackProps extends cdk.StackProps {
+  stage: string;
   table: dynamodb.Table;
   snsTopic: sns.Topic;
 }
@@ -16,16 +17,21 @@ export class LambdaStack extends cdk.Stack {
   public readonly postConfirmationFn: lambda.Function;
   public readonly createGroupFn: lambda.Function;
   public readonly joinGroupFn: lambda.Function;
+  public readonly getGroupFn: lambda.Function;
+  public readonly deleteGroupFn: lambda.Function;
+  public readonly createChallengeFn: lambda.Function;
   public readonly submitResolutionConfirmationFn: lambda.Function;
   public readonly confirmDeliveryFn: lambda.Function;
   public readonly recordGameCallFn: lambda.Function;
+  public readonly regenerateInviteCodeFn: lambda.Function;
+  public readonly voidDebtFn: lambda.Function;
   public readonly leaveGroupFn: lambda.Function;
   public readonly notificationDispatcherFn: lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
 
-    const { table, snsTopic } = props;
+    const { stage, table, snsTopic } = props;
 
     const commonEnv = {
       TABLE_NAME: table.tableName,
@@ -42,7 +48,7 @@ export class LambdaStack extends cdk.Stack {
     // Pre-sign-up trigger (username uniqueness check)
     this.preSignUpFn = new lambda.Function(this, 'PreSignUpFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-pre-sign-up',
+      functionName: `${stage}-slap-tracker-pre-sign-up`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/pre-sign-up')),
       environment: { TABLE_NAME: table.tableName },
@@ -52,7 +58,7 @@ export class LambdaStack extends cdk.Stack {
     // Post-confirmation trigger (write player profile to DynamoDB)
     this.postConfirmationFn = new lambda.Function(this, 'PostConfirmationFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-post-confirmation',
+      functionName: `${stage}-slap-tracker-post-confirmation`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/post-confirmation')),
       environment: { TABLE_NAME: table.tableName },
@@ -62,7 +68,7 @@ export class LambdaStack extends cdk.Stack {
     // createGroup Lambda (invoked via API Gateway)
     this.createGroupFn = new lambda.Function(this, 'CreateGroupFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-create-group',
+      functionName: `${stage}-slap-tracker-create-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-group')),
       environment: commonEnv,
@@ -72,17 +78,47 @@ export class LambdaStack extends cdk.Stack {
     // joinGroup Lambda (invoked via API Gateway)
     this.joinGroupFn = new lambda.Function(this, 'JoinGroupFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-join-group',
+      functionName: `${stage}-slap-tracker-join-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/join-group')),
       environment: commonEnv,
     });
     table.grantReadWriteData(this.joinGroupFn);
 
+    // getGroup Lambda (invoked via API Gateway)
+    this.getGroupFn = new lambda.Function(this, 'GetGroupFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-get-group`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/get-group')),
+      environment: commonEnv,
+    });
+    table.grantReadData(this.getGroupFn);
+
+    // deleteGroup Lambda (invoked via API Gateway)
+    this.deleteGroupFn = new lambda.Function(this, 'DeleteGroupFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-delete-group`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/delete-group')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.deleteGroupFn);
+
+    // createChallenge Lambda (AppSync resolver — TransactWrite for GSI4 fan-out)
+    this.createChallengeFn = new lambda.Function(this, 'CreateChallengeFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-create-challenge`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-challenge')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.createChallengeFn);
+
     // submitResolutionConfirmation Lambda (AppSync resolver)
     this.submitResolutionConfirmationFn = new lambda.Function(this, 'SubmitResolutionConfirmationFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-submit-resolution-confirmation',
+      functionName: `${stage}-slap-tracker-submit-resolution-confirmation`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/submit-resolution-confirmation')),
       environment: commonEnv,
@@ -93,7 +129,7 @@ export class LambdaStack extends cdk.Stack {
     // confirmDelivery Lambda (AppSync resolver)
     this.confirmDeliveryFn = new lambda.Function(this, 'ConfirmDeliveryFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-confirm-delivery',
+      functionName: `${stage}-slap-tracker-confirm-delivery`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-delivery')),
       environment: commonEnv,
@@ -104,7 +140,7 @@ export class LambdaStack extends cdk.Stack {
     // recordGameCall Lambda (AppSync resolver)
     this.recordGameCallFn = new lambda.Function(this, 'RecordGameCallFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-record-game-call',
+      functionName: `${stage}-slap-tracker-record-game-call`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/record-game-call')),
       environment: commonEnv,
@@ -112,10 +148,30 @@ export class LambdaStack extends cdk.Stack {
     table.grantReadWriteData(this.recordGameCallFn);
     snsTopic.grantPublish(this.recordGameCallFn);
 
+    // regenerateInviteCode Lambda (AppSync resolver)
+    this.regenerateInviteCodeFn = new lambda.Function(this, 'RegenerateInviteCodeFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-regenerate-invite-code`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/regenerate-invite-code')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.regenerateInviteCodeFn);
+
+    // voidDebt Lambda (AppSync resolver — hard-delete DEBT + 2× PLAYERDEBT)
+    this.voidDebtFn = new lambda.Function(this, 'VoidDebtFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-void-debt`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/void-debt')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.voidDebtFn);
+
     // leaveGroup Lambda (AppSync resolver)
     this.leaveGroupFn = new lambda.Function(this, 'LeaveGroupFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-leave-group',
+      functionName: `${stage}-slap-tracker-leave-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/leave-group')),
       environment: commonEnv,
@@ -126,7 +182,7 @@ export class LambdaStack extends cdk.Stack {
     // notificationDispatcher Lambda
     this.notificationDispatcherFn = new lambda.Function(this, 'NotificationDispatcherFn', {
       ...lambdaDefaults,
-      functionName: 'slap-tracker-notification-dispatcher',
+      functionName: `${stage}-slap-tracker-notification-dispatcher`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/notification-dispatcher')),
       environment: commonEnv,

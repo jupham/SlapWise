@@ -28,6 +28,7 @@ type Member {
 
 type Confirmation {
   outcome: ResolutionOutcome!
+  punishment: PunishmentType!
   submittedAt: AWSDateTime!
 }
 
@@ -35,32 +36,36 @@ type SlapDebt {
   debtId: ID!
   groupId: ID!
   gameType: GameType!
-  customGameId: ID
   status: DebtStatus!
-  shameStatus: Boolean!
+  challengerId: ID!
+  statementMakerId: ID!
+  statement: String!
   debtorId: ID
   creditorId: ID
-  challengerId: ID
-  statementMakerId: ID
-  statement: String
-  reason: String
-  createdAt: AWSDateTime!
-  resolvedAt: AWSDateTime
-  deliveredAt: AWSDateTime
-  voidedAt: AWSDateTime
-  voidReason: String
+  debtPunishment: PunishmentType
   challengerConfirmation: Confirmation
   statementMakerConfirmation: Confirmation
   debtorDeliveryConfirmed: Boolean!
   creditorDeliveryConfirmed: Boolean!
+  createdAt: AWSDateTime!
+  resolvedAt: AWSDateTime
+  deliveredAt: AWSDateTime
 }
 
-type CustomGame {
-  gameId: ID!
+# GSI4 denormalized index item — one per player per debt, sufficient to render My Slate cards
+type PlayerDebtIndex {
+  debtId: ID!
   groupId: ID!
-  name: String!
-  rules: String!
-  createdBy: ID!
+  playerId: ID!
+  role: String!
+  status: DebtStatus!
+  gameType: GameType!
+  statement: String!
+  challengerId: ID!
+  statementMakerId: ID!
+  debtorId: ID
+  creditorId: ID
+  debtPunishment: PunishmentType
   createdAt: AWSDateTime!
 }
 
@@ -78,30 +83,13 @@ type FeedEntry {
   type: FeedEntryType!
   readInOnly: Boolean!
   refId: ID!
+  actorId: ID!
   summary: String!
   createdAt: AWSDateTime!
 }
 
-type Notification {
-  notifId: ID!
-  playerId: ID!
-  type: String!
-  title: String!
-  body: String!
-  read: Boolean!
-  createdAt: AWSDateTime!
-  refId: ID
-}
-
-type NetSummary {
-  playerId: ID!
-  username: String!
-  netSlaps: Int!
-}
-
 enum GameType {
   manchester
-  custom
   read_in
 }
 
@@ -109,9 +97,7 @@ enum DebtStatus {
   pending
   pending_confirmation
   resolved
-  disputed
   delivered
-  voided
 }
 
 enum ResolutionOutcome {
@@ -119,39 +105,40 @@ enum ResolutionOutcome {
   did_not_follow_through
 }
 
+enum PunishmentType {
+  slap
+  infinity_grog
+}
+
 enum FeedEntryType {
   manchester_created
   manchester_resolved
-  custom_debt_created
-  custom_debt_resolved
+  slap_delivered
   chug_event
+  member_joined
 }
 
 type Query {
   getGroups: [Group!]!
   getGroupMembers(groupId: ID!): [Member!]!
-  getPendingDebts(groupId: ID!): [SlapDebt!]!
-  getDebts(groupId: ID!, gameType: GameType, playerId: ID, status: DebtStatus): [SlapDebt!]!
-  getNetSummary(groupId: ID!): [NetSummary!]!
-  getGames(groupId: ID!): [CustomGame!]!
+  getDebt(groupId: ID!, debtId: ID!): SlapDebt
+  getDebts(groupId: ID!, status: DebtStatus): [SlapDebt!]!
+  getMyDebts(groupId: ID!): [PlayerDebtIndex!]!
   getReadInPlayers(groupId: ID!): [Member!]!
   getChugEvents(groupId: ID!): [ChugEvent!]!
   getFeed(groupId: ID!): [FeedEntry!]!
-  getInboxNotifications: [Notification!]!
 }
 
 type Mutation {
   designateAdmin(groupId: ID!, playerId: ID!): Group!
   regenerateInviteCode(groupId: ID!): Group!
   createChallenge(groupId: ID!, statementMakerId: ID!, statement: String!): SlapDebt!
-  submitResolutionConfirmation(debtId: String!, groupId: ID!, outcome: ResolutionOutcome!): SlapDebt!
+  submitResolutionConfirmation(debtId: String!, groupId: ID!, outcome: ResolutionOutcome!, punishment: PunishmentType!): SlapDebt!
   confirmDelivery(debtId: String!, groupId: ID!): SlapDebt!
-  createGame(groupId: ID!, name: String!, rules: String!): CustomGame!
-  createDebt(groupId: ID!, gameId: ID!, debtorId: ID!, creditorId: ID!, reason: String!): SlapDebt!
+  voidDebt(debtId: String!, groupId: ID!): Boolean!
   confirmReadIn(groupId: ID!): Member!
   setReadInGameName(groupId: ID!, name: String!): Group!
-  recordGameCall(groupId: ID!, chuggedPlayerIds: [ID!]!): ChugEvent!
-  markRead(notifId: ID!): Notification!
+  recordGameCall(groupId: ID!, callerId: ID!, chuggedPlayerIds: [ID!]!): ChugEvent!
 }
 
 type Subscription {
@@ -159,8 +146,8 @@ type Subscription {
     @aws_subscribe(mutations: ["designateAdmin", "regenerateInviteCode", "setReadInGameName"])
 
   onDebtUpdated(groupId: ID!): SlapDebt
-    @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "confirmDelivery", "createDebt"])
+    @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "confirmDelivery"])
 
-  onNotificationAdded(playerId: ID!): Notification
-    @aws_subscribe(mutations: ["markRead"])
+  onChugEventCreated(groupId: ID!): ChugEvent
+    @aws_subscribe(mutations: ["recordGameCall"])
 }

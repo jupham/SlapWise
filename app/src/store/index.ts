@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Player, Group, Member, SlapDebt, FeedEntry, Notification, NetSummary } from '../types';
+import { Player, Group, Member, SlapDebt, FeedEntry } from '../types';
 
 interface AuthSlice {
   player: Player | null;
@@ -18,10 +18,8 @@ interface GroupsSlice {
 interface DebtsSlice {
   debts: SlapDebt[];
   pendingDebts: SlapDebt[];
-  netSummary: NetSummary[];
   setDebts: (debts: SlapDebt[]) => void;
   setPendingDebts: (debts: SlapDebt[]) => void;
-  setNetSummary: (summary: NetSummary[]) => void;
 }
 
 interface FeedSlice {
@@ -29,14 +27,7 @@ interface FeedSlice {
   setFeedEntries: (entries: FeedEntry[]) => void;
 }
 
-interface NotificationsSlice {
-  notifications: Notification[];
-  unreadCount: number;
-  setNotifications: (notifications: Notification[]) => void;
-  setUnreadCount: (count: number) => void;
-}
-
-type AppStore = AuthSlice & GroupsSlice & DebtsSlice & FeedSlice & NotificationsSlice;
+type AppStore = AuthSlice & GroupsSlice & DebtsSlice & FeedSlice;
 
 export const useStore = create<AppStore>((set) => ({
   // Auth
@@ -54,18 +45,10 @@ export const useStore = create<AppStore>((set) => ({
   // Debts
   debts: [],
   pendingDebts: [],
-  netSummary: [],
   setDebts: (debts) => set({ debts }),
   setPendingDebts: (pendingDebts) => set({ pendingDebts }),
-  setNetSummary: (netSummary) => set({ netSummary }),
 
   // Feed
   feedEntries: [],
   setFeedEntries: (feedEntries) => set({ feedEntries }),
-
-  // Notifications
-  notifications: [],
-  unreadCount: 0,
-  setNotifications: (notifications) => set({ notifications }),
-  setUnreadCount: (unreadCount) => set({ unreadCount }),
 }));
