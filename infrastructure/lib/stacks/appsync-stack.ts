@@ -414,9 +414,13 @@ $util.toJson($ctx.result)
       `),
       responseMappingTemplate: appsync.MappingTemplate.fromString(`
 #if($util.isNull($ctx.result))
-  $util.toJson({ "groupId": "$ctx.args.groupId", "bottleSize": 0, "entries": [], "history": [] })
+  $util.toJson({ "groupId": "$ctx.args.groupId", "bottleSize": 0, "entries": [], "history": [], "pendingAddBacks": [] })
 #else
-  $util.toJson($ctx.result)
+  #set($result = $ctx.result)
+  #if($util.isNull($result.pendingAddBacks))
+    $util.qr($result.put("pendingAddBacks", []))
+  #end
+  $util.toJson($result)
 #end
       `),
     });
@@ -453,10 +457,42 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // confirmGrogDelivery: Lambda
+    // confirmGrogDelivery: Lambda (legacy — retained for backwards compatibility)
     grogResolverDs.createResolver('ConfirmGrogDeliveryResolver', {
       typeName: 'Mutation',
       fieldName: 'confirmGrogDelivery',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // takeGrogShot: Lambda
+    grogResolverDs.createResolver('TakeGrogShotResolver', {
+      typeName: 'Mutation',
+      fieldName: 'takeGrogShot',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // redeemAddBack: Lambda
+    grogResolverDs.createResolver('RedeemAddBackResolver', {
+      typeName: 'Mutation',
+      fieldName: 'redeemAddBack',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // clearAddBack: Lambda
+    grogResolverDs.createResolver('ClearAddBackResolver', {
+      typeName: 'Mutation',
+      fieldName: 'clearAddBack',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // adminAddBack: Lambda
+    grogResolverDs.createResolver('AdminAddBackResolver', {
+      typeName: 'Mutation',
+      fieldName: 'adminAddBack',
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });

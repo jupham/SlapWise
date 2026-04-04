@@ -197,9 +197,10 @@ export class LambdaStack extends cdk.Stack {
       functionName: `${stage}-slap-tracker-grog-resolver`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/grog-resolver')),
-      environment: { TABLE_NAME: table.tableName },
+      environment: commonEnv,
     });
     table.grantReadWriteData(this.grogResolverFn);
+    snsTopic.grantPublish(this.grogResolverFn);
 
     // Grant Pinpoint publish rights to notification dispatcher
     this.notificationDispatcherFn.addToRolePolicy(new iam.PolicyStatement({

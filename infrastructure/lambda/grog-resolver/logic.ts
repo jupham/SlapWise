@@ -187,3 +187,89 @@ export function buildInitialGrog(
   }));
   return { entries, history };
 }
+
+// ── takeGrogShot logic ────────────────────────────────────────────────────────
+
+export interface PendingAddBack {
+  debtId: string;
+  debtorId: string;
+  createdAt: string;
+}
+
+/**
+ * Applies proportional removal + appends shot_taken event + appends a PendingAddBack.
+ * Returns [newEntries, newHistory, newPendingAddBacks].
+ */
+export function applyTakeGrogShot(
+  entries: GrogEntry[],
+  history: GrogHistoryEvent[],
+  pendingAddBacks: PendingAddBack[],
+  debtorId: string,
+  debtId: string,
+  now: string,
+  shotEventId: string,
+): [GrogEntry[], GrogHistoryEvent[], PendingAddBack[]] {
+  const newEntries = applyProportionalRemoval(entries);
+  const newHistory: GrogHistoryEvent[] = [
+    ...history,
+    {
+      eventId: shotEventId,
+      type: 'shot_taken',
+      actorPlayerId: debtorId,
+      occurredAt: now,
+      sourceDebtId: debtId,
+      brand: null,
+      category: null,
+      amountMl: SHOT_ML,
+    },
+  ];
+  const newPendingAddBacks: PendingAddBack[] = [
+    ...pendingAddBacks,
+    { debtId, debtorId, createdAt: now },
+  ];
+  return [newEntries, newHistory, newPendingAddBacks];
+}
+
+// ── redeemAddBack logic ───────────────────────────────────────────────────────
+
+/**
+ * Applies add-back merge logic + removes matching pendingAddBacks entry + appends addition event.
+ * Returns null if debtId not found in pendingAddBacks.
+ */
+export function applyRedeemAddBack(
+  entries: GrogEntry[],
+  history: GrogHistoryEvent[],
+  pendingAddBacks: PendingAddBack[],
+  debtId: string,
+  input: AddLiquorInput,
+  actorPlayerId: string,
+  now: string,
+  newEntryId: string,
+  eventId: string,
+): [GrogEntry[], GrogHistoryEvent[], PendingAddBack[]] | null {
+  const matchIndex = pendingAddBacks.findIndex(p => p.debtId === debtId);
+  if (matchIndex === -1) return null;
+
+  const newEntries = applyAddLiquor(entries, input, newEntryId);
+  const newHistory: GrogHistoryEvent[] = [
+    ...history,
+    makeAdditionEvent(input, actorPlayerId, eventId, now, debtId),
+  ];
+  const newPendingAddBacks = pendingAddBacks.filter((_, i) => i !== matchIndex);
+  return [newEntries, newHistory, newPendingAddBacks];
+}
+
+// ── clearAddBack logic ────────────────────────────────────────────────────────
+
+/**
+ * Removes matching pendingAddBacks entry without touching entries or history.
+ * Returns null if debtId not found.
+ */
+export function applyClearAddBack(
+  pendingAddBacks: PendingAddBack[],
+  debtId: string,
+): PendingAddBack[] | null {
+  const matchIndex = pendingAddBacks.findIndex(p => p.debtId === debtId);
+  if (matchIndex === -1) return null;
+  return pendingAddBacks.filter((_, i) => i !== matchIndex);
+}

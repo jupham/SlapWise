@@ -136,9 +136,16 @@ export interface GrogHistoryEvent {
   amountMl: number | null;
 }
 
+export interface PendingAddBack {
+  debtId: string;
+  debtorId: string;
+  createdAt: string;
+}
+
 export interface Grog {
   groupId: string;
   bottleSize: number;
   entries: GrogEntry[];
   history: GrogHistoryEvent[];
+  pendingAddBacks: PendingAddBack[];
 }

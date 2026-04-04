@@ -10,15 +10,19 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ManchesterService } from '../services/ManchesterService';
 import { GroupService } from '../services/GroupService';
+import { GrogService } from '../services/GrogService';
 import { useStore } from '../store';
-import { PlayerDebtIndex } from '../types';
+import { Grog, LiquorCategory, PendingAddBack, PlayerDebtIndex } from '../types';
 import type { RootStackParamList } from '../navigation/types';
+import AddLiquorSheet from './components/AddLiquorSheet';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MySlate'>;
 
+type SectionItem = PlayerDebtIndex | PendingAddBack;
+
 type Section = {
   title: string;
-  data: PlayerDebtIndex[];
+  data: SectionItem[];
   emptyText: string;
 };
 
@@ -33,24 +37,29 @@ export default function MySlateScreen({ route, navigation }: Props) {
   const currentPlayerId = player?.playerId ?? '';
 
   const [debts, setDebts] = useState<PlayerDebtIndex[]>([]);
+  const [grog, setGrog] = useState<Grog | null>(null);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addBackTarget, setAddBackTarget] = useState<PendingAddBack | null>(null);
+  const [addBackError, setAddBackError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       // Single GSI4 query — all denormalized fields, no second fetch needed
-      const [myDebts, members] = await Promise.all([
+      const [myDebts, members, grogData] = await Promise.all([
         ManchesterService.getMyDebts(groupId),
         GroupService.getGroupMembers(groupId),
+        GrogService.getGrog(groupId).catch(() => null), // null if grog not initialized
       ]);
 
       const nameMap: Record<string, string> = {};
       for (const m of members) nameMap[m.playerId] = m.username ?? m.playerId;
       setMemberNames(nameMap);
       setDebts(myDebts);
+      setGrog(grogData);
     } catch (e) {
       console.error('[MySlateScreen] load failed:', e);
       setError('Failed to load your slate');
@@ -68,22 +77,6 @@ export default function MySlateScreen({ route, navigation }: Props) {
   };
 
   // Needs Action: it's your turn to do something
-  const needsAction = debts.filter((d) => {
-    if (d.status === 'pending') return true; // hasn't submitted yet
-    if (d.status === 'pending_confirmation') return true; // waiting to agree
-    if (d.status === 'resolved' && (d.debtorId === currentPlayerId || d.creditorId === currentPlayerId)) {
-      // Delivery confirmation needed
-      return true;
-    }
-    return false;
-  });
-
-  // Waiting: involved but waiting on the other party
-  // pending_confirmation where you already submitted = waiting
-  // resolved where neither has confirmed delivery yet = waiting
-  // This is a subset of needsAction so we separate by checking who's acted
-  // For simplicity: pending_confirmation is both "needs action" and "waiting" depending on who submitted first
-  // We show it under Needs Action always since the second party still needs to act
 
   // Outstanding Punishments: resolved, you are debtor or creditor, not yet delivered
   const outstanding = debts.filter(
@@ -93,11 +86,28 @@ export default function MySlateScreen({ route, navigation }: Props) {
   // History: delivered
   const history = debts.filter((d) => d.status === 'delivered');
 
+  // Pending add-backs for the current player only
+  const myPendingAddBacks = (grog?.pendingAddBacks ?? []).filter(
+    (p) => p.debtorId === currentPlayerId
+  );
+
+  const handleRedeemAddBack = async (entry: PendingAddBack, category: LiquorCategory, brand: string) => {
+    setAddBackError(null);
+    try {
+      await GrogService.redeemAddBack(groupId, entry.debtId, category, brand);
+      setAddBackTarget(null);
+      void load();
+    } catch (e) {
+      console.error('[MySlateScreen] redeemAddBack failed:', e);
+      setAddBackError('Failed to add back liquor. Please try again.');
+    }
+  };
+
   // Waiting: pending_confirmation where you've already submitted (other party hasn't)
   // We can't know this from GSI4 alone without the confirmation fields, so we show
   // pending_confirmation under Needs Action for now (both parties see it there)
 
-  const sections: Section[] = [
+  const debtSections: Section[] = [
     {
       title: 'Needs Action',
       data: debts.filter((d) => d.status === 'pending' || d.status === 'pending_confirmation'),
@@ -115,6 +125,17 @@ export default function MySlateScreen({ route, navigation }: Props) {
     },
   ];
 
+  const addBackSection: Section = {
+    title: 'Add Back to Grog',
+    data: myPendingAddBacks,
+    emptyText: '',
+  };
+
+  // Insert add-back section before History if there are pending add-backs
+  const sections: Section[] = myPendingAddBacks.length > 0
+    ? [debtSections[0], debtSections[1], addBackSection, debtSections[2]]
+    : debtSections;
+
   if (loading) return <ActivityIndicator style={styles.center} />;
 
   return (
@@ -122,21 +143,53 @@ export default function MySlateScreen({ route, navigation }: Props) {
       {error && <Text style={styles.error}>{error}</Text>}
       <SectionList
         sections={sections}
-        keyExtractor={(d) => d.debtId}
+        keyExtractor={(item) => {
+          if ('debtId' in item && 'debtorId' in item && !('playerId' in item)) {
+            // PendingAddBack
+            return `addback-${(item as PendingAddBack).debtId}`;
+          }
+          return (item as PlayerDebtIndex).debtId;
+        }}
         stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         renderSectionFooter={({ section }) =>
-          section.data.length === 0 ? (
+          section.data.length === 0 && section.emptyText ? (
             <Text style={styles.empty}>{section.emptyText}</Text>
           ) : null
         }
         renderItem={({ item, section }) => {
+          // Render pending add-back card
+          if (section.title === 'Add Back to Grog') {
+            const addBack = item as PendingAddBack;
+            return (
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => {
+                  setAddBackError(null);
+                  setAddBackTarget(addBack);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.badge, styles.grogBadge]}>INFINITY GROG</Text>
+                  <Text style={styles.date}>{new Date(addBack.createdAt).toLocaleDateString()}</Text>
+                </View>
+                <View style={[styles.punishmentBanner, styles.addBackBanner]}>
+                  <Text style={styles.punishmentText}>🍺 You have a pending add-back</Text>
+                </View>
+                <Text style={styles.tapHint}>Tap to add liquor back →</Text>
+              </TouchableOpacity>
+            );
+          }
+
+          // Render debt card
+          const debt = item as PlayerDebtIndex;
           const isActive = section.title === 'Needs Action';
           const isOutstanding = section.title === 'Outstanding Punishments';
-          const isDebtor = item.debtorId === currentPlayerId;
-          const isCreditor = item.creditorId === currentPlayerId;
+          const isDebtor = debt.debtorId === currentPlayerId;
+          const isCreditor = debt.creditorId === currentPlayerId;
 
           return (
             <TouchableOpacity
@@ -144,20 +197,20 @@ export default function MySlateScreen({ route, navigation }: Props) {
               onPress={() => {
                 if (isActive) {
                   navigation.navigate('ResolutionConfirmation', {
-                    debtId: item.debtId,
+                    debtId: debt.debtId,
                     groupId,
                     groupName,
                   });
-                } else if (isOutstanding && (isDebtor || isCreditor) && item.debtPunishment) {
-                  if (item.debtPunishment === 'infinity_grog' && isDebtor) {
+                } else if (isOutstanding && (isDebtor || isCreditor) && debt.debtPunishment) {
+                  if (debt.debtPunishment === 'infinity_grog' && isDebtor) {
                     navigation.navigate('InfinityGrogSentence', {
-                      debtId: item.debtId,
+                      debtId: debt.debtId,
                       groupId,
                       groupName,
                     });
                   } else {
                     navigation.navigate('ResolutionConfirmation', {
-                      debtId: item.debtId,
+                      debtId: debt.debtId,
                       groupId,
                       groupName,
                     });
@@ -168,27 +221,27 @@ export default function MySlateScreen({ route, navigation }: Props) {
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.badge}>MANCHESTER</Text>
-                <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                <Text style={styles.date}>{new Date(debt.createdAt).toLocaleDateString()}</Text>
               </View>
 
-              <Text style={styles.statement}>"{item.statement}"</Text>
-              <Text style={styles.attribution}>— {nameFor(item.statementMakerId)}</Text>
-              <Text style={styles.calledBy}>{nameFor(item.challengerId)} called Manchester</Text>
+              <Text style={styles.statement}>"{debt.statement}"</Text>
+              <Text style={styles.attribution}>— {nameFor(debt.statementMakerId)}</Text>
+              <Text style={styles.calledBy}>{nameFor(debt.challengerId)} called Manchester</Text>
 
-              {isOutstanding && item.debtPunishment && (
+              {isOutstanding && debt.debtPunishment && (
                 <View style={[styles.punishmentBanner, isDebtor ? styles.owesBanner : styles.owedBanner]}>
                   <Text style={styles.punishmentText}>
                     {isDebtor
-                      ? `You owe ${nameFor(item.creditorId)}: ${PUNISHMENT_LABEL[item.debtPunishment] ?? item.debtPunishment}`
-                      : `${nameFor(item.debtorId)} owes you: ${PUNISHMENT_LABEL[item.debtPunishment] ?? item.debtPunishment}`}
+                      ? `You owe ${nameFor(debt.creditorId)}: ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`
+                      : `${nameFor(debt.debtorId)} owes you: ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`}
                   </Text>
                 </View>
               )}
 
-              {section.title === 'History' && item.debtPunishment && (
+              {section.title === 'History' && debt.debtPunishment && (
                 <Text style={styles.deliveredText}>
                   ✓ {isDebtor || isCreditor
-                    ? `${nameFor(item.debtorId)} paid ${nameFor(item.creditorId)} — ${PUNISHMENT_LABEL[item.debtPunishment] ?? item.debtPunishment}`
+                    ? `${nameFor(debt.debtorId)} paid ${nameFor(debt.creditorId)} — ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`
                     : 'Delivered'}
                 </Text>
               )}
@@ -196,7 +249,7 @@ export default function MySlateScreen({ route, navigation }: Props) {
               {isActive && (
                 <Text style={styles.tapHint}>Tap to respond →</Text>
               )}
-              {isOutstanding && (isDebtor || isCreditor) && item.debtPunishment && (
+              {isOutstanding && (isDebtor || isCreditor) && debt.debtPunishment && (
                 <Text style={styles.tapHint}>Tap to deliver →</Text>
               )}
             </TouchableOpacity>
@@ -204,6 +257,21 @@ export default function MySlateScreen({ route, navigation }: Props) {
         }}
         contentContainerStyle={styles.list}
       />
+
+      {addBackTarget && (
+        <>
+          {addBackError && <Text style={styles.floatingError}>{addBackError}</Text>}
+          <AddLiquorSheet
+            onSubmit={(category, brand) => {
+              void handleRedeemAddBack(addBackTarget, category, brand);
+            }}
+            onClose={() => {
+              setAddBackTarget(null);
+              setAddBackError(null);
+            }}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -234,7 +302,10 @@ const styles = StyleSheet.create({
   punishmentBanner: { borderRadius: 8, padding: 10, marginBottom: 4 },
   owesBanner: { backgroundColor: '#FFE5E5' },
   owedBanner: { backgroundColor: '#E5F5E5' },
+  addBackBanner: { backgroundColor: '#FFF3E0' },
   punishmentText: { fontSize: 13, fontWeight: '600', color: '#333' },
   deliveredText: { fontSize: 13, color: '#34C759', fontWeight: '600', marginTop: 4 },
   tapHint: { fontSize: 11, color: '#007AFF', textAlign: 'right', marginTop: 6 },
+  grogBadge: { backgroundColor: '#FF9500' },
+  floatingError: { color: '#FF3B30', marginHorizontal: 16, marginBottom: 4, fontSize: 13 },
 });

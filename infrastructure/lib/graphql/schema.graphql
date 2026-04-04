@@ -150,11 +150,18 @@ type GrogHistoryEvent {
   amountMl: Float
 }
 
+type PendingAddBack {
+  debtId: ID!
+  debtorId: ID!
+  createdAt: AWSDateTime!
+}
+
 type Grog {
   groupId: ID!
   bottleSize: Float!
   entries: [GrogEntry!]!
   history: [GrogHistoryEvent!]!
+  pendingAddBacks: [PendingAddBack!]!
 }
 
 input AddLiquorInput {
@@ -190,6 +197,10 @@ type Mutation {
   removeLiquorFromGrog(groupId: ID!, entryId: ID!): Grog!
   confirmGrogDelivery(groupId: ID!, debtId: ID!, addBack: AddLiquorInput): Grog!
   adjustGrogEntry(groupId: ID!, entryId: ID!, amountMl: Float!): Grog!
+  takeGrogShot(groupId: ID!, debtId: ID!): Grog!
+  redeemAddBack(groupId: ID!, debtId: ID!, category: LiquorCategory!, brand: String!): Grog!
+  clearAddBack(groupId: ID!, debtId: ID!): Grog!
+  adminAddBack(groupId: ID!, debtId: ID!, category: LiquorCategory!, brand: String!): Grog!
 }
 
 type Subscription {

@@ -4,8 +4,10 @@ import {
   GetItemCommand,
   PutItemCommand,
   UpdateItemCommand,
+  TransactWriteItemsCommand,
   AttributeValue,
 } from '@aws-sdk/client-dynamodb';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { randomUUID } from 'crypto';
 import {
   SHOT_ML,
@@ -16,10 +18,16 @@ import {
   validateSeedEntries,
   buildInitialGrog,
   makeAdditionEvent,
+  applyTakeGrogShot,
+  applyRedeemAddBack,
+  applyClearAddBack,
+  PendingAddBack,
 } from './logic';
 
 const dynamo = new DynamoDBClient({});
+const sns = new SNSClient({});
 const TABLE = process.env.TABLE_NAME!;
+const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +77,7 @@ interface GrogItem {
   bottleSize: number;
   entries: GrogEntry[];
   history: GrogHistoryEvent[];
+  pendingAddBacks: PendingAddBack[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -99,6 +108,14 @@ function unmarshalEvent(m: Record<string, AttributeValue>): GrogHistoryEvent {
   };
 }
 
+function unmarshalPendingAddBack(m: Record<string, AttributeValue>): PendingAddBack {
+  return {
+    debtId: m.debtId?.S ?? '',
+    debtorId: m.debtorId?.S ?? '',
+    createdAt: m.createdAt?.S ?? '',
+  };
+}
+
 function marshalEntry(e: GrogEntry): AttributeValue {
   const m: Record<string, AttributeValue> = {
     entryId: { S: e.entryId },
@@ -123,6 +140,16 @@ function marshalEvent(ev: GrogHistoryEvent): AttributeValue {
   return { M: m };
 }
 
+function marshalPendingAddBack(p: PendingAddBack): AttributeValue {
+  return {
+    M: {
+      debtId: { S: p.debtId },
+      debtorId: { S: p.debtorId },
+      createdAt: { S: p.createdAt },
+    },
+  };
+}
+
 function marshalGrog(item: Record<string, AttributeValue>): GrogItem {
   const entries = (item.entries?.L ?? []).map(v =>
     unmarshalEntry(v.M as Record<string, AttributeValue>)
@@ -130,11 +157,15 @@ function marshalGrog(item: Record<string, AttributeValue>): GrogItem {
   const history = (item.history?.L ?? []).map(v =>
     unmarshalEvent(v.M as Record<string, AttributeValue>)
   );
+  const pendingAddBacks = (item.pendingAddBacks?.L ?? []).map(v =>
+    unmarshalPendingAddBack(v.M as Record<string, AttributeValue>)
+  );
   return {
     groupId: item.groupId?.S ?? '',
     bottleSize: Number(item.bottleSize?.N ?? 0),
     entries,
     history,
+    pendingAddBacks,
   };
 }
 
@@ -165,20 +196,59 @@ async function isAdmin(groupId: string, playerId: string): Promise<boolean> {
   return playerId === creatorId || adminIds.includes(playerId);
 }
 
-async function writeGrog(groupId: string, entries: GrogEntry[], history: GrogHistoryEvent[]): Promise<void> {
+async function writeGrog(
+  groupId: string,
+  entries: GrogEntry[],
+  history: GrogHistoryEvent[],
+  pendingAddBacks?: PendingAddBack[],
+): Promise<void> {
+  if (pendingAddBacks !== undefined) {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE,
+      Key: {
+        PK: { S: `GROG#${groupId}` },
+        SK: { S: 'METADATA' },
+      },
+      UpdateExpression: 'SET entries = :entries, history = :history, pendingAddBacks = :pab',
+      ExpressionAttributeValues: {
+        ':entries': { L: entries.map(marshalEntry) },
+        ':history': { L: history.map(marshalEvent) },
+        ':pab': { L: pendingAddBacks.map(marshalPendingAddBack) },
+      },
+    }));
+  } else {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE,
+      Key: {
+        PK: { S: `GROG#${groupId}` },
+        SK: { S: 'METADATA' },
+      },
+      UpdateExpression: 'SET entries = :entries, history = :history',
+      ExpressionAttributeValues: {
+        ':entries': { L: entries.map(marshalEntry) },
+        ':history': { L: history.map(marshalEvent) },
+      },
+    }));
+  }
+}
+
+async function writePendingAddBacksOnly(
+  groupId: string,
+  pendingAddBacks: PendingAddBack[],
+): Promise<void> {
   await dynamo.send(new UpdateItemCommand({
     TableName: TABLE,
     Key: {
       PK: { S: `GROG#${groupId}` },
       SK: { S: 'METADATA' },
     },
-    UpdateExpression: 'SET entries = :entries, history = :history',
+    UpdateExpression: 'SET pendingAddBacks = :pab',
     ExpressionAttributeValues: {
-      ':entries': { L: entries.map(marshalEntry) },
-      ':history': { L: history.map(marshalEvent) },
+      ':pab': { L: pendingAddBacks.map(marshalPendingAddBack) },
     },
   }));
 }
+
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
@@ -204,13 +274,14 @@ async function initializeGrog(callerId: string, args: Args): Promise<GrogItem> {
       bottleSize: { N: String(bottleSize) },
       entries: { L: entries.map(marshalEntry) },
       history: { L: history.map(marshalEvent) },
+      pendingAddBacks: { L: [] },
       createdAt: { S: now },
       createdBy: { S: callerId },
     },
     ConditionExpression: 'attribute_not_exists(PK)',
   }));
 
-  return { groupId, bottleSize, entries, history };
+  return { groupId, bottleSize, entries, history, pendingAddBacks: [] };
 }
 
 async function addLiquorToGrog(callerId: string, args: Args): Promise<GrogItem> {
@@ -231,7 +302,7 @@ async function addLiquorToGrog(callerId: string, args: Args): Promise<GrogItem> 
   ];
 
   await writeGrog(groupId, entries, history);
-  return { groupId, bottleSize: grog.bottleSize, entries, history };
+  return { groupId, bottleSize: grog.bottleSize, entries, history, pendingAddBacks: grog.pendingAddBacks };
 }
 
 async function removeLiquorFromGrog(callerId: string, args: Args): Promise<GrogItem> {
@@ -248,7 +319,7 @@ async function removeLiquorFromGrog(callerId: string, args: Args): Promise<GrogI
   if (entries === null) err('ENTRY_NOT_FOUND');
 
   await writeGrog(groupId, entries, grog.history);
-  return { groupId, bottleSize: grog.bottleSize, entries, history: grog.history };
+  return { groupId, bottleSize: grog.bottleSize, entries, history: grog.history, pendingAddBacks: grog.pendingAddBacks };
 }
 
 async function adjustGrogEntry(callerId: string, args: Args): Promise<GrogItem> {
@@ -275,7 +346,7 @@ async function adjustGrogEntry(callerId: string, args: Args): Promise<GrogItem> 
   }
 
   await writeGrog(groupId, entries, grog.history);
-  return { groupId, bottleSize: grog.bottleSize, entries, history: grog.history };
+  return { groupId, bottleSize: grog.bottleSize, entries, history: grog.history, pendingAddBacks: grog.pendingAddBacks };
 }
 
 async function confirmGrogDelivery(callerId: string, args: Args): Promise<GrogItem> {
@@ -300,7 +371,249 @@ async function confirmGrogDelivery(callerId: string, args: Args): Promise<GrogIt
   );
 
   await writeGrog(groupId, entries, history);
-  return { groupId, bottleSize: grog.bottleSize, entries, history };
+  return { groupId, bottleSize: grog.bottleSize, entries, history, pendingAddBacks: grog.pendingAddBacks };
+}
+
+async function takeGrogShot(callerId: string, args: Args): Promise<GrogItem> {
+  const { groupId, debtId } = args;
+  if (!groupId) err('MISSING_GROUP_ID');
+  if (!debtId) err('MISSING_DEBT_ID');
+
+  // Fetch DEBT item to verify status, punishment, and get creditorId + createdAt
+  const debtResult = await dynamo.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: {
+      PK: { S: `GROUP#${groupId}` },
+      SK: { S: `DEBT#${debtId}` },
+    },
+  }));
+  if (!debtResult.Item) err('DEBT_NOT_FOUND');
+
+  const debt = debtResult.Item;
+  const debtStatus = debt.status?.S ?? '';
+  const debtPunishment = debt.debtPunishment?.S ?? '';
+  const debtorId = debt.debtorId?.S ?? '';
+  const creditorId = debt.creditorId?.S ?? '';
+  const debtCreatedAt = debt.createdAt?.S ?? '';
+
+  if (debtStatus !== 'resolved') err('INVALID_DEBT_STATUS');
+  if (debtPunishment !== 'infinity_grog') err('INVALID_DEBT_PUNISHMENT');
+  if (callerId !== debtorId) err('UNAUTHORIZED');
+
+  const grog = await fetchGrog(groupId);
+  if (!grog) err('GROG_NOT_FOUND');
+
+  const now = new Date().toISOString();
+  const shotEventId = randomUUID();
+  const [newEntries, newHistory, newPendingAddBacks] = applyTakeGrogShot(
+    grog.entries,
+    grog.history,
+    grog.pendingAddBacks,
+    debtorId,
+    debtId,
+    now,
+    shotEventId,
+  );
+
+  const debtSk = `DEBT#${debtCreatedAt}#${debtId}`;
+
+  // Atomic TransactWrite: GROG + DEBT + 2× PLAYERDEBT
+  await dynamo.send(new TransactWriteItemsCommand({
+    TransactItems: [
+      {
+        Update: {
+          TableName: TABLE,
+          Key: {
+            PK: { S: `GROG#${groupId}` },
+            SK: { S: 'METADATA' },
+          },
+          UpdateExpression: 'SET entries = :entries, history = :history, pendingAddBacks = :pab',
+          ExpressionAttributeValues: {
+            ':entries': { L: newEntries.map(marshalEntry) },
+            ':history': { L: newHistory.map(marshalEvent) },
+            ':pab': { L: newPendingAddBacks.map(marshalPendingAddBack) },
+          },
+        },
+      },
+      {
+        Update: {
+          TableName: TABLE,
+          Key: {
+            PK: { S: `GROUP#${groupId}` },
+            SK: { S: `DEBT#${debtId}` },
+          },
+          UpdateExpression: 'SET #status = :delivered, deliveredAt = :now, GSI2PK = :gsi2pk, GSI2SK = :gsi2sk',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: {
+            ':delivered': { S: 'delivered' },
+            ':now': { S: now },
+            ':gsi2pk': { S: `GROUP#${groupId}#STATUS#delivered` },
+            ':gsi2sk': { S: debtSk },
+          },
+        },
+      },
+      {
+        Update: {
+          TableName: TABLE,
+          Key: {
+            PK: { S: `PLAYERDEBT#${debtorId}#GROUP#${groupId}` },
+            SK: { S: debtSk },
+          },
+          UpdateExpression: 'SET #s = :s',
+          ExpressionAttributeNames: { '#s': 'status' },
+          ExpressionAttributeValues: { ':s': { S: 'delivered' } },
+        },
+      },
+      {
+        Update: {
+          TableName: TABLE,
+          Key: {
+            PK: { S: `PLAYERDEBT#${creditorId}#GROUP#${groupId}` },
+            SK: { S: debtSk },
+          },
+          UpdateExpression: 'SET #s = :s',
+          ExpressionAttributeNames: { '#s': 'status' },
+          ExpressionAttributeValues: { ':s': { S: 'delivered' } },
+        },
+      },
+    ],
+  }));
+
+  // Best-effort: write slap_delivered FEED entry
+  try {
+    const feedEntryId = randomUUID();
+    await dynamo.send(new PutItemCommand({
+      TableName: TABLE,
+      Item: {
+        PK: { S: `GROUP#${groupId}` },
+        SK: { S: `FEED#${now}#${feedEntryId}` },
+        entryId: { S: feedEntryId },
+        groupId: { S: groupId },
+        type: { S: 'slap_delivered' },
+        refId: { S: debtId },
+        actorId: { S: callerId },
+        summary: { S: 'A grog shot was taken' },
+        readInOnly: { BOOL: false },
+        createdAt: { S: now },
+      },
+    }));
+  } catch (feedErr) {
+    console.error('[grog-resolver] takeGrogShot: failed to write FEED entry:', feedErr);
+  }
+
+  // Best-effort: send push notification via SNS
+  if (SNS_TOPIC_ARN) {
+    try {
+      await sns.send(new PublishCommand({
+        TopicArn: SNS_TOPIC_ARN,
+        Message: JSON.stringify({
+          type: 'slap_delivered',
+          groupId,
+          debtId,
+          actorId: callerId,
+        }),
+      }));
+    } catch (snsErr) {
+      console.error('[grog-resolver] takeGrogShot: failed to send SNS notification:', snsErr);
+    }
+  }
+
+  return {
+    groupId,
+    bottleSize: grog.bottleSize,
+    entries: newEntries,
+    history: newHistory,
+    pendingAddBacks: newPendingAddBacks,
+  };
+}
+
+
+async function redeemAddBack(callerId: string, args: Args): Promise<GrogItem> {
+  const { groupId, debtId, category, brand } = args;
+  if (!groupId) err('MISSING_GROUP_ID');
+  if (!debtId) err('MISSING_DEBT_ID');
+  if (!category) err('MISSING_CATEGORY');
+  if (!brand || !brand.trim()) err('MISSING_BRAND');
+
+  const grog = await fetchGrog(groupId);
+  if (!grog) err('GROG_NOT_FOUND');
+
+  // Find the pending add-back to verify authorization
+  const pendingEntry = grog.pendingAddBacks.find(p => p.debtId === debtId);
+  if (!pendingEntry) err('PENDING_ADD_BACK_NOT_FOUND');
+
+  // Caller must be the debtor for this debtId or an admin
+  const callerIsDebtor = callerId === pendingEntry.debtorId;
+  const callerIsAdmin = await isAdmin(groupId, callerId);
+  if (!callerIsDebtor && !callerIsAdmin) err('UNAUTHORIZED');
+
+  const now = new Date().toISOString();
+  const result = applyRedeemAddBack(
+    grog.entries,
+    grog.history,
+    grog.pendingAddBacks,
+    debtId,
+    { category, brand },
+    callerId,
+    now,
+    randomUUID(),
+    randomUUID(),
+  );
+  if (result === null) err('PENDING_ADD_BACK_NOT_FOUND');
+
+  const [newEntries, newHistory, newPendingAddBacks] = result;
+
+  await writeGrog(groupId, newEntries, newHistory, newPendingAddBacks);
+  return { groupId, bottleSize: grog.bottleSize, entries: newEntries, history: newHistory, pendingAddBacks: newPendingAddBacks };
+}
+
+async function clearAddBack(callerId: string, args: Args): Promise<GrogItem> {
+  const { groupId, debtId } = args;
+  if (!groupId) err('MISSING_GROUP_ID');
+  if (!debtId) err('MISSING_DEBT_ID');
+
+  if (!(await isAdmin(groupId, callerId))) err('UNAUTHORIZED');
+
+  const grog = await fetchGrog(groupId);
+  if (!grog) err('GROG_NOT_FOUND');
+
+  const newPendingAddBacks = applyClearAddBack(grog.pendingAddBacks, debtId);
+  if (newPendingAddBacks === null) err('PENDING_ADD_BACK_NOT_FOUND');
+
+  await writePendingAddBacksOnly(groupId, newPendingAddBacks);
+  return { groupId, bottleSize: grog.bottleSize, entries: grog.entries, history: grog.history, pendingAddBacks: newPendingAddBacks };
+}
+
+async function adminAddBack(callerId: string, args: Args): Promise<GrogItem> {
+  const { groupId, debtId, category, brand } = args;
+  if (!groupId) err('MISSING_GROUP_ID');
+  if (!debtId) err('MISSING_DEBT_ID');
+  if (!category) err('MISSING_CATEGORY');
+  if (!brand || !brand.trim()) err('MISSING_BRAND');
+
+  if (!(await isAdmin(groupId, callerId))) err('UNAUTHORIZED');
+
+  const grog = await fetchGrog(groupId);
+  if (!grog) err('GROG_NOT_FOUND');
+
+  const now = new Date().toISOString();
+  const result = applyRedeemAddBack(
+    grog.entries,
+    grog.history,
+    grog.pendingAddBacks,
+    debtId,
+    { category, brand },
+    callerId,
+    now,
+    randomUUID(),
+    randomUUID(),
+  );
+  if (result === null) err('PENDING_ADD_BACK_NOT_FOUND');
+
+  const [newEntries, newHistory, newPendingAddBacks] = result;
+
+  await writeGrog(groupId, newEntries, newHistory, newPendingAddBacks);
+  return { groupId, bottleSize: grog.bottleSize, entries: newEntries, history: newHistory, pendingAddBacks: newPendingAddBacks };
 }
 
 // ── Dispatcher ────────────────────────────────────────────────────────────────
@@ -325,6 +638,14 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
         return await adjustGrogEntry(callerId, args);
       case 'confirmGrogDelivery':
         return await confirmGrogDelivery(callerId, args);
+      case 'takeGrogShot':
+        return await takeGrogShot(callerId, args);
+      case 'redeemAddBack':
+        return await redeemAddBack(callerId, args);
+      case 'clearAddBack':
+        return await clearAddBack(callerId, args);
+      case 'adminAddBack':
+        return await adminAddBack(callerId, args);
       default:
         err(`UNKNOWN_FIELD: ${fieldName}`);
     }

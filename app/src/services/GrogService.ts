@@ -10,6 +10,7 @@ const GROG_FIELDS = /* GraphQL */ `
     eventId type actorPlayerId occurredAt
     sourceDebtId brand category amountMl
   }
+  pendingAddBacks { debtId debtorId createdAt }
 `;
 
 const GET_GROG = /* GraphQL */ `
@@ -55,6 +56,38 @@ const ADJUST_GROG_ENTRY = /* GraphQL */ `
 const CONFIRM_GROG_DELIVERY = /* GraphQL */ `
   mutation ConfirmGrogDelivery($groupId: ID!, $debtId: ID!, $addBack: AddLiquorInput) {
     confirmGrogDelivery(groupId: $groupId, debtId: $debtId, addBack: $addBack) {
+      ${GROG_FIELDS}
+    }
+  }
+`;
+
+const TAKE_GROG_SHOT = /* GraphQL */ `
+  mutation TakeGrogShot($groupId: ID!, $debtId: ID!) {
+    takeGrogShot(groupId: $groupId, debtId: $debtId) {
+      ${GROG_FIELDS}
+    }
+  }
+`;
+
+const REDEEM_ADD_BACK = /* GraphQL */ `
+  mutation RedeemAddBack($groupId: ID!, $debtId: ID!, $category: LiquorCategory!, $brand: String!) {
+    redeemAddBack(groupId: $groupId, debtId: $debtId, category: $category, brand: $brand) {
+      ${GROG_FIELDS}
+    }
+  }
+`;
+
+const CLEAR_ADD_BACK = /* GraphQL */ `
+  mutation ClearAddBack($groupId: ID!, $debtId: ID!) {
+    clearAddBack(groupId: $groupId, debtId: $debtId) {
+      ${GROG_FIELDS}
+    }
+  }
+`;
+
+const ADMIN_ADD_BACK = /* GraphQL */ `
+  mutation AdminAddBack($groupId: ID!, $debtId: ID!, $category: LiquorCategory!, $brand: String!) {
+    adminAddBack(groupId: $groupId, debtId: $debtId, category: $category, brand: $brand) {
       ${GROG_FIELDS}
     }
   }
@@ -115,5 +148,37 @@ export const GrogService = {
       variables: { groupId, debtId, addBack },
     });
     return (result as { data: { confirmGrogDelivery: Grog } }).data.confirmGrogDelivery;
+  },
+
+  async takeGrogShot(groupId: string, debtId: string): Promise<Grog> {
+    const result = await client.graphql({
+      query: TAKE_GROG_SHOT,
+      variables: { groupId, debtId },
+    });
+    return (result as { data: { takeGrogShot: Grog } }).data.takeGrogShot;
+  },
+
+  async redeemAddBack(groupId: string, debtId: string, category: LiquorCategory, brand: string): Promise<Grog> {
+    const result = await client.graphql({
+      query: REDEEM_ADD_BACK,
+      variables: { groupId, debtId, category, brand },
+    });
+    return (result as { data: { redeemAddBack: Grog } }).data.redeemAddBack;
+  },
+
+  async clearAddBack(groupId: string, debtId: string): Promise<Grog> {
+    const result = await client.graphql({
+      query: CLEAR_ADD_BACK,
+      variables: { groupId, debtId },
+    });
+    return (result as { data: { clearAddBack: Grog } }).data.clearAddBack;
+  },
+
+  async adminAddBack(groupId: string, debtId: string, category: LiquorCategory, brand: string): Promise<Grog> {
+    const result = await client.graphql({
+      query: ADMIN_ADD_BACK,
+      variables: { groupId, debtId, category, brand },
+    });
+    return (result as { data: { adminAddBack: Grog } }).data.adminAddBack;
   },
 };

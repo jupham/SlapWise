@@ -1,26 +1,35 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useImperativeHandle, forwardRef } from 'react';
 import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedProps,
-  withRepeat,
-  withTiming,
   withSpring,
-  Easing,
 } from 'react-native-reanimated';
 import { StyleSheet, useWindowDimensions } from 'react-native';
 import type { GrogEntry } from '../../types';
 import { CATEGORY_COLORS } from '../../constants/grog';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const SKULL_VB = 226.452;
 const SKULL_OFFSET = 48;
 const VB_WIDTH = SKULL_VB;
 const VB_HEIGHT = SKULL_VB + SKULL_OFFSET;
-const DISPLAY_WIDTH = 380;
-const DISPLAY_HEIGHT = DISPLAY_WIDTH * (VB_HEIGHT / VB_WIDTH);
-const SLOSH_AMPLITUDE = 10;
 const LIQUID_MAX_FILL = 0.9;
+
+// ── Slosh animation tuning ────────────────────────────────────────────────────
+// How far the liquid surface tilts side to side (in SVG units)
+const MAX_TILT = 18;
+// Spring physics — adjust these to tune the slosh feel:
+//   damping:  lower = more oscillations before settling (try 3–8)
+//   stiffness: lower = slower oscillation frequency (try 10–30)
+//   mass:     higher = heavier/slower feel (try 1–5)
+const SLOSH_DAMPING = 2
+const SLOSH_STIFFNESS = 25;
+const SLOSH_MASS = 2;
+
+// ── Skull paths (CC0 — svgrepo.com/svg/35713/skull) ──────────────────────────
 
 const PATH_OUTER_CLIP =
   'M113.226,0C58.74,0,14.411,43.405,14.411,96.757c0,36.036,20.92,69.514,53.525,86.017' +
@@ -73,6 +82,8 @@ const CAP_TOP = 2;
 const CAP_BOT = 24;
 const CAP_R = 4;
 
+// ── Layer computation ─────────────────────────────────────────────────────────
+
 export interface SkullLayer {
   category: GrogEntry['category'];
   heightFraction: number;
@@ -95,21 +106,53 @@ export function computeLayers(entries: GrogEntry[], bottleSize: number): SkullLa
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export interface GrogSkullRef {
+  /** Trigger a slosh with intensity 0–1 (1 = full MAX_TILT) */
+  slosh: (intensity: number) => void;
+}
+
 interface Props {
   entries: GrogEntry[];
   bottleSize: number;
+  /** When true: skull drops in with spring animation on mount */
   animate: boolean;
+  /** When true: liquid sloshes and settles on mount */
+  slosh?: boolean;
 }
 
-export default function GrogSkull({ entries, bottleSize, animate }: Props) {
-  const dropY = useSharedValue(animate ? -DISPLAY_HEIGHT * 1.5 : 0);
-  const phase = useSharedValue(0);
+const GrogSkull = forwardRef<GrogSkullRef, Props>(
+  function GrogSkull({ entries, bottleSize, animate, slosh = true }, ref) {
+  const { width: screenWidth } = useWindowDimensions();
+  const displayWidth = screenWidth * 0.9;
+  const displayHeight = displayWidth * (VB_HEIGHT / VB_WIDTH);
+
+  // Drop animation
+  const dropY = useSharedValue(animate ? -displayHeight * 1.5 : 0);
+
+  // Tilt: starts at MAX_TILT, springs to 0 (liquid settling)
+  // Positive = left side higher, negative = right side higher
+  const tilt = useSharedValue(0);
+
+  // Expose slosh() so parent screens can trigger it from scroll events
+  useImperativeHandle(ref, () => ({
+    slosh: (intensity: number) => {
+      const clampedIntensity = Math.min(Math.max(intensity, 0), 1);
+      tilt.value = MAX_TILT * clampedIntensity;
+      tilt.value = withSpring(0, {
+        damping: SLOSH_DAMPING,
+        stiffness: SLOSH_STIFFNESS,
+        mass: SLOSH_MASS,
+      });
+    },
+  }));
+
+  // totalFill as shared value for worklet
   const totalFillSV = useSharedValue(0);
 
   const layers = computeLayers(entries, bottleSize);
   const totalFill = layers.reduce((s, l) => s + l.heightFraction, 0);
-  const topLayerColor =
-    layers.length > 0 ? CATEGORY_COLORS[layers[layers.length - 1].category] : 'transparent';
 
   useEffect(() => {
     totalFillSV.value = totalFill;
@@ -118,47 +161,49 @@ export default function GrogSkull({ entries, bottleSize, animate }: Props) {
   useEffect(() => {
     if (animate) {
       dropY.value = withSpring(0, { damping: 12, stiffness: 100 });
-      phase.value = withRepeat(
-        withTiming(1000, { duration: 60000, easing: Easing.linear }),
-        -1,
-        false,
-      );
     } else {
       dropY.value = 0;
-      phase.value = 0;
     }
-  }, [animate, dropY, phase]);
+  }, [animate, dropY]);
+
+  useEffect(() => {
+    if (slosh) {
+      // Kick the tilt to MAX_TILT, spring back to 0 with low damping so it oscillates
+      tilt.value = MAX_TILT;
+      tilt.value = withSpring(0, {
+        damping: SLOSH_DAMPING,
+        stiffness: SLOSH_STIFFNESS,
+        mass: SLOSH_MASS,
+      });
+    } else {
+      tilt.value = 0;
+    }
+  }, [slosh, tilt]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: dropY.value }],
   }));
 
-  // Wave and liquid rects are in full VB coords (skull-local + SKULL_OFFSET)
-  const waveAnimatedProps = useAnimatedProps(() => {
-    const fill = totalFillSV.value;
-    if (fill <= 0) return { d: '' };
-    // liquidTopY in full VB coords
-    const liquidTopY = SKULL_OFFSET + SKULL_VB * (1 - fill);
-    const angle = (phase.value / 10) * 2 * Math.PI;
-    const A = SLOSH_AMPLITUDE;
-    const W = VB_WIDTH;
-    const k = 0.3642 * (W / 4);
-    const y0 = liquidTopY + Math.sin(angle) * A;
-    const y1 = liquidTopY + Math.sin(angle + Math.PI * 0.5) * A;
-    const y2 = liquidTopY + Math.sin(angle + Math.PI) * A;
-    const y3 = liquidTopY + Math.sin(angle + Math.PI * 1.5) * A;
-    const y4 = liquidTopY + Math.sin(angle + Math.PI * 2) * A;
-    return {
-      d: [
-        `M0,${y0}`,
-        `C ${k},${y0} ${W * 0.25 - k},${y1} ${W * 0.25},${y1}`,
-        `C ${W * 0.25 + k},${y1} ${W * 0.5 - k},${y2} ${W * 0.5},${y2}`,
-        `C ${W * 0.5 + k},${y2} ${W * 0.75 - k},${y3} ${W * 0.75},${y3}`,
-        `C ${W * 0.75 + k},${y3} ${W - k},${y4} ${W},${y4}`,
-        `L${W},${VB_HEIGHT} L0,${VB_HEIGHT} Z`,
-      ].join(' '),
-    };
-  });
+  // Each layer is rendered as a parallelogram — top edge tilts with `tilt`,
+  // bottom edge is flat. The tilt value shifts the left/right y of the top edge.
+  // Layer shape: bottom-left, bottom-right, top-right (tilted), top-left (tilted)
+  const layerAnimatedProps = layers.map((layer) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useAnimatedProps(() => {
+      const t = tilt.value;
+      const heightPx = layer.heightFraction * SKULL_VB;
+      const baseY = SKULL_OFFSET + SKULL_VB - layer.yFromBottom;
+      const topY = baseY - heightPx;
+      const topLeft = topY - t;
+      const topRight = topY + t;
+      const W = VB_WIDTH;
+      // Extend bottom well past skull bottom to eliminate gaps between layers
+      const extendedBottom = VB_HEIGHT + Math.abs(t) + 10;
+      return {
+        d: `M0,${extendedBottom} L${W},${extendedBottom} L${W},${topRight} L0,${topLeft} Z`,
+      };
+    })
+  );
 
   const skullT = `translate(0, ${SKULL_OFFSET})`;
   const sx1 = CX - SPOUT_W / 2;
@@ -168,9 +213,8 @@ export default function GrogSkull({ entries, bottleSize, animate }: Props) {
 
   return (
     <Animated.View style={[styles.container, containerStyle]}>
-      <Svg width={DISPLAY_WIDTH} height={DISPLAY_HEIGHT} viewBox={`0 0 ${VB_WIDTH} ${VB_HEIGHT}`}>
+      <Svg width={displayWidth} height={displayHeight} viewBox={`0 0 ${VB_WIDTH} ${VB_HEIGHT}`}>
         <Defs>
-          {/* Clip path in full VB coords — skull shifted by SKULL_OFFSET */}
           <ClipPath id="skull-clip">
             <Path transform={skullT} d={PATH_OUTER_CLIP} />
           </ClipPath>
@@ -195,25 +239,18 @@ export default function GrogSkull({ entries, bottleSize, animate }: Props) {
         {/* Skull base fill */}
         <Path transform={skullT} d={PATH_OUTER_CLIP} fill="#111111" />
 
-        {/* Liquid layers — in full VB coords, clipped to skull */}
+        {/* Liquid layers — rendered bottom-to-top so bottom layer is on top */}
         <G clipPath="url(#skull-clip)">
-          {layers.map((layer, index) => {
-            const heightPx = layer.heightFraction * SKULL_VB;
-            const yPx = SKULL_OFFSET + SKULL_VB - layer.yFromBottom - heightPx;
+          {[...layers].reverse().map((layer, i) => {
+            const index = layers.length - 1 - i;
             return (
-              <Rect
+              <AnimatedPath
                 key={`${layer.category}-${index}`}
-                x={0}
-                y={yPx}
-                width={VB_WIDTH}
-                height={heightPx}
+                animatedProps={layerAnimatedProps[index]}
                 fill={CATEGORY_COLORS[layer.category]}
               />
             );
           })}
-          {layers.length > 0 && (
-            <AnimatedPath animatedProps={waveAnimatedProps} fill={topLayerColor} />
-          )}
         </G>
 
         {/* Skull outline + details on top */}
@@ -228,8 +265,10 @@ export default function GrogSkull({ entries, bottleSize, animate }: Props) {
       </Svg>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'center' },
 });
+
+export default GrogSkull;
