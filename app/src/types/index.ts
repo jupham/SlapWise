@@ -100,3 +100,45 @@ export interface FeedEntry {
   createdAt: string;
 }
 
+
+// --- Infinity Grog ---
+
+export type LiquorCategory =
+  | 'vodka'
+  | 'whiskey'
+  | 'bourbon'
+  | 'scotch'
+  | 'irish_whiskey'
+  | 'canadian_whiskey'
+  | 'rum'
+  | 'gin'
+  | 'tequila'
+  | 'brandy'
+  | 'other';
+
+export type GrogHistoryEventType = 'addition' | 'shot_taken';
+
+export interface GrogEntry {
+  entryId: string;
+  category: LiquorCategory;
+  brand: string;
+  amountMl: number;
+}
+
+export interface GrogHistoryEvent {
+  eventId: string;
+  type: GrogHistoryEventType;
+  actorPlayerId: string;
+  occurredAt: string;
+  sourceDebtId: string | null;
+  brand: string | null;
+  category: LiquorCategory | null;
+  amountMl: number | null;
+}
+
+export interface Grog {
+  groupId: string;
+  bottleSize: number;
+  entries: GrogEntry[];
+  history: GrogHistoryEvent[];
+}

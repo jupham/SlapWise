@@ -17,8 +17,8 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResolutionConfirmation'>;
 
-export default function ResolutionConfirmationScreen({ route }: Props) {
-  const { debtId, groupId } = route.params;
+export default function ResolutionConfirmationScreen({ route, navigation }: Props) {
+  const { debtId, groupId, groupName } = route.params;
 
   const player = useStore((s) => s.player);
 
@@ -165,7 +165,19 @@ export default function ResolutionConfirmationScreen({ route }: Props) {
       </View>
 
       {/* Resolved outcome */}
-      {debt.status === 'resolved' && (
+      {debt.status === 'resolved' && debt.debtPunishment === 'infinity_grog' && debt.debtorId === currentPlayerId ? (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
+            {`Resolved — you must take a shot from the infinity grog`}
+          </Text>
+          <TouchableOpacity
+            style={[styles.btn, styles.btnGrog]}
+            onPress={() => navigation.navigate('InfinityGrogSentence', { debtId, groupId, groupName })}
+          >
+            <Text style={styles.btnText}>Take the Shot</Text>
+          </TouchableOpacity>
+        </View>
+      ) : debt.status === 'resolved' ? (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
             {debt.debtPunishment === 'infinity_grog'
@@ -173,7 +185,7 @@ export default function ResolutionConfirmationScreen({ route }: Props) {
               : `Resolved — ${usernameFor(debt.debtorId)} owes ${usernameFor(debt.creditorId)} a slap`}
           </Text>
         </View>
-      )}
+      ) : null}
 
       {/* Waiting states */}
       {debt.status === 'pending_confirmation' && !canConfirm && !alreadyConfirmed && (
@@ -335,6 +347,7 @@ const styles = StyleSheet.create({
   btn: { padding: 16, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
   btnGreen: { backgroundColor: '#34C759' },
   btnRed: { backgroundColor: '#FF3B30' },
+  btnGrog: { backgroundColor: '#FF9500', marginTop: 12, marginBottom: 0 },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

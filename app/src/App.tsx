@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { getCurrentUser } from 'aws-amplify/auth';
 import type { RootStackParamList } from './navigation/types';
+import { AuthService } from './services/AuthService';
+import { useStore } from './store';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -19,17 +20,27 @@ import LedgerScreen from './screens/LedgerScreen';
 import MySlateScreen from './screens/MySlateScreen';
 import GroupFeedScreen from './screens/GroupFeedScreen';
 import RecordGameCallScreen from './screens/RecordGameCallScreen';
+import InfinityGrogSentenceScreen from './screens/InfinityGrogSentenceScreen';
+import InfinityGrogReviewScreen from './screens/InfinityGrogReviewScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<'Login' | 'GroupList' | null>(null);
+  const setPlayer = useStore((s) => s.setPlayer);
 
   useEffect(() => {
-    getCurrentUser()
-      .then(() => setInitialRoute('GroupList'))
+    AuthService.currentPlayer()
+      .then((player) => {
+        if (player) {
+          setPlayer(player);
+          setInitialRoute('GroupList');
+        } else {
+          setInitialRoute('Login');
+        }
+      })
       .catch(() => setInitialRoute('Login'));
-  }, []);
+  }, [setPlayer]);
 
   if (!initialRoute) {
     return (
@@ -56,6 +67,8 @@ export default function App() {
         <Stack.Screen name="MySlate" component={MySlateScreen} options={{ title: 'My Slate' }} />
         <Stack.Screen name="GroupFeed" component={GroupFeedScreen} options={({ route }) => ({ title: `Feed — ${route.params.groupName}` })} />
         <Stack.Screen name="RecordGameCall" component={RecordGameCallScreen} options={{ title: 'Record Game Call' }} />
+        <Stack.Screen name="InfinityGrogSentence" component={InfinityGrogSentenceScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="InfinityGrogReview" component={InfinityGrogReviewScreen} options={({ route }) => ({ title: `Grog — ${route.params.groupName}` })} />
       </Stack.Navigator>
     </NavigationContainer>
   );

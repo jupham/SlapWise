@@ -13,4 +13,6 @@ export type RootStackParamList = {
   MySlate: { groupId: string; groupName: string };
   GroupFeed: { groupId: string; groupName: string };
   RecordGameCall: { groupId: string; groupName: string };
+  InfinityGrogSentence: { debtId: string; groupId: string; groupName: string };
+  InfinityGrogReview: { groupId: string; groupName: string };
 };

@@ -27,6 +27,7 @@ export class LambdaStack extends cdk.Stack {
   public readonly voidDebtFn: lambda.Function;
   public readonly leaveGroupFn: lambda.Function;
   public readonly notificationDispatcherFn: lambda.Function;
+  public readonly grogResolverFn: lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -189,6 +190,16 @@ export class LambdaStack extends cdk.Stack {
     });
     table.grantReadWriteData(this.notificationDispatcherFn);
     snsTopic.grantPublish(this.notificationDispatcherFn);
+
+    // grogResolver Lambda (AppSync resolver — all grog mutations)
+    this.grogResolverFn = new lambda.Function(this, 'GrogResolverFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-grog-resolver`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/grog-resolver')),
+      environment: { TABLE_NAME: table.tableName },
+    });
+    table.grantReadWriteData(this.grogResolverFn);
 
     // Grant Pinpoint publish rights to notification dispatcher
     this.notificationDispatcherFn.addToRolePolicy(new iam.PolicyStatement({

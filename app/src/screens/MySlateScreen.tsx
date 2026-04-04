@@ -148,9 +148,23 @@ export default function MySlateScreen({ route, navigation }: Props) {
                     groupId,
                     groupName,
                   });
+                } else if (isOutstanding && (isDebtor || isCreditor) && item.debtPunishment) {
+                  if (item.debtPunishment === 'infinity_grog' && isDebtor) {
+                    navigation.navigate('InfinityGrogSentence', {
+                      debtId: item.debtId,
+                      groupId,
+                      groupName,
+                    });
+                  } else {
+                    navigation.navigate('ResolutionConfirmation', {
+                      debtId: item.debtId,
+                      groupId,
+                      groupName,
+                    });
+                  }
                 }
               }}
-              activeOpacity={isActive ? 0.7 : 1}
+              activeOpacity={isActive || (isOutstanding && (isDebtor || isCreditor)) ? 0.7 : 1}
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.badge}>MANCHESTER</Text>
@@ -181,6 +195,9 @@ export default function MySlateScreen({ route, navigation }: Props) {
 
               {isActive && (
                 <Text style={styles.tapHint}>Tap to respond →</Text>
+              )}
+              {isOutstanding && (isDebtor || isCreditor) && item.debtPunishment && (
+                <Text style={styles.tapHint}>Tap to deliver →</Text>
               )}
             </TouchableOpacity>
           );

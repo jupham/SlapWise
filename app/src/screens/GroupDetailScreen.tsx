@@ -142,6 +142,13 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         <Text style={styles.manchesterBtnText}>Record Game Call</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.manchesterBtn}
+        onPress={() => navigation.navigate('InfinityGrogReview', { groupId, groupName })}
+      >
+        <Text style={styles.manchesterBtnText}>View the Grog</Text>
+      </TouchableOpacity>
+
       <Text style={styles.sectionTitle}>Members ({members.length})</Text>
       <FlatList
         data={members}

@@ -7,6 +7,7 @@
     "android": "node node_modules/react-native/cli.js run-android",
     "ios": "react-native run-ios",
     "typecheck": "tsc --noEmit",
+    "test": "vitest --run",
     "test:coverage": "vitest --run --coverage",
     "postinstall": "node scripts/patch-native-modules.js"
   },

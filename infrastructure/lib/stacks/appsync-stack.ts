@@ -72,6 +72,11 @@ export class AppSyncStack extends cdk.Stack {
       lambdaStack.recordGameCallFn
     );
 
+    const grogResolverDs = this.api.addLambdaDataSource(
+      'GrogResolverDs',
+      lambdaStack.grogResolverFn
+    );
+
     // ── Query Resolvers ───────────────────────────────────────────────────────
 
     // getGroups: query GSI1 — all groups the calling player is a member of
@@ -388,6 +393,70 @@ $util.toJson($ctx.result)
     recordGameCallDs.createResolver('RecordGameCallResolver', {
       typeName: 'Mutation',
       fieldName: 'recordGameCall',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // getGrog: direct DynamoDB GetItem by PK = GROG#<groupId>, SK = METADATA
+    // Returns { entries: [], history: [] } when item not found
+    ddbDataSource.createResolver('GetGrogResolver', {
+      typeName: 'Query',
+      fieldName: 'getGrog',
+      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+{
+  "version": "2017-02-28",
+  "operation": "GetItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("GROG#$ctx.args.groupId"),
+    "SK": $util.dynamodb.toDynamoDBJson("METADATA")
+  }
+}
+      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`
+#if($util.isNull($ctx.result))
+  $util.toJson({ "groupId": "$ctx.args.groupId", "bottleSize": 0, "entries": [], "history": [] })
+#else
+  $util.toJson($ctx.result)
+#end
+      `),
+    });
+
+    // initializeGrog: Lambda
+    grogResolverDs.createResolver('InitializeGrogResolver', {
+      typeName: 'Mutation',
+      fieldName: 'initializeGrog',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // addLiquorToGrog: Lambda
+    grogResolverDs.createResolver('AddLiquorToGrogResolver', {
+      typeName: 'Mutation',
+      fieldName: 'addLiquorToGrog',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // removeLiquorFromGrog: Lambda
+    grogResolverDs.createResolver('RemoveLiquorFromGrogResolver', {
+      typeName: 'Mutation',
+      fieldName: 'removeLiquorFromGrog',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // adjustGrogEntry: Lambda
+    grogResolverDs.createResolver('AdjustGrogEntryResolver', {
+      typeName: 'Mutation',
+      fieldName: 'adjustGrogEntry',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // confirmGrogDelivery: Lambda
+    grogResolverDs.createResolver('ConfirmGrogDeliveryResolver', {
+      typeName: 'Mutation',
+      fieldName: 'confirmGrogDelivery',
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });

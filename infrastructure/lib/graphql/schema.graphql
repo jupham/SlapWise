@@ -118,6 +118,51 @@ enum FeedEntryType {
   member_joined
 }
 
+enum LiquorCategory {
+  vodka
+  whiskey
+  bourbon
+  scotch
+  irish_whiskey
+  canadian_whiskey
+  rum
+  gin
+  tequila
+  brandy
+  other
+}
+
+type GrogEntry {
+  entryId: ID!
+  category: LiquorCategory!
+  brand: String!
+  amountMl: Float!
+}
+
+type GrogHistoryEvent {
+  eventId: ID!
+  type: String!
+  actorPlayerId: ID!
+  occurredAt: AWSDateTime!
+  sourceDebtId: ID
+  brand: String
+  category: LiquorCategory
+  amountMl: Float
+}
+
+type Grog {
+  groupId: ID!
+  bottleSize: Float!
+  entries: [GrogEntry!]!
+  history: [GrogHistoryEvent!]!
+}
+
+input AddLiquorInput {
+  category: LiquorCategory!
+  brand: String!
+  amountMl: Float
+}
+
 type Query {
   getGroups: [Group!]!
   getGroupMembers(groupId: ID!): [Member!]!
@@ -127,6 +172,7 @@ type Query {
   getReadInPlayers(groupId: ID!): [Member!]!
   getChugEvents(groupId: ID!): [ChugEvent!]!
   getFeed(groupId: ID!): [FeedEntry!]!
+  getGrog(groupId: ID!): Grog
 }
 
 type Mutation {
@@ -139,6 +185,11 @@ type Mutation {
   confirmReadIn(groupId: ID!): Member!
   setReadInGameName(groupId: ID!, name: String!): Group!
   recordGameCall(groupId: ID!, callerId: ID!, chuggedPlayerIds: [ID!]!): ChugEvent!
+  initializeGrog(groupId: ID!, bottleSize: Float!, seedEntries: [AddLiquorInput!]): Grog!
+  addLiquorToGrog(groupId: ID!, category: LiquorCategory!, brand: String!): Grog!
+  removeLiquorFromGrog(groupId: ID!, entryId: ID!): Grog!
+  confirmGrogDelivery(groupId: ID!, debtId: ID!, addBack: AddLiquorInput): Grog!
+  adjustGrogEntry(groupId: ID!, entryId: ID!, amountMl: Float!): Grog!
 }
 
 type Subscription {

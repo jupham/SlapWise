@@ -59,7 +59,7 @@ export const AuthService: AuthService = {
   },
 
   async logout(): Promise<void> {
-    await signOut();
+    await signOut({ global: true });
   },
 
   async currentPlayer(): Promise<Player | null> {
