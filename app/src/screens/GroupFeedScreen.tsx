@@ -12,9 +12,9 @@ import { FeedService } from '../services/FeedService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { FeedEntry, FeedEntryType } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'GroupFeed'>;
+type Props = NativeStackScreenProps<GroupStackParamList, never>;
 
 const EVENT_ICON: Record<FeedEntryType, string> = {
   manchester_created: '🎯',
@@ -32,8 +32,10 @@ const EVENT_LABEL: Record<FeedEntryType, string> = {
   member_joined: 'Member Joined',
 };
 
-export default function GroupFeedScreen({ route, navigation }: Props) {
-  const { groupId, groupName } = route.params;
+export default function GroupFeedScreen({ navigation }: { navigation: Props['navigation'] }) {
+  const activeGroup = useStore((s) => s.activeGroup);
+  const groupId = activeGroup?.groupId ?? '';
+  const groupName = activeGroup?.groupName ?? '';
   const player = useStore((s) => s.player);
   const currentPlayerId = player?.playerId ?? '';
 

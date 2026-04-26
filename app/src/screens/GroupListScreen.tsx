@@ -14,7 +14,15 @@ import { useStore } from '../store';
 import { Group } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'GroupList'>;
+// GroupListScreen is kept for reference but replaced by DrawerContent + GroupTabNavigator in the new nav.
+// It uses RootStackParamList which no longer has GroupList/GroupDetail — suppress with a local type.
+type LegacyParamList = RootStackParamList & {
+  GroupList: undefined;
+  GroupDetail: { groupId: string; groupName: string };
+  Login: undefined;
+};
+
+type Props = NativeStackScreenProps<LegacyParamList, 'GroupList'>;
 
 export default function GroupListScreen({ navigation }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);

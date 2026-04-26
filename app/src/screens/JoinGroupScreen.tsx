@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'JoinGroup'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'JoinGroup'>;
 
 export default function JoinGroupScreen({ navigation }: Props) {
   const [inviteCode, setInviteCode] = useState('');

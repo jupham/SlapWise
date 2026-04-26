@@ -13,10 +13,10 @@ import { GroupService } from '../services/GroupService';
 import { GrogService } from '../services/GrogService';
 import { useStore } from '../store';
 import { Grog, LiquorCategory, PendingAddBack, PlayerDebtIndex } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 import AddLiquorSheet from './components/AddLiquorSheet';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'MySlate'>;
+type Props = NativeStackScreenProps<GroupStackParamList, never>;
 
 type SectionItem = PlayerDebtIndex | PendingAddBack;
 
@@ -31,8 +31,10 @@ const PUNISHMENT_LABEL: Record<string, string> = {
   infinity_grog: '🍺 Infinity Grog',
 };
 
-export default function MySlateScreen({ route, navigation }: Props) {
-  const { groupId, groupName } = route.params;
+export default function MySlateScreen({ navigation }: { navigation: Props['navigation'] }) {
+  const activeGroup = useStore((s) => s.activeGroup);
+  const groupId = activeGroup?.groupId ?? '';
+  const groupName = activeGroup?.groupName ?? '';
   const player = useStore((s) => s.player);
   const currentPlayerId = player?.playerId ?? '';
 

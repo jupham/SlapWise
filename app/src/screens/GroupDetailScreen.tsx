@@ -15,7 +15,21 @@ import { useStore } from '../store';
 import { Group, Member } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetail'>;
+// GroupDetailScreen is kept for reference but replaced by GroupHomeScreen in the new nav.
+// It uses RootStackParamList which no longer has GroupDetail — suppress with a local type.
+type LegacyParamList = RootStackParamList & {
+  GroupDetail: { groupId: string; groupName: string };
+  PendingDebts: { groupId: string; groupName: string };
+  MySlate: { groupId: string; groupName: string };
+  GroupFeed: { groupId: string; groupName: string };
+  RecordGameCall: { groupId: string; groupName: string };
+  ReadIn: { groupId: string; groupName: string };
+  ReadInPlayers: { groupId: string; groupName: string };
+  ReadInGameName: { groupId: string; groupName: string };
+  InfinityGrogReview: { groupId: string; groupName: string };
+};
+
+type Props = NativeStackScreenProps<LegacyParamList, 'GroupDetail'>;
 
 export default function GroupDetailScreen({ route, navigation }: Props) {
   const { groupId, groupName } = route.params;
@@ -93,6 +107,8 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   };
 
   const isCreator = player?.playerId === group?.creatorId;
+  const isAdmin = isCreator || (group?.adminIds ?? []).includes(player?.playerId ?? '');
+  const currentMember = members.find((m) => m.playerId === player?.playerId);
 
   if (loading) return <ActivityIndicator style={styles.center} />;
 
@@ -144,6 +160,31 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
 
       <TouchableOpacity
         style={styles.manchesterBtn}
+        onPress={() => navigation.navigate('ReadIn', { groupId, groupName })}
+      >
+        <Text style={[styles.manchesterBtnText, currentMember?.isReadIn && styles.readInDoneText]}>
+          {currentMember?.isReadIn ? 'Read In ✓' : 'Read In'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.manchesterBtn}
+        onPress={() => navigation.navigate('ReadInPlayers', { groupId, groupName })}
+      >
+        <Text style={styles.manchesterBtnText}>Read In Players</Text>
+      </TouchableOpacity>
+
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.manchesterBtn}
+          onPress={() => navigation.navigate('ReadInGameName', { groupId, groupName })}
+        >
+          <Text style={styles.manchesterBtnText}>Set Read In Game Name</Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+        style={styles.manchesterBtn}
         onPress={() => navigation.navigate('InfinityGrogReview', { groupId, groupName })}
       >
         <Text style={styles.manchesterBtnText}>View the Grog</Text>
@@ -187,6 +228,7 @@ const styles = StyleSheet.create({
   regenBtnText: { color: '#007AFF', fontSize: 14 },
   manchesterBtn: { alignSelf: 'flex-start', marginBottom: 20 },
   manchesterBtnText: { color: '#FF3B30', fontSize: 14, fontWeight: '600' },
+  readInDoneText: { color: '#34C759' },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderColor: '#eee' },
   memberName: { flex: 1, fontSize: 15 },

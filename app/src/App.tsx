@@ -1,75 +1,83 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, StatusBar, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { RootStackParamList } from './navigation/types';
 import { AuthService } from './services/AuthService';
+import { GroupService } from './services/GroupService';
 import { useStore } from './store';
 
-import LoginScreen from './screens/LoginScreen';
-import RegisterScreen from './screens/RegisterScreen';
-import ConfirmEmailScreen from './screens/ConfirmEmailScreen';
-import GroupListScreen from './screens/GroupListScreen';
-import GroupDetailScreen from './screens/GroupDetailScreen';
+import AuthNavigator from './navigation/AuthNavigator';
+import AppNavigator from './navigation/AppNavigator';
+import WelcomeScreen from './screens/WelcomeScreen';
 import CreateGroupScreen from './screens/CreateGroupScreen';
 import JoinGroupScreen from './screens/JoinGroupScreen';
-import CreateChallengeScreen from './screens/CreateChallengeScreen';
-import PendingDebtsScreen from './screens/PendingDebtsScreen';
-import ResolutionConfirmationScreen from './screens/ResolutionConfirmationScreen';
-import LedgerScreen from './screens/LedgerScreen';
-import MySlateScreen from './screens/MySlateScreen';
-import GroupFeedScreen from './screens/GroupFeedScreen';
-import RecordGameCallScreen from './screens/RecordGameCallScreen';
-import InfinityGrogSentenceScreen from './screens/InfinityGrogSentenceScreen';
-import InfinityGrogReviewScreen from './screens/InfinityGrogReviewScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [initialRoute, setInitialRoute] = useState<'Login' | 'GroupList' | null>(null);
+  const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
   const setPlayer = useStore((s) => s.setPlayer);
+  const setGroups = useStore((s) => s.setGroups);
+  const setActiveGroup = useStore((s) => s.setActiveGroup);
 
   useEffect(() => {
-    AuthService.currentPlayer()
-      .then((player) => {
-        if (player) {
-          setPlayer(player);
-          setInitialRoute('GroupList');
-        } else {
-          setInitialRoute('Login');
+    async function bootstrap() {
+      try {
+        const player = await AuthService.currentPlayer();
+        if (!player) {
+          setInitialRoute('Auth');
+          return;
         }
-      })
-      .catch(() => setInitialRoute('Login'));
-  }, [setPlayer]);
+        setPlayer(player);
+
+        const groups = await GroupService.getGroups();
+        setGroups(groups);
+
+        if (groups.length === 0) {
+          setInitialRoute('Welcome');
+        } else {
+          setActiveGroup({ groupId: groups[0].groupId, groupName: groups[0].name });
+          setInitialRoute('App');
+        }
+      } catch (err: unknown) {
+        console.error('[App] bootstrap:', err);
+        setInitialRoute('Auth');
+      }
+    }
+    void bootstrap();
+  }, [setPlayer, setGroups, setActiveGroup]);
 
   if (!initialRoute) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" />
+        </View>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRoute}>
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Register' }} />
-        <Stack.Screen name="ConfirmEmail" component={ConfirmEmailScreen} options={{ title: 'Verify Email' }} />
-        <Stack.Screen name="GroupList" component={GroupListScreen} options={{ title: 'My Groups', headerBackVisible: false }} />
-        <Stack.Screen name="GroupDetail" component={GroupDetailScreen} options={({ route }) => ({ title: route.params.groupName })} />
-        <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ title: 'Create Group' }} />
-        <Stack.Screen name="JoinGroup" component={JoinGroupScreen} options={{ title: 'Join Group' }} />
-        <Stack.Screen name="CreateChallenge" component={CreateChallengeScreen} options={{ title: 'Call Manchester' }} />
-        <Stack.Screen name="PendingDebts" component={PendingDebtsScreen} options={({ route }) => ({ title: `Pending — ${route.params.groupName}` })} />
-        <Stack.Screen name="ResolutionConfirmation" component={ResolutionConfirmationScreen} options={{ title: 'Confirm Resolution' }} />
-        <Stack.Screen name="Ledger" component={LedgerScreen} options={({ route }) => ({ title: `Ledger — ${route.params.groupName}` })} />
-        <Stack.Screen name="MySlate" component={MySlateScreen} options={{ title: 'My Slate' }} />
-        <Stack.Screen name="GroupFeed" component={GroupFeedScreen} options={({ route }) => ({ title: `Feed — ${route.params.groupName}` })} />
-        <Stack.Screen name="RecordGameCall" component={RecordGameCallScreen} options={{ title: 'Record Game Call' }} />
-        <Stack.Screen name="InfinityGrogSentence" component={InfinityGrogSentenceScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="InfinityGrogReview" component={InfinityGrogReviewScreen} options={({ route }) => ({ title: `Grog — ${route.params.groupName}` })} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <NavigationContainer>
+          <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+            <Stack.Screen
+              name="Welcome"
+              component={WelcomeScreen}
+              options={{ headerShown: true, title: 'SlapWise', headerBackVisible: false }}
+            />
+            <Stack.Screen name="App" component={AppNavigator} />
+            <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ headerShown: true, title: 'Create Group' }} />
+            <Stack.Screen name="JoinGroup" component={JoinGroupScreen} options={{ headerShown: true, title: 'Join Group' }} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

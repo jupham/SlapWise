@@ -72,6 +72,11 @@ export class AppSyncStack extends cdk.Stack {
       lambdaStack.recordGameCallFn
     );
 
+    const confirmReadInDs = this.api.addLambdaDataSource(
+      'ConfirmReadInDs',
+      lambdaStack.confirmReadInFn
+    );
+
     const grogResolverDs = this.api.addLambdaDataSource(
       'GrogResolverDs',
       lambdaStack.grogResolverFn
@@ -324,35 +329,12 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // confirmReadIn: set isReadIn=true on the calling player's MEMBER record
-    ddbDataSource.createResolver('ConfirmReadInResolver', {
+    // confirmReadIn: Lambda (sets isReadIn=true + notifies existing read-in players)
+    confirmReadInDs.createResolver('ConfirmReadInResolver', {
       typeName: 'Mutation',
       fieldName: 'confirmReadIn',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-#set($now = $util.time.nowISO8601())
-{
-  "version": "2017-02-28",
-  "operation": "UpdateItem",
-  "key": {
-    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-    "SK": $util.dynamodb.toDynamoDBJson("MEMBER#$ctx.identity.sub")
-  },
-  "update": {
-    "expression": "SET isReadIn = :true, readInConfirmedAt = :now",
-    "expressionValues": {
-      ":true": $util.dynamodb.toDynamoDBJson(true),
-      ":now": $util.dynamodb.toDynamoDBJson($now)
-    }
-  },
-  "condition": {
-    "expression": "attribute_not_exists(isReadIn) OR isReadIn = :false",
-    "expressionValues": {
-      ":false": $util.dynamodb.toDynamoDBJson(false)
-    }
-  }
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result)`),
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
     // setReadInGameName: admin-only update on GROUP METADATA

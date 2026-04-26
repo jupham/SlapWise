@@ -28,6 +28,7 @@ export class LambdaStack extends cdk.Stack {
   public readonly leaveGroupFn: lambda.Function;
   public readonly notificationDispatcherFn: lambda.Function;
   public readonly grogResolverFn: lambda.Function;
+  public readonly confirmReadInFn: lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -201,6 +202,17 @@ export class LambdaStack extends cdk.Stack {
     });
     table.grantReadWriteData(this.grogResolverFn);
     snsTopic.grantPublish(this.grogResolverFn);
+
+    // confirmReadIn Lambda (AppSync resolver — sets isReadIn=true + notifies existing read-in players)
+    this.confirmReadInFn = new lambda.Function(this, 'ConfirmReadInFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-confirm-read-in`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-read-in')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.confirmReadInFn);
+    snsTopic.grantPublish(this.confirmReadInFn);
 
     // Grant Pinpoint publish rights to notification dispatcher
     this.notificationDispatcherFn.addToRolePolicy(new iam.PolicyStatement({

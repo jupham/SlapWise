@@ -12,9 +12,9 @@ import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'PendingDebts'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'PendingDebts'>;
 
 export default function PendingDebtsScreen({ route, navigation }: Props) {
   const { groupId, groupName } = route.params;

@@ -106,4 +106,16 @@ patchFile(
   }
 );
 
+// react-native-gesture-handler: add c++_shared after fbjni::fbjni
+patchFile(
+  'node_modules/react-native-gesture-handler/android/src/main/jni/CMakeLists.txt',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    return src.replace(
+      /target_link_libraries\(\s*\$\{PACKAGE_NAME\}\s*ReactAndroid::reactnative\s*ReactAndroid::jsi\s*fbjni::fbjni\s*\)/,
+      'target_link_libraries(\n  ${PACKAGE_NAME}\n  ReactAndroid::reactnative\n  ReactAndroid::jsi\n  fbjni::fbjni\n  c++_shared\n)'
+    );
+  }
+);
+
 console.log('[patch] All patches applied.');

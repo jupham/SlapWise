@@ -8,10 +8,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
+import type { AuthStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
 
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
+type NavProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavProp>();

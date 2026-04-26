@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
-import type { RootStackParamList } from '../navigation/types';
+import type { AuthStackParamList } from '../navigation/types';
 
-type ConfirmEmailRouteProp = RouteProp<RootStackParamList, 'ConfirmEmail'>;
+type ConfirmEmailRouteProp = RouteProp<AuthStackParamList, 'ConfirmEmail'>;
+type NavProp = NativeStackNavigationProp<AuthStackParamList, 'ConfirmEmail'>;
 
 export default function ConfirmEmailScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
   const route = useRoute<ConfirmEmailRouteProp>();
   const { email } = route.params;
 
@@ -25,7 +28,7 @@ export default function ConfirmEmailScreen() {
     setLoading(true);
     try {
       await confirmSignUp({ username: email, confirmationCode: code.trim() });
-      navigation.navigate('Login' as never);
+      navigation.navigate('Login');
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
       if (e.name === 'CodeMismatchException') {

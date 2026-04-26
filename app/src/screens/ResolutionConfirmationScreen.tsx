@@ -13,9 +13,9 @@ import { ManchesterService } from '../services/ManchesterService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { SlapDebt, ResolutionOutcome, PunishmentType } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'ResolutionConfirmation'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'ResolutionConfirmation'>;
 
 export default function ResolutionConfirmationScreen({ route, navigation }: Props) {
   const { debtId, groupId, groupName } = route.params;

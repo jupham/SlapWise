@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 import { GrogService } from '../services/GrogService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
@@ -23,7 +23,7 @@ import { CATEGORY_COLORS } from '../constants/grog';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Props = NativeStackScreenProps<RootStackParamList, 'InfinityGrogReview'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'InfinityGrogReview'>;
 
 const OZ_PER_ML = 1 / 29.5735;
 

@@ -8,11 +8,12 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
+import type { AuthStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
+import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
+type NavProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavProp>();
@@ -23,24 +24,33 @@ export default function LoginScreen() {
 
   async function handleSubmit() {
     setError(null);
-
     setLoading(true);
     try {
       await AuthService.login(email.trim(), password);
       const player = await AuthService.currentPlayer();
-      useStore.getState().setPlayer(player);
-      navigation.navigate('GroupList');
+      const store = useStore.getState();
+      store.setPlayer(player);
+
+      const groups = await GroupService.getGroups();
+      store.setGroups(groups);
+
+      if (groups.length === 0) {
+        // Navigate to root Welcome — need to use parent navigator
+        navigation.getParent()?.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+      } else {
+        store.setActiveGroup({ groupId: groups[0].groupId, groupName: groups[0].name });
+        navigation.getParent()?.reset({ index: 0, routes: [{ name: 'App' }] });
+      }
     } catch (err: unknown) {
       const e = err as Error;
       if (e.message === 'INVALID_CREDENTIALS') {
         setError('Invalid email or password.');
       } else if (e.message === 'NOT_CONFIRMED') {
-        // Resend the code automatically then send them to confirm
         try {
           const { resendSignUpCode } = await import('aws-amplify/auth');
           await resendSignUpCode({ username: email.trim() });
         } catch {
-          // ignore resend errors — they'll see the resend button on the confirm screen
+          // ignore resend errors
         }
         navigation.navigate('ConfirmEmail', { email: email.trim() });
       } else {
@@ -85,7 +95,7 @@ export default function LoginScreen() {
 
       <TouchableOpacity
         style={styles.link}
-        onPress={() => navigation.navigate('Register' as never)}
+        onPress={() => navigation.navigate('Register')}
       >
         <Text style={styles.linkText}>Don't have an account? Register</Text>
       </TouchableOpacity>

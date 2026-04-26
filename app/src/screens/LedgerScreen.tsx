@@ -12,9 +12,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt, DebtStatus, GameType } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Ledger'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'Ledger'>;
 
 const GAME_TYPE_FILTERS: Array<{ label: string; value: GameType | undefined }> = [
   { label: 'All', value: undefined },

@@ -14,9 +14,9 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { Member } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'CreateChallenge'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'CreateChallenge'>;
 
 export default function CreateChallengeScreen({ route, navigation }: Props) {
   const { groupId, groupName } = route.params;

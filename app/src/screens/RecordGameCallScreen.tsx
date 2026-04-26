@@ -13,9 +13,9 @@ import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { Member } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'RecordGameCall'>;
+type Props = NativeStackScreenProps<GroupStackParamList, 'RecordGameCall'>;
 
 export default function RecordGameCallScreen({ route, navigation }: Props) {
   const { groupId } = route.params;
@@ -31,7 +31,8 @@ export default function RecordGameCallScreen({ route, navigation }: Props) {
   const load = useCallback(async () => {
     try {
       const data = await GroupService.getGroupMembers(groupId);
-      setMembers(data);
+      // Only show read-in players
+      setMembers(data.filter((m) => m.isReadIn));
       // Default caller to current player
       setCallerId(currentPlayerId);
     } catch (e) {
@@ -78,6 +79,18 @@ export default function RecordGameCallScreen({ route, navigation }: Props) {
 
   if (loading) return <ActivityIndicator style={styles.center} />;
 
+  // Gate: current player must be read-in to record a game call
+  const currentMember = members.find((m) => m.playerId === currentPlayerId);
+  const isCurrentPlayerReadIn = currentMember?.isReadIn ?? false;
+
+  if (!isCurrentPlayerReadIn) {
+    return (
+      <View style={styles.gateContainer}>
+        <Text style={styles.gateText}>You must be read in to record a game call.</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.label}>Who called game?</Text>
@@ -122,6 +135,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { padding: 16, paddingBottom: 40 },
   center: { flex: 1 },
+  gateContainer: { flex: 1, backgroundColor: '#fff', padding: 24, justifyContent: 'center', alignItems: 'center' },
+  gateText: { fontSize: 16, color: '#555', textAlign: 'center' },
   label: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8 },
   hint: { fontSize: 12, color: '#888', marginBottom: 8 },
   option: {

@@ -4,10 +4,13 @@ import {
   GetItemCommand,
   TransactWriteItemsCommand,
 } from '@aws-sdk/client-dynamodb';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { randomUUID } from 'crypto';
 
 const dynamo = new DynamoDBClient({});
+const sns = new SNSClient({});
 const TABLE = process.env.TABLE_NAME!;
+const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 
 interface Args {
   groupId: string;
@@ -31,7 +34,7 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
 
   const { groupId, callerId, chuggedPlayerIds } = event.arguments;
 
-  // Validate caller is a group member
+  // Validate caller is a read-in group member
   const memberResult = await dynamo.send(new GetItemCommand({
     TableName: TABLE,
     Key: {
@@ -40,6 +43,7 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
     },
   }));
   if (!memberResult.Item) err('UNAUTHORIZED');
+  if (!memberResult.Item.isReadIn?.BOOL) err('NOT_READ_IN');
 
   if (!chuggedPlayerIds || chuggedPlayerIds.length === 0) err('VALIDATION_ERROR');
 
@@ -64,7 +68,7 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
           },
         },
       },
-      // Feed entry — readInOnly: false (chug events are visible to all)
+      // Feed entry — readInOnly: true (chug events are read-in only)
       {
         Put: {
           TableName: TABLE,
@@ -77,13 +81,31 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
             refId: { S: eventId },
             actorId: { S: callerSub! },
             summary: { S: `Game was called` },
-            readInOnly: { BOOL: false },
+            readInOnly: { BOOL: true },
             createdAt: { S: now },
           },
         },
       },
     ],
   }));
+
+  // Best-effort: send push notification to read-in players via SNS
+  if (SNS_TOPIC_ARN) {
+    try {
+      await sns.send(new PublishCommand({
+        TopicArn: SNS_TOPIC_ARN,
+        Message: JSON.stringify({
+          type: 'chug_event',
+          groupId,
+          eventId,
+          callerId,
+          chuggedPlayerIds,
+        }),
+      }));
+    } catch (snsErr) {
+      console.error('[record-game-call] failed to send SNS notification:', snsErr);
+    }
+  }
 
   return {
     __typename: 'ChugEvent',

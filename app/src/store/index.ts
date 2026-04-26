@@ -10,9 +10,11 @@ interface GroupsSlice {
   groups: Group[];
   currentGroup: Group | null;
   members: Member[];
+  activeGroup: { groupId: string; groupName: string } | null;
   setGroups: (groups: Group[]) => void;
   setCurrentGroup: (group: Group | null) => void;
   setMembers: (members: Member[]) => void;
+  setActiveGroup: (group: { groupId: string; groupName: string } | null) => void;
 }
 
 interface DebtsSlice {
@@ -38,9 +40,11 @@ export const useStore = create<AppStore>((set) => ({
   groups: [],
   currentGroup: null,
   members: [],
+  activeGroup: null,
   setGroups: (groups) => set({ groups }),
   setCurrentGroup: (currentGroup) => set({ currentGroup }),
   setMembers: (members) => set({ members }),
+  setActiveGroup: (activeGroup) => set({ activeGroup }),
 
   // Debts
   debts: [],
