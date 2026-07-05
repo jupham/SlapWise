@@ -18,10 +18,7 @@ export default function GroupTabNavigator() {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <Tab.Navigator
         screenOptions={{
-          headerShown: true,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#333',
-          headerTitleStyle: { fontWeight: '700' },
+          headerShown: false,
           tabBarActiveTintColor: '#007AFF',
           tabBarInactiveTintColor: '#8e8e93',
         }}

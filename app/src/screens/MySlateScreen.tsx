@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ManchesterService } from '../services/ManchesterService';
 import { GroupService } from '../services/GroupService';
@@ -45,6 +46,7 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
   const [error, setError] = useState<string | null>(null);
   const [addBackTarget, setAddBackTarget] = useState<PendingAddBack | null>(null);
   const [addBackError, setAddBackError] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -141,7 +143,7 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
   if (loading) return <ActivityIndicator style={styles.center} />;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {error && <Text style={styles.error}>{error}</Text>}
       <SectionList
         sections={sections}

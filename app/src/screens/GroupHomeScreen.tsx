@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
@@ -109,6 +110,7 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
   const isCreator = player?.playerId === group?.creatorId;
   const isAdmin = isCreator || (group?.adminIds ?? []).includes(player?.playerId ?? '');
   const currentMember = members.find((m) => m.playerId === player?.playerId);
+  const insets = useSafeAreaInsets();
 
   if (!activeGroup) {
     return (
@@ -122,7 +124,7 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
 
   return (
     <FlatList
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       data={members}
       keyExtractor={(m) => m.playerId}
       ListHeaderComponent={

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FeedService } from '../services/FeedService';
 import { GroupService } from '../services/GroupService';
@@ -38,6 +39,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   const groupName = activeGroup?.groupName ?? '';
   const player = useStore((s) => s.player);
   const currentPlayerId = player?.playerId ?? '';
+  const insets = useSafeAreaInsets();
 
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
@@ -97,7 +99,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   if (loading) return <ActivityIndicator style={styles.center} />;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={feed}
