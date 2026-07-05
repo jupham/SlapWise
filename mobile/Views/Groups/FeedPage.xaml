@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SlapWise.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SlapWise.Mobile.Models"
+             xmlns:listview="clr-namespace:Syncfusion.Maui.ListView;assembly=Syncfusion.Maui.ListView"
+             x:Class="SlapWise.Mobile.Views.Groups.FeedPage"
+             x:DataType="vm:FeedViewModel"
+             Title="Feed">
+
+    <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">
+        <listview:SfListView ItemsSource="{Binding Entries}"
+                             SelectionMode="None"
+                             AutoFitMode="DynamicHeight">
+
+            <listview:SfListView.HeaderTemplate>
+                <DataTemplate>
+                    <Label Text="GROUP FEED" Style="{StaticResource SectionHeader}"
+                           Margin="16,20,16,4" />
+                </DataTemplate>
+            </listview:SfListView.HeaderTemplate>
+
+            <listview:SfListView.EmptyView>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
+                                     Spacing="8" Margin="0,60">
+                    <Label Text="🫱" FontSize="48" HorizontalOptions="Center" />
+                    <Label Text="No events yet." Style="{StaticResource Muted}" HorizontalOptions="Center" />
+                    <Label Text="Start a challenge to get things going."
+                           Style="{StaticResource Muted}" FontSize="12" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </listview:SfListView.EmptyView>
+
+            <listview:SfListView.ItemTemplate>
+                <DataTemplate x:DataType="models:FeedEntry">
+                    <Border Style="{StaticResource Card}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border Grid.Column="0" BackgroundColor="#2d1f5e"
+                                    Stroke="#3d2f7e" StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 6"
+                                    Padding="8,4" VerticalOptions="Start">
+                                <Label Text="{Binding Type}" FontSize="10"
+                                       TextColor="#c4b5fd" FontAttributes="Bold" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{Binding ActorPlayerId}" FontAttributes="Bold" FontSize="15" />
+                                <Label Text="{Binding Statement}" FontSize="13" Style="{StaticResource Muted}"
+                                       IsVisible="{Binding Statement, Converter={StaticResource NotNullOrEmptyConverter}}" />
+                                <Label Text="{Binding OccurredAt}" FontSize="11"
+                                       TextColor="{StaticResource TextMuted}" Margin="0,2,0,0" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </listview:SfListView.ItemTemplate>
+
+        </listview:SfListView>
+    </RefreshView>
+
+</ContentPage>

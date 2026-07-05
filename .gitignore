@@ -67,3 +67,7 @@ yarn-error.log*
 app/android/app/src/main/assets/index.android.bundle
 app/android/app/src/main/assets/index.android.bundle.map
 app/.kotlin/
+
+mobile/bin/
+
+mobile/obj/

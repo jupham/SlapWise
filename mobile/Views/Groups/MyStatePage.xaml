@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SlapWise.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SlapWise.Mobile.Models"
+             xmlns:listview="clr-namespace:Syncfusion.Maui.ListView;assembly=Syncfusion.Maui.ListView"
+             xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
+             x:Class="SlapWise.Mobile.Views.Groups.MyStatePage"
+             x:DataType="vm:MySlateViewModel"
+             Title="My Slate">
+
+    <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">
+        <listview:SfListView ItemsSource="{Binding MyDebts}"
+                             SelectionMode="None"
+                             AutoFitMode="DynamicHeight">
+
+            <listview:SfListView.HeaderTemplate>
+                <DataTemplate>
+                    <Label Text="YOUR DEBTS" Style="{StaticResource SectionHeader}"
+                           Margin="16,20,16,4" />
+                </DataTemplate>
+            </listview:SfListView.HeaderTemplate>
+
+            <listview:SfListView.EmptyView>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center"
+                                     Spacing="8" Margin="0,60">
+                    <Label Text="✅" FontSize="48" HorizontalOptions="Center" />
+                    <Label Text="Clean slate!" Style="{StaticResource Muted}" HorizontalOptions="Center" />
+                    <Label Text="No outstanding debts." FontSize="12"
+                           Style="{StaticResource Muted}" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </listview:SfListView.EmptyView>
+
+            <listview:SfListView.ItemTemplate>
+                <DataTemplate x:DataType="models:SlapDebt">
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="10">
+
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border Grid.Column="0" BackgroundColor="#2d1f5e"
+                                        Stroke="#3d2f7e" StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 6" Padding="8,3">
+                                    <Label Text="{Binding Status}" FontSize="10"
+                                           TextColor="#c4b5fd" FontAttributes="Bold" />
+                                </Border>
+                                <Label Grid.Column="2" Text="{Binding CreatedAt}"
+                                       FontSize="11" TextColor="{StaticResource TextMuted}"
+                                       VerticalOptions="Center" />
+                            </Grid>
+
+                            <Label Text="{Binding Statement}" FontSize="15"
+                                   FontAttributes="Bold" LineBreakMode="WordWrap" />
+
+                            <Label FontSize="13" TextColor="{StaticResource AccentText}"
+                                   IsVisible="{Binding Punishment, Converter={StaticResource NotNullOrEmptyConverter}}">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="Punishment: " FontAttributes="Bold"
+                                              TextColor="{StaticResource AccentText}" />
+                                        <Span Text="{Binding Punishment}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+
+                            <buttons:SfButton Text="Resolve Debt"
+                                              BackgroundColor="{StaticResource Accent}"
+                                              TextColor="White" CornerRadius="8"
+                                              HeightRequest="40" HorizontalOptions="Start"
+                                              WidthRequest="140"
+                                              CommandParameter="{Binding .}"
+                                              Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MySlateViewModel}}, Path=ResolveCommand}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </listview:SfListView.ItemTemplate>
+
+        </listview:SfListView>
+    </RefreshView>
+
+</ContentPage>
