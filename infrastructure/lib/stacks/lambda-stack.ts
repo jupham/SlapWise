@@ -18,6 +18,7 @@ export class LambdaStack extends cdk.Stack {
   public readonly createGroupFn: lambda.Function;
   public readonly joinGroupFn: lambda.Function;
   public readonly getGroupFn: lambda.Function;
+  public readonly getGroupsFn: lambda.Function;
   public readonly deleteGroupFn: lambda.Function;
   public readonly createChallengeFn: lambda.Function;
   public readonly submitResolutionConfirmationFn: lambda.Function;
@@ -96,6 +97,16 @@ export class LambdaStack extends cdk.Stack {
       environment: commonEnv,
     });
     table.grantReadData(this.getGroupFn);
+
+    // getGroups Lambda (invoked via API Gateway — queries GSI1 for all groups the caller belongs to)
+    this.getGroupsFn = new lambda.Function(this, 'GetGroupsFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slap-tracker-get-groups`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/get-groups')),
+      environment: commonEnv,
+    });
+    table.grantReadData(this.getGroupsFn);
 
     // deleteGroup Lambda (invoked via API Gateway)
     this.deleteGroupFn = new lambda.Function(this, 'DeleteGroupFn', {

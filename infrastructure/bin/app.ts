@@ -56,6 +56,7 @@ const apiGatewayStack = new ApiGatewayStack(app, `${stage}-SlapTrackerApiGateway
   createGroupFn: lambdaStack.createGroupFn,
   joinGroupFn: lambdaStack.joinGroupFn,
   getGroupFn: lambdaStack.getGroupFn,
+  getGroupsFn: lambdaStack.getGroupsFn,
   deleteGroupFn: lambdaStack.deleteGroupFn,
 });
 

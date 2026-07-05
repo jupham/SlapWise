@@ -1,4 +1,5 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
+const CORS_HEADERS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS' };
 import {
   DynamoDBClient,
   TransactWriteItemsCommand,
@@ -17,12 +18,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   const callerId = event.requestContext.authorizer?.claims?.sub as string | undefined;
   const callerEmail = event.requestContext.authorizer?.claims?.email as string | undefined;
   if (!callerId) {
-    return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
+    return { headers: CORS_HEADERS, statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
   }
 
   const body = JSON.parse(event.body ?? '{}') as { name?: string };
   if (!body.name?.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ message: 'Group name is required' }) };
+    return { headers: CORS_HEADERS, statusCode: 400, body: JSON.stringify({ message: 'Group name is required' }) };
   }
 
   const groupId = randomUUID();
@@ -112,6 +113,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   await dynamo.send(new TransactWriteItemsCommand(params));
 
   return {
+    headers: CORS_HEADERS,
     statusCode: 201,
     body: JSON.stringify({
       groupId,

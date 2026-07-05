@@ -1,4 +1,5 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
+const CORS_HEADERS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS' };
 import {
   DynamoDBClient,
   GetItemCommand,
@@ -18,12 +19,12 @@ function getCallerId(event: Parameters<APIGatewayProxyHandler>[0]): string | nul
 export const handler: APIGatewayProxyHandler = async (event) => {
   const callerId = getCallerId(event);
   if (!callerId) {
-    return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
+    return { headers: CORS_HEADERS, statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
   }
 
   const groupId = event.pathParameters?.groupId;
   if (!groupId) {
-    return { statusCode: 400, body: JSON.stringify({ message: 'Missing groupId' }) };
+    return { headers: CORS_HEADERS, statusCode: 400, body: JSON.stringify({ message: 'Missing groupId' }) };
   }
 
   // 1. Fetch group metadata
@@ -33,12 +34,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   }));
 
   if (!groupResult.Item) {
-    return { statusCode: 404, body: JSON.stringify({ message: 'Group not found' }) };
+    return { headers: CORS_HEADERS, statusCode: 404, body: JSON.stringify({ message: 'Group not found' }) };
   }
 
   const creatorId = groupResult.Item.creatorId?.S;
   if (creatorId !== callerId) {
-    return { statusCode: 403, body: JSON.stringify({ message: 'Only the group creator can delete this group' }) };
+    return { headers: CORS_HEADERS, statusCode: 403, body: JSON.stringify({ message: 'Only the group creator can delete this group' }) };
   }
 
   // 2. Query all items with PK = GROUP#<groupId> and delete them in batches
@@ -72,5 +73,5 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     }));
   }
 
-  return { statusCode: 200, body: JSON.stringify({ message: 'Group deleted' }) };
+  return { headers: CORS_HEADERS, statusCode: 200, body: JSON.stringify({ message: 'Group deleted' }) };
 };

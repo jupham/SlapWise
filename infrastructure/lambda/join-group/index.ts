@@ -1,4 +1,5 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
+const CORS_HEADERS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type,Authorization', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS' };
 import {
   DynamoDBClient,
   GetItemCommand,
@@ -13,12 +14,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   const callerId = event.requestContext.authorizer?.claims?.sub as string | undefined;
   const callerEmail = event.requestContext.authorizer?.claims?.email as string | undefined;
   if (!callerId) {
-    return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
+    return { headers: CORS_HEADERS, statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
   }
 
   const body = JSON.parse(event.body ?? '{}') as { inviteCode?: string };
   if (!body.inviteCode?.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ message: 'inviteCode is required' }) };
+    return { headers: CORS_HEADERS, statusCode: 400, body: JSON.stringify({ message: 'inviteCode is required' }) };
   }
 
   const code = body.inviteCode.trim().toUpperCase();
@@ -37,12 +38,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     lookup.active?.BOOL !== true ||
     (lookup.TTL?.N !== undefined && Number(lookup.TTL.N) < nowEpoch)
   ) {
-    return { statusCode: 400, body: JSON.stringify({ code: 'INVALID_INVITE_CODE', message: 'Invite code is invalid or expired' }) };
+    return { headers: CORS_HEADERS, statusCode: 400, body: JSON.stringify({ code: 'INVALID_INVITE_CODE', message: 'Invite code is invalid or expired' }) };
   }
 
   const groupId = lookup.groupId?.S;
   if (!groupId) {
-    return { statusCode: 400, body: JSON.stringify({ code: 'INVALID_INVITE_CODE', message: 'Invite code is invalid or expired' }) };
+    return { headers: CORS_HEADERS, statusCode: 400, body: JSON.stringify({ code: 'INVALID_INVITE_CODE', message: 'Invite code is invalid or expired' }) };
   }
 
   // Fetch group metadata
@@ -53,7 +54,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
   const g = groupResult.Item;
   if (!g) {
-    return { statusCode: 404, body: JSON.stringify({ message: 'Group not found' }) };
+    return { headers: CORS_HEADERS, statusCode: 404, body: JSON.stringify({ message: 'Group not found' }) };
   }
 
   const params: TransactWriteItemsCommandInput = {
@@ -90,12 +91,13 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   } catch (err: unknown) {
     const error = err as { name?: string };
     if (error.name === 'TransactionCanceledException') {
-      return { statusCode: 409, body: JSON.stringify({ message: 'Already a member of this group' }) };
+      return { headers: CORS_HEADERS, statusCode: 409, body: JSON.stringify({ message: 'Already a member of this group' }) };
     }
     throw err;
   }
 
   return {
+    headers: CORS_HEADERS,
     statusCode: 200,
     body: JSON.stringify({
       groupId,
