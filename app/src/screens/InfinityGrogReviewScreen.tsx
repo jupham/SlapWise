@@ -4,14 +4,15 @@ import {
   Animated,
   Dimensions,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { GroupStackParamList } from '../navigation/types';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GrogService } from '../services/GrogService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
@@ -22,8 +23,6 @@ import InitializeGrogSheet from './components/InitializeGrogSheet';
 import { CATEGORY_COLORS } from '../constants/grog';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-type Props = NativeStackScreenProps<GroupStackParamList, 'InfinityGrogReview'>;
 
 const OZ_PER_ML = 1 / 29.5735;
 
@@ -49,10 +48,14 @@ function formatDate(iso: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
-  const { groupId, groupName } = route.params;
+export default function InfinityGrogReviewScreen() {
+  // Tab screen — group comes from the store, not route params.
+  const activeGroup = useStore((s) => s.activeGroup);
+  const groupId = activeGroup?.groupId ?? '';
 
   const player = useStore((s) => s.player);
+  const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
 
   const [grog, setGrog] = useState<Grog | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -91,8 +94,15 @@ export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
   const [adjusting, setAdjusting] = useState<Record<string, boolean>>({});
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
 
+  // Only the first fetch blocks on the spinner; refocus refreshes in place.
+  const hasLoadedRef = useRef(false);
+
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
+    if (!hasLoadedRef.current) setLoading(true);
     setError(null);
     try {
       const [fetchedGrog, fetchedMembers] = await Promise.all([
@@ -128,33 +138,23 @@ export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
       console.error('[InfinityGrogReviewScreen] load:', err);
       setError('Failed to load grog data.');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   }, [groupId, player]);
 
-  // Set up navigation header — title + manage button for admins
+  // Leaving manage mode when losing admin keeps the UI honest if the role changes.
   useEffect(() => {
-    const title = manageMode ? 'Managing Grog' : groupName;
-    if (isAdmin) {
-      navigation.setOptions({
-        title,
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => setManageMode((prev) => !prev)}
-            style={styles.headerBtn}
-          >
-            <Text style={styles.headerBtnText}>{manageMode ? 'Done' : 'Manage'}</Text>
-          </TouchableOpacity>
-        ),
-      });
-    } else {
-      navigation.setOptions({ title: groupName, headerRight: undefined });
-    }
-  }, [isAdmin, manageMode, navigation, groupName]);
+    if (!isAdmin) setManageMode(false);
+  }, [isAdmin]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Tabs stay mounted, so refetch on focus rather than only on mount —
+  // otherwise the grog goes stale after a shot is taken elsewhere.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   // ── Admin actions ────────────────────────────────────────────────────────────
 
@@ -294,11 +294,26 @@ export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
     );
   };
 
+  // This tab has no nav header, so it owns the status bar while focused.
+  const statusBar = isFocused ? (
+    <StatusBar barStyle="light-content" backgroundColor="#111" />
+  ) : null;
+
   // ── Loading / error states ───────────────────────────────────────────────────
+
+  if (!groupId) {
+    return (
+      <View style={styles.center}>
+        {statusBar}
+        <Text style={styles.emptyText}>No group selected.</Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
       <View style={styles.center}>
+        {statusBar}
         <ActivityIndicator size="large" color="#FF3B30" />
       </View>
     );
@@ -307,6 +322,7 @@ export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
   if (error) {
     return (
       <View style={styles.center}>
+        {statusBar}
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => void load()}>
           <Text style={styles.retryBtnText}>Retry</Text>
@@ -321,9 +337,23 @@ export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
 
   return (
     <>
+      {statusBar}
       <View style={styles.root}>
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-          <Text style={styles.heading}>The Grog</Text>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+        >
+          <View style={styles.headerRow}>
+            <Text style={styles.heading}>{manageMode ? 'Managing Grog' : 'The Grog'}</Text>
+            {isAdmin && (
+              <TouchableOpacity
+                onPress={() => setManageMode((prev) => !prev)}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.headerBtnText}>{manageMode ? 'Done' : 'Manage'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.skullContainer}>
             <GrogSkull
@@ -369,14 +399,20 @@ export default function InfinityGrogReviewScreen({ route, navigation }: Props) {
 
         {/* Drawer toggle tab */}
         {grog !== null && grog.entries.length > 0 && (
-          <TouchableOpacity style={styles.drawerTab} onPress={toggleDrawer}>
+          <TouchableOpacity
+            style={[styles.drawerTab, { top: insets.top + 8 }]}
+            onPress={toggleDrawer}
+          >
             <Text style={styles.drawerTabText}>{drawerOpen ? '› Contents' : '‹ Contents'}</Text>
           </TouchableOpacity>
         )}
 
         {/* Slide-in drawer */}
         <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
-          <ScrollView contentContainerStyle={styles.drawerContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + 20 }]}
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.drawerTitle}>Contents</Text>
             {/* Add Liquor button — manage mode only */}
             {manageMode && (
@@ -464,12 +500,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#111',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   heading: {
     fontSize: 22,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 16,
-    textAlign: 'center',
+    flex: 1,
   },
   skullContainer: {
     alignItems: 'center',

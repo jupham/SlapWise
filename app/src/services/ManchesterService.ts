@@ -1,7 +1,5 @@
-import { generateClient } from 'aws-amplify/api';
+import { getClient } from './amplifyClient';
 import { ChugEvent, SlapDebt, ResolutionOutcome, PunishmentType, PlayerDebtIndex } from '../types';
-
-const client = generateClient({ authMode: 'userPool' });
 
 const DEBT_FIELDS = /* GraphQL */ `
   debtId groupId gameType status
@@ -95,7 +93,7 @@ export const ManchesterService = {
     statementMakerId: string,
     statement: string
   ): Promise<SlapDebt> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: CREATE_CHALLENGE,
       variables: { groupId, statementMakerId, statement },
     });
@@ -103,7 +101,7 @@ export const ManchesterService = {
   },
 
   async getDebt(groupId: string, debtId: string): Promise<SlapDebt> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: GET_DEBT,
       variables: { groupId, debtId },
     });
@@ -111,7 +109,7 @@ export const ManchesterService = {
   },
 
   async getDebtsByStatus(groupId: string, status: string): Promise<SlapDebt[]> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: GET_DEBTS_BY_STATUS,
       variables: { groupId, status },
     });
@@ -119,7 +117,7 @@ export const ManchesterService = {
   },
 
   async getMyDebts(groupId: string): Promise<PlayerDebtIndex[]> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: GET_MY_DEBTS,
       variables: { groupId },
     });
@@ -132,7 +130,7 @@ export const ManchesterService = {
     outcome: ResolutionOutcome,
     punishment: PunishmentType
   ): Promise<SlapDebt> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: SUBMIT_RESOLUTION,
       variables: { debtId, groupId, outcome, punishment },
     });
@@ -141,7 +139,7 @@ export const ManchesterService = {
   },
 
   async confirmDelivery(debtId: string, groupId: string): Promise<SlapDebt> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: CONFIRM_DELIVERY,
       variables: { debtId, groupId },
     });
@@ -149,7 +147,7 @@ export const ManchesterService = {
   },
 
   async voidDebt(debtId: string, groupId: string): Promise<void> {
-    await client.graphql({
+    await getClient().graphql({
       query: VOID_DEBT,
       variables: { debtId, groupId },
     });
@@ -160,7 +158,7 @@ export const ManchesterService = {
     callerId: string,
     chuggedPlayerIds: string[]
   ): Promise<ChugEvent> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: RECORD_GAME_CALL,
       variables: { groupId, callerId, chuggedPlayerIds },
     });
@@ -172,7 +170,7 @@ export const ManchesterService = {
     onUpdate: (debt: SlapDebt) => void
   ): { unsubscribe: () => void } {
     const sub = (
-      client.graphql({ query: ON_DEBT_UPDATED, variables: { groupId } }) as unknown as {
+      getClient().graphql({ query: ON_DEBT_UPDATED, variables: { groupId } }) as unknown as {
         subscribe: (handlers: { next: (v: unknown) => void }) => { unsubscribe: () => void };
       }
     ).subscribe({

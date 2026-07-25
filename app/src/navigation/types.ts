@@ -14,6 +14,7 @@ export type DrawerParamList = {
 export type GroupTabParamList = {
   Feed: undefined;
   MySlate: undefined;
+  Grog: undefined;
   Group: undefined;
 };
 
@@ -29,7 +30,6 @@ export type GroupStackParamList = {
   ReadInPlayers: { groupId: string; groupName: string };
   ReadInGameName: { groupId: string; groupName: string };
   InfinityGrogSentence: { debtId: string; groupId: string; groupName: string };
-  InfinityGrogReview: { groupId: string; groupName: string };
   CreateGroup: undefined;
   JoinGroup: undefined;
 };

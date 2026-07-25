@@ -12,7 +12,6 @@ import ReadInScreen from '../screens/ReadInScreen';
 import ReadInPlayersScreen from '../screens/ReadInPlayersScreen';
 import ReadInGameNameScreen from '../screens/ReadInGameNameScreen';
 import InfinityGrogSentenceScreen from '../screens/InfinityGrogSentenceScreen';
-import InfinityGrogReviewScreen from '../screens/InfinityGrogReviewScreen';
 import CreateGroupScreen from '../screens/CreateGroupScreen';
 import JoinGroupScreen from '../screens/JoinGroupScreen';
 
@@ -70,11 +69,6 @@ export default function GroupStackNavigator() {
         name="InfinityGrogSentence"
         component={InfinityGrogSentenceScreen}
         options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="InfinityGrogReview"
-        component={InfinityGrogReviewScreen}
-        options={({ route }) => ({ title: `Grog — ${route.params.groupName}` })}
       />
       <Stack.Screen
         name="CreateGroup"

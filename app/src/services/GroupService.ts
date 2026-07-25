@@ -1,8 +1,6 @@
-import { generateClient } from 'aws-amplify/api';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { getClient } from './amplifyClient';
 import { Group, Member } from '../types';
-
-const client = generateClient({ authMode: 'userPool' });
 
 async function authFetch(path: string, options: RequestInit): Promise<Response> {
   const { tokens } = await fetchAuthSession();
@@ -99,21 +97,21 @@ export const GroupService = {
   },
 
   async getGroups(): Promise<Group[]> {
-    const result = await client.graphql({ query: GET_GROUPS });
+    const result = await getClient().graphql({ query: GET_GROUPS });
     return (result as { data: { getGroups: Group[] } }).data.getGroups;
   },
 
   async getGroupMembers(groupId: string): Promise<Member[]> {
-    const result = await client.graphql({ query: GET_GROUP_MEMBERS, variables: { groupId } });
+    const result = await getClient().graphql({ query: GET_GROUP_MEMBERS, variables: { groupId } });
     return (result as { data: { getGroupMembers: Member[] } }).data.getGroupMembers;
   },
 
   async designateAdmin(groupId: string, playerId: string): Promise<void> {
-    await client.graphql({ query: DESIGNATE_ADMIN, variables: { groupId, playerId } });
+    await getClient().graphql({ query: DESIGNATE_ADMIN, variables: { groupId, playerId } });
   },
 
   async regenerateInviteCode(groupId: string): Promise<string> {
-    const result = await client.graphql({ query: REGENERATE_INVITE, variables: { groupId } });
+    const result = await getClient().graphql({ query: REGENERATE_INVITE, variables: { groupId } });
     return (result as { data: { regenerateInviteCode: { inviteCode: string } } }).data.regenerateInviteCode.inviteCode;
   },
 

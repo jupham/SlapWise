@@ -5,6 +5,7 @@ import type { GroupTabParamList } from './types';
 import { useStore } from '../store';
 import GroupFeedScreen from '../screens/GroupFeedScreen';
 import MySlateScreen from '../screens/MySlateScreen';
+import InfinityGrogReviewScreen from '../screens/InfinityGrogReviewScreen';
 import GroupHomeScreen from '../screens/GroupHomeScreen';
 
 const Tab = createBottomTabNavigator<GroupTabParamList>();
@@ -37,6 +38,14 @@ export default function GroupTabNavigator() {
         options={{
           title: 'My Slate',
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📋</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Grog"
+        component={InfinityGrogReviewScreen}
+        options={{
+          title: 'The Grog',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🍺</Text>,
         }}
       />
       <Tab.Screen

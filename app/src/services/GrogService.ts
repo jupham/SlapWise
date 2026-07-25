@@ -1,7 +1,5 @@
-import { generateClient } from 'aws-amplify/api';
+import { getClient } from './amplifyClient';
 import { Grog, LiquorCategory } from '../types';
-
-const client = generateClient({ authMode: 'userPool' });
 
 const GROG_FIELDS = /* GraphQL */ `
   groupId bottleSize
@@ -95,7 +93,7 @@ const ADMIN_ADD_BACK = /* GraphQL */ `
 
 export const GrogService = {
   async getGrog(groupId: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: GET_GROG,
       variables: { groupId },
     });
@@ -107,7 +105,7 @@ export const GrogService = {
     bottleSize: number,
     seedEntries?: Array<{ category: LiquorCategory; brand: string; amountMl?: number }>
   ): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: INITIALIZE_GROG,
       variables: { groupId, bottleSize, seedEntries },
     });
@@ -115,7 +113,7 @@ export const GrogService = {
   },
 
   async addLiquor(groupId: string, category: LiquorCategory, brand: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: ADD_LIQUOR_TO_GROG,
       variables: { groupId, category, brand },
     });
@@ -123,7 +121,7 @@ export const GrogService = {
   },
 
   async removeLiquor(groupId: string, entryId: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: REMOVE_LIQUOR_FROM_GROG,
       variables: { groupId, entryId },
     });
@@ -131,7 +129,7 @@ export const GrogService = {
   },
 
   async adjustGrogEntry(groupId: string, entryId: string, amountMl: number): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: ADJUST_GROG_ENTRY,
       variables: { groupId, entryId, amountMl },
     });
@@ -143,7 +141,7 @@ export const GrogService = {
     debtId: string,
     addBack?: { category: LiquorCategory; brand: string }
   ): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: CONFIRM_GROG_DELIVERY,
       variables: { groupId, debtId, addBack },
     });
@@ -151,7 +149,7 @@ export const GrogService = {
   },
 
   async takeGrogShot(groupId: string, debtId: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: TAKE_GROG_SHOT,
       variables: { groupId, debtId },
     });
@@ -159,7 +157,7 @@ export const GrogService = {
   },
 
   async redeemAddBack(groupId: string, debtId: string, category: LiquorCategory, brand: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: REDEEM_ADD_BACK,
       variables: { groupId, debtId, category, brand },
     });
@@ -167,7 +165,7 @@ export const GrogService = {
   },
 
   async clearAddBack(groupId: string, debtId: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: CLEAR_ADD_BACK,
       variables: { groupId, debtId },
     });
@@ -175,7 +173,7 @@ export const GrogService = {
   },
 
   async adminAddBack(groupId: string, debtId: string, category: LiquorCategory, brand: string): Promise<Grog> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: ADMIN_ADD_BACK,
       variables: { groupId, debtId, category, brand },
     });

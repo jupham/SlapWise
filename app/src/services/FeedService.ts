@@ -1,7 +1,5 @@
-import { generateClient } from 'aws-amplify/api';
+import { getClient } from './amplifyClient';
 import { ChugEvent, FeedEntry } from '../types';
-
-const client = generateClient({ authMode: 'userPool' });
 
 const GET_FEED = /* GraphQL */ `
   query GetFeed($groupId: ID!) {
@@ -21,7 +19,7 @@ const ON_CHUG_EVENT_CREATED = /* GraphQL */ `
 
 export const FeedService = {
   async getFeed(groupId: string): Promise<FeedEntry[]> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: GET_FEED,
       variables: { groupId },
     });
@@ -33,7 +31,7 @@ export const FeedService = {
     onUpdate: (event: ChugEvent) => void
   ): { unsubscribe: () => void } {
     const sub = (
-      client.graphql({ query: ON_CHUG_EVENT_CREATED, variables: { groupId } }) as unknown as {
+      getClient().graphql({ query: ON_CHUG_EVENT_CREATED, variables: { groupId } }) as unknown as {
         subscribe: (handlers: { next: (v: unknown) => void }) => { unsubscribe: () => void };
       }
     ).subscribe({

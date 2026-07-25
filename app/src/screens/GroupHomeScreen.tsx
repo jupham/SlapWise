@@ -193,15 +193,6 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
             </TouchableOpacity>
           )}
 
-          {/* Grog */}
-          <Text style={styles.sectionTitle}>Grog</Text>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('InfinityGrogReview', { groupId, groupName })}
-          >
-            <Text style={styles.actionBtnText}>🍺 View the Grog</Text>
-          </TouchableOpacity>
-
           <Text style={styles.sectionTitle}>Members ({members.length})</Text>
         </View>
       }

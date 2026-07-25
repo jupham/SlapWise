@@ -1,7 +1,5 @@
-import { generateClient } from 'aws-amplify/api';
+import { getClient } from './amplifyClient';
 import { Member, Group } from '../types';
-
-const client = generateClient({ authMode: 'userPool' });
 
 const MEMBER_FIELDS = /* GraphQL */ `
   playerId groupId username joinedAt isReadIn readInConfirmedAt
@@ -33,7 +31,7 @@ const SET_READ_IN_GAME_NAME = /* GraphQL */ `
 
 export const ReadInService = {
   async confirmReadIn(groupId: string): Promise<Member> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: CONFIRM_READ_IN,
       variables: { groupId },
     });
@@ -41,7 +39,7 @@ export const ReadInService = {
   },
 
   async getReadInPlayers(groupId: string): Promise<Member[]> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: GET_READ_IN_PLAYERS,
       variables: { groupId },
     });
@@ -49,7 +47,7 @@ export const ReadInService = {
   },
 
   async setReadInGameName(groupId: string, name: string): Promise<Group> {
-    const result = await client.graphql({
+    const result = await getClient().graphql({
       query: SET_READ_IN_GAME_NAME,
       variables: { groupId, name },
     });
