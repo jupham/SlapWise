@@ -53,6 +53,7 @@ coverage/
 Thumbs.db
 .vscode/settings.json
 .idea/
+.vs/
 
 # ─── Logs ────────────────────────────────────────────────────────────────────
 *.log
