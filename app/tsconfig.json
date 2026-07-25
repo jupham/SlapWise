@@ -3,9 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "noImplicitAny": true,
-    "baseUrl": ".",
+    "moduleResolution": "bundler",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["react-native"]
   },

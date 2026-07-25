@@ -118,4 +118,16 @@ patchFile(
   }
 );
 
+// expo-modules-core: add c++_shared to the main target_link_libraries block
+patchFile(
+  'node_modules/expo-modules-core/android/cmake/main.cmake',
+  (src) => {
+    if (src.includes('c++_shared')) return src;
+    return src.replace(
+      '${NEW_ARCHITECTURE_DEPENDENCIES}\n  expo-modules-jsi\n)',
+      '${NEW_ARCHITECTURE_DEPENDENCIES}\n  expo-modules-jsi\n  c++_shared\n)'
+    );
+  }
+);
+
 console.log('[patch] All patches applied.');

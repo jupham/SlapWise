@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   dialogSecondaryBtnText: { color: '#888', fontSize: 15, fontWeight: '600' },
   // Redeeming overlay
   redeemingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center', alignItems: 'center',
   },

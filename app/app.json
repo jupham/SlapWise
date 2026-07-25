@@ -1,4 +1,25 @@
 {
-  "name": "SlapWise",
-  "displayName": "SlapWise"
+  "expo": {
+    "name": "SlapWise",
+    "slug": "slapwise",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.slapwise",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.slapwise"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "56e39eae-e67b-430a-95a1-037e28e81251"
+      }
+    },
+    "owner": "nupham"
+  }
 }

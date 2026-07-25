@@ -1,9 +1,8 @@
 import 'react-native-reanimated';
 import 'react-native-get-random-values';
-import { AppRegistry } from 'react-native';
+import { registerRootComponent } from 'expo';
 import App from './src/App';
-import { name as appName } from './app.json';
 import { configureAmplify } from './src/config/amplify';
 
 configureAmplify();
-AppRegistry.registerComponent(appName, () => App);
+registerRootComponent(App);
