@@ -7,20 +7,30 @@
 const fs = require('fs');
 const path = require('path');
 
+const failures = [];
+
 function patchFile(relPath, patchFn) {
   const filePath = path.join(__dirname, '..', relPath);
   if (!fs.existsSync(filePath)) {
-    console.warn(`[patch] WARNING: ${relPath} not found, skipping`);
+    failures.push(`${relPath} — file not found (module removed, renamed, or moved?)`);
+    console.error(`[patch] FAIL ${relPath} — not found`);
     return;
   }
   const original = fs.readFileSync(filePath, 'utf8');
+  // Checked here rather than per-patch so "nothing to do" stays distinct from
+  // "the pattern stopped matching", which is a silent build breakage.
+  if (original.includes('c++_shared')) {
+    console.log(`[patch] ${relPath} — already links c++_shared`);
+    return;
+  }
   const patched = patchFn(original);
   if (patched === original) {
-    console.log(`[patch] ${relPath} — already patched or pattern not found`);
-  } else {
-    fs.writeFileSync(filePath, patched, 'utf8');
-    console.log(`[patch] ${relPath} — patched OK`);
+    failures.push(`${relPath} — link pattern did not match; upstream file format likely changed`);
+    console.error(`[patch] FAIL ${relPath} — pattern did not match`);
+    return;
   }
+  fs.writeFileSync(filePath, patched, 'utf8');
+  console.log(`[patch] ${relPath} — patched OK`);
 }
 
 // react-native-reanimated: add c++_shared before react-native-worklets::worklets
@@ -130,4 +140,20 @@ patchFile(
   }
 );
 
-console.log('[patch] All patches applied.');
+if (failures.length > 0) {
+  console.error(`\n[patch] ${failures.length} of these patches did not apply:`);
+  for (const f of failures) console.error(`  - ${f}`);
+  console.error(
+    '\nEach one adds c++_shared to a module\'s CMake link list. NDK 27 does not link\n' +
+    'the STL implicitly, so without them the Android build fails at link time with\n' +
+    'undefined std:: symbols. Update the patterns in this script before building.'
+  );
+  // Android-only concern, so don't fail an EAS iOS build over it.
+  if (process.env.EAS_BUILD_PLATFORM === 'ios') {
+    console.error('[patch] EAS iOS build — continuing anyway, these only affect Android.');
+  } else {
+    process.exit(1);
+  }
+} else {
+  console.log('[patch] All patches applied.');
+}
