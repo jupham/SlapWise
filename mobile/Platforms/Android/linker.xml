@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<linker>
-  <assembly fullname="Syncfusion.Maui.Core" preserve="all" />
-  <assembly fullname="Syncfusion.Maui.Inputs" preserve="all" />
-  <assembly fullname="Syncfusion.Maui.ListView" preserve="all" />
-  <assembly fullname="Syncfusion.Maui.Buttons" preserve="all" />
-  <assembly fullname="Syncfusion.Maui.Popup" preserve="all" />
-  <assembly fullname="Syncfusion.Maui.TabView" preserve="all" />
-</linker>

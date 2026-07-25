@@ -40,6 +40,9 @@ coverage/
 Thumbs.db
 .vscode/settings.json
 .idea/
+# Visual Studio per-session state, kept in case the folder is opened in VS again
+.vs/
+*.user
 
 # ─── Logs ────────────────────────────────────────────────────────────────────
 *.log
@@ -51,13 +54,3 @@ yarn-error.log*
 *.tsbuildinfo
 
 app/.kotlin/
-
-# ─── Visual Studio & .NET (MAUI app in mobile/) ──────────────────────────────
-# Per-session IDE state: .suo, .vsidx, .dtbcache.v2, ProjectEvaluation/*.bin
-.vs/
-# Per-developer debug target / emulator selection
-*.user
-# Note: scoped to mobile/ on purpose — a bare bin/ would swallow
-# infrastructure/bin/app.ts, which is tracked CDK source.
-mobile/bin/
-mobile/obj/
