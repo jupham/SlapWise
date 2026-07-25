@@ -71,6 +71,8 @@ app/.kotlin/
 # ─── Visual Studio & .NET (MAUI app in mobile/) ──────────────────────────────
 # Per-session IDE state: .suo, .vsidx, .dtbcache.v2, ProjectEvaluation/*.bin
 .vs/
+# Per-developer debug target / emulator selection
+*.user
 # Note: scoped to mobile/ on purpose — a bare bin/ would swallow
 # infrastructure/bin/app.ts, which is tracked CDK source.
 mobile/bin/
