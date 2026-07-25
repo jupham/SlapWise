@@ -11,7 +11,7 @@ The feature is self-contained: a single Lambda (`grog-resolver`) handles all mut
 ```mermaid
 graph TD
     A[React Native App] -->|GraphQL via Amplify| B[AppSync]
-    B -->|getGrog query - VTL| C[DynamoDB SlapTracker]
+    B -->|getGrog query - VTL| C[DynamoDB SlapWise]
     B -->|initializeGrog mutation| D[grog-resolver Lambda]
     B -->|addLiquorToGrog mutation| D
     B -->|removeLiquorFromGrog mutation| D

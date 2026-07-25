@@ -43,7 +43,7 @@ const amplifyConfig = {
       defaultAuthMode: 'userPool',
     },
     REST: {
-      SlapTrackerRest: {
+      SlapWiseRest: {
         endpoint: flat.ApiGatewayEndpoint,
         region: flat.AppSyncRegion,
       },

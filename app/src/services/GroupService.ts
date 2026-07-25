@@ -12,9 +12,9 @@ async function authFetch(path: string, options: RequestInit): Promise<Response> 
   // Import the REST endpoint from amplifyconfiguration at runtime
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const config = require('../../amplifyconfiguration.json') as {
-    API: { REST: { SlapTrackerRest: { endpoint: string } } };
+    API: { REST: { SlapWiseRest: { endpoint: string } } };
   };
-  const base = config.API.REST.SlapTrackerRest.endpoint.replace(/\/$/, '');
+  const base = config.API.REST.SlapWiseRest.endpoint.replace(/\/$/, '');
 
   return fetch(`${base}${path}`, {
     ...options,

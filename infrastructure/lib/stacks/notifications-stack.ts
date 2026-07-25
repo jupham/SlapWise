@@ -15,23 +15,23 @@ export class NotificationsStack extends cdk.Stack {
     super(scope, id, props);
     const { stage } = props;
 
-    this.snsTopic = new sns.Topic(this, 'SlapTrackerNotificationsTopic', {
-      topicName: `${stage}-SlapTrackerNotifications`,
+    this.snsTopic = new sns.Topic(this, 'SlapWiseNotificationsTopic', {
+      topicName: `${stage}-SlapWiseNotifications`,
       displayName: 'SlapWise Notifications',
     });
 
-    this.pinpointApp = new pinpoint.CfnApp(this, 'SlapTrackerPinpointApp', {
+    this.pinpointApp = new pinpoint.CfnApp(this, 'SlapWisePinpointApp', {
       name: `${stage}-SlapWise`,
     });
 
     new cdk.CfnOutput(this, 'SnsTopicArn', {
       value: this.snsTopic.topicArn,
-      exportName: `${stage}-SlapTrackerSnsTopicArn`,
+      exportName: `${stage}-SlapWiseSnsTopicArn`,
     });
 
     new cdk.CfnOutput(this, 'PinpointAppId', {
       value: this.pinpointApp.ref,
-      exportName: `${stage}-SlapTrackerPinpointAppId`,
+      exportName: `${stage}-SlapWisePinpointAppId`,
     });
   }
 }

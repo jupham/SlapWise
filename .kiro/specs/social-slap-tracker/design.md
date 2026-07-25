@@ -206,9 +206,9 @@ The timeline scrubber renders a horizontal scroll of timeline events beneath the
 
 ## Data Models
 
-All data lives in a single DynamoDB table (`SlapTracker`) using single-table design. Each entity type uses a composite primary key (`PK` + `SK`) and GSIs for secondary access patterns.
+All data lives in a single DynamoDB table (`SlapWise`) using single-table design. Each entity type uses a composite primary key (`PK` + `SK`) and GSIs for secondary access patterns.
 
-### Table: `SlapTracker`
+### Table: `SlapWise`
 
 | PK | SK | Entity | Description |
 |---|---|---|---|

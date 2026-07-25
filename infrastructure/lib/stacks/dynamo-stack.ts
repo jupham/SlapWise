@@ -13,8 +13,8 @@ export class DynamoStack extends cdk.Stack {
     super(scope, id, props);
     const { stage } = props;
 
-    this.table = new dynamodb.Table(this, 'SlapTrackerTable', {
-      tableName: `${stage}-SlapTracker`,
+    this.table = new dynamodb.Table(this, 'SlapWiseTable', {
+      tableName: `${stage}-SlapWise`,
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -50,12 +50,12 @@ export class DynamoStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'TableName', {
       value: this.table.tableName,
-      exportName: `${stage}-SlapTrackerTableName`,
+      exportName: `${stage}-SlapWiseTableName`,
     });
 
     new cdk.CfnOutput(this, 'TableArn', {
       value: this.table.tableArn,
-      exportName: `${stage}-SlapTrackerTableArn`,
+      exportName: `${stage}-SlapWiseTableArn`,
     });
   }
 }

@@ -37,8 +37,8 @@ export class ApiGatewayStack extends cdk.Stack {
       cloudWatchRoleArn: cloudWatchRole.roleArn,
     });
 
-    this.api = new apigateway.RestApi(this, 'SlapTrackerRestApi', {
-      restApiName: `${stage}-SlapTrackerApi`,
+    this.api = new apigateway.RestApi(this, 'SlapWiseRestApi', {
+      restApiName: `${stage}-SlapWiseApi`,
       description: 'SlapWise REST API for group management',
       deployOptions: {
         stageName: 'prod',
@@ -56,10 +56,10 @@ export class ApiGatewayStack extends cdk.Stack {
 
     const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(
       this,
-      'SlapTrackerCognitoAuthorizer',
+      'SlapWiseCognitoAuthorizer',
       {
         cognitoUserPools: [userPool],
-        authorizerName: 'SlapTrackerCognitoAuthorizer',
+        authorizerName: 'SlapWiseCognitoAuthorizer',
         identitySource: 'method.request.header.Authorization',
       }
     );
@@ -105,7 +105,7 @@ export class ApiGatewayStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ApiGatewayEndpoint', {
       value: this.api.url,
-      exportName: `${stage}-SlapTrackerApiGatewayEndpoint`,
+      exportName: `${stage}-SlapWiseApiGatewayEndpoint`,
     });
   }
 }

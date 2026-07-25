@@ -51,7 +51,7 @@ export class LambdaStack extends cdk.Stack {
     // Pre-sign-up trigger (username uniqueness check)
     this.preSignUpFn = new lambda.Function(this, 'PreSignUpFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-pre-sign-up`,
+      functionName: `${stage}-slapwise-pre-sign-up`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/pre-sign-up')),
       environment: { TABLE_NAME: table.tableName },
@@ -61,7 +61,7 @@ export class LambdaStack extends cdk.Stack {
     // Post-confirmation trigger (write player profile to DynamoDB)
     this.postConfirmationFn = new lambda.Function(this, 'PostConfirmationFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-post-confirmation`,
+      functionName: `${stage}-slapwise-post-confirmation`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/post-confirmation')),
       environment: { TABLE_NAME: table.tableName },
@@ -71,7 +71,7 @@ export class LambdaStack extends cdk.Stack {
     // createGroup Lambda (invoked via API Gateway)
     this.createGroupFn = new lambda.Function(this, 'CreateGroupFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-create-group`,
+      functionName: `${stage}-slapwise-create-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-group')),
       environment: commonEnv,
@@ -81,7 +81,7 @@ export class LambdaStack extends cdk.Stack {
     // joinGroup Lambda (invoked via API Gateway)
     this.joinGroupFn = new lambda.Function(this, 'JoinGroupFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-join-group`,
+      functionName: `${stage}-slapwise-join-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/join-group')),
       environment: commonEnv,
@@ -91,7 +91,7 @@ export class LambdaStack extends cdk.Stack {
     // getGroup Lambda (invoked via API Gateway)
     this.getGroupFn = new lambda.Function(this, 'GetGroupFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-get-group`,
+      functionName: `${stage}-slapwise-get-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/get-group')),
       environment: commonEnv,
@@ -101,7 +101,7 @@ export class LambdaStack extends cdk.Stack {
     // getGroups Lambda (invoked via API Gateway — queries GSI1 for all groups the caller belongs to)
     this.getGroupsFn = new lambda.Function(this, 'GetGroupsFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-get-groups`,
+      functionName: `${stage}-slapwise-get-groups`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/get-groups')),
       environment: commonEnv,
@@ -111,7 +111,7 @@ export class LambdaStack extends cdk.Stack {
     // deleteGroup Lambda (invoked via API Gateway)
     this.deleteGroupFn = new lambda.Function(this, 'DeleteGroupFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-delete-group`,
+      functionName: `${stage}-slapwise-delete-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/delete-group')),
       environment: commonEnv,
@@ -121,7 +121,7 @@ export class LambdaStack extends cdk.Stack {
     // createChallenge Lambda (AppSync resolver — TransactWrite for GSI4 fan-out)
     this.createChallengeFn = new lambda.Function(this, 'CreateChallengeFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-create-challenge`,
+      functionName: `${stage}-slapwise-create-challenge`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-challenge')),
       environment: commonEnv,
@@ -131,7 +131,7 @@ export class LambdaStack extends cdk.Stack {
     // submitResolutionConfirmation Lambda (AppSync resolver)
     this.submitResolutionConfirmationFn = new lambda.Function(this, 'SubmitResolutionConfirmationFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-submit-resolution-confirmation`,
+      functionName: `${stage}-slapwise-submit-resolution-confirmation`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/submit-resolution-confirmation')),
       environment: commonEnv,
@@ -142,7 +142,7 @@ export class LambdaStack extends cdk.Stack {
     // confirmDelivery Lambda (AppSync resolver)
     this.confirmDeliveryFn = new lambda.Function(this, 'ConfirmDeliveryFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-confirm-delivery`,
+      functionName: `${stage}-slapwise-confirm-delivery`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-delivery')),
       environment: commonEnv,
@@ -153,7 +153,7 @@ export class LambdaStack extends cdk.Stack {
     // recordGameCall Lambda (AppSync resolver)
     this.recordGameCallFn = new lambda.Function(this, 'RecordGameCallFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-record-game-call`,
+      functionName: `${stage}-slapwise-record-game-call`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/record-game-call')),
       environment: commonEnv,
@@ -164,7 +164,7 @@ export class LambdaStack extends cdk.Stack {
     // regenerateInviteCode Lambda (AppSync resolver)
     this.regenerateInviteCodeFn = new lambda.Function(this, 'RegenerateInviteCodeFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-regenerate-invite-code`,
+      functionName: `${stage}-slapwise-regenerate-invite-code`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/regenerate-invite-code')),
       environment: commonEnv,
@@ -174,7 +174,7 @@ export class LambdaStack extends cdk.Stack {
     // voidDebt Lambda (AppSync resolver — hard-delete DEBT + 2× PLAYERDEBT)
     this.voidDebtFn = new lambda.Function(this, 'VoidDebtFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-void-debt`,
+      functionName: `${stage}-slapwise-void-debt`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/void-debt')),
       environment: commonEnv,
@@ -184,7 +184,7 @@ export class LambdaStack extends cdk.Stack {
     // leaveGroup Lambda (AppSync resolver)
     this.leaveGroupFn = new lambda.Function(this, 'LeaveGroupFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-leave-group`,
+      functionName: `${stage}-slapwise-leave-group`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/leave-group')),
       environment: commonEnv,
@@ -195,7 +195,7 @@ export class LambdaStack extends cdk.Stack {
     // notificationDispatcher Lambda
     this.notificationDispatcherFn = new lambda.Function(this, 'NotificationDispatcherFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-notification-dispatcher`,
+      functionName: `${stage}-slapwise-notification-dispatcher`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/notification-dispatcher')),
       environment: commonEnv,
@@ -206,7 +206,7 @@ export class LambdaStack extends cdk.Stack {
     // grogResolver Lambda (AppSync resolver — all grog mutations)
     this.grogResolverFn = new lambda.Function(this, 'GrogResolverFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-grog-resolver`,
+      functionName: `${stage}-slapwise-grog-resolver`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/grog-resolver')),
       environment: commonEnv,
@@ -217,7 +217,7 @@ export class LambdaStack extends cdk.Stack {
     // confirmReadIn Lambda (AppSync resolver — sets isReadIn=true + notifies existing read-in players)
     this.confirmReadInFn = new lambda.Function(this, 'ConfirmReadInFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slap-tracker-confirm-read-in`,
+      functionName: `${stage}-slapwise-confirm-read-in`,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-read-in')),
       environment: commonEnv,

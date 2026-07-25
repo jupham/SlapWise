@@ -50,14 +50,18 @@ can authenticate.
 
 Node version is pinned in `.node-version` (24.14.0).
 
-### Two names, both correct
+### Naming
 
-The AWS CLI profile is **`slapwise`**. The deployed resources are all named
-**`SlapTracker`** — the DynamoDB table, the `${stage}-SlapTracker*Stack` stack
-names, the `SlapTrackerRest` API, and the ARN patterns in
-`iam-deploy-policy.json`. The project was renamed but the infrastructure was
-not. Both spellings are intentional: do not rename `SlapTracker` resources to
-match the project, and do not change the profile to match the resources.
+Everything is `SlapWise` / `slapwise` — the AWS profile, the DynamoDB table, the
+`${stage}-SlapWise*Stack` stack names, the `SlapWiseRest` API, the
+`${stage}-slapwise-*` Lambda names, and the ARN patterns in
+`iam-deploy-policy.json`.
+
+The infrastructure was originally named `SlapTracker` and was renamed on
+2026-07-25. The one survivor is the Kiro spec feature id `social-slap-tracker`
+(`.kiro/specs/social-slap-tracker/`, and the `// Feature: social-slap-tracker`
+comment convention in tests) — that's a spec identifier, not an AWS name, and
+was deliberately left alone.
 
 ## Expo specifics
 

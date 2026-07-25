@@ -14,7 +14,7 @@ const app = new cdk.App();
 const stage = (app.node.tryGetContext('stage') as string | undefined) ?? 'dev';
 
 // Tag all resources in every stack for cost tracking
-cdk.Tags.of(app).add('Project', 'SlapTracker');
+cdk.Tags.of(app).add('Project', 'SlapWise');
 cdk.Tags.of(app).add('Stage', stage);
 cdk.Tags.of(app).add('ManagedBy', 'CDK');
 
@@ -23,25 +23,25 @@ const env = {
   region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1',
 };
 
-const dynamoStack = new DynamoStack(app, `${stage}-SlapTrackerDynamoStack`, { env, stage });
+const dynamoStack = new DynamoStack(app, `${stage}-SlapWiseDynamoStack`, { env, stage });
 
-const notificationsStack = new NotificationsStack(app, `${stage}-SlapTrackerNotificationsStack`, { env, stage });
+const notificationsStack = new NotificationsStack(app, `${stage}-SlapWiseNotificationsStack`, { env, stage });
 
-const lambdaStack = new LambdaStack(app, `${stage}-SlapTrackerLambdaStack`, {
+const lambdaStack = new LambdaStack(app, `${stage}-SlapWiseLambdaStack`, {
   env,
   stage,
   table: dynamoStack.table,
   snsTopic: notificationsStack.snsTopic,
 });
 
-const cognitoStack = new CognitoStack(app, `${stage}-SlapTrackerCognitoStack`, {
+const cognitoStack = new CognitoStack(app, `${stage}-SlapWiseCognitoStack`, {
   env,
   stage,
   preSignUpFn: lambdaStack.preSignUpFn,
   postConfirmationFn: lambdaStack.postConfirmationFn,
 });
 
-const appSyncStack = new AppSyncStack(app, `${stage}-SlapTrackerAppSyncStack`, {
+const appSyncStack = new AppSyncStack(app, `${stage}-SlapWiseAppSyncStack`, {
   env,
   stage,
   table: dynamoStack.table,
@@ -49,7 +49,7 @@ const appSyncStack = new AppSyncStack(app, `${stage}-SlapTrackerAppSyncStack`, {
   lambdaStack,
 });
 
-const apiGatewayStack = new ApiGatewayStack(app, `${stage}-SlapTrackerApiGatewayStack`, {
+const apiGatewayStack = new ApiGatewayStack(app, `${stage}-SlapWiseApiGatewayStack`, {
   env,
   stage,
   userPool: cognitoStack.userPool,

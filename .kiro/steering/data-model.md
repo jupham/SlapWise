@@ -2,7 +2,7 @@
 
 ## Single-Table Design
 
-Table name: `SlapTracker`  
+Table name: `SlapWise`  
 Primary key: `PK` (partition) + `SK` (sort)
 
 ---

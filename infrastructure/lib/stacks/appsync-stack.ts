@@ -21,8 +21,8 @@ export class AppSyncStack extends cdk.Stack {
 
     const { stage, table, userPool, lambdaStack } = props;
 
-    this.api = new appsync.GraphqlApi(this, 'SlapTrackerApi', {
-      name: `${stage}-SlapTrackerApi`,
+    this.api = new appsync.GraphqlApi(this, 'SlapWiseApi', {
+      name: `${stage}-SlapWiseApi`,
       schema: appsync.SchemaFile.fromAsset(
         path.join(__dirname, '../graphql/schema.graphql')
       ),
@@ -40,7 +40,7 @@ export class AppSyncStack extends cdk.Stack {
 
     // ── Data Sources ──────────────────────────────────────────────────────────
 
-    const ddbDataSource = this.api.addDynamoDbDataSource('SlapTrackerDdbSource', table);
+    const ddbDataSource = this.api.addDynamoDbDataSource('SlapWiseDdbSource', table);
 
     const createChallengeDs = this.api.addLambdaDataSource(
       'CreateChallengeDs',
@@ -483,17 +483,17 @@ $util.toJson($ctx.result)
 
     new cdk.CfnOutput(this, 'AppSyncEndpoint', {
       value: this.api.graphqlUrl,
-      exportName: `${stage}-SlapTrackerAppSyncEndpoint`,
+      exportName: `${stage}-SlapWiseAppSyncEndpoint`,
     });
 
     new cdk.CfnOutput(this, 'AppSyncApiId', {
       value: this.api.apiId,
-      exportName: `${stage}-SlapTrackerAppSyncApiId`,
+      exportName: `${stage}-SlapWiseAppSyncApiId`,
     });
 
     new cdk.CfnOutput(this, 'AppSyncRegion', {
       value: this.region,
-      exportName: `${stage}-SlapTrackerAppSyncRegion`,
+      exportName: `${stage}-SlapWiseAppSyncRegion`,
     });
   }
 }

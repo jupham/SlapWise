@@ -19,7 +19,7 @@ The redesign introduces:
 ```mermaid
 graph TD
     A[React Native App] -->|GraphQL via Amplify| B[AppSync]
-    B -->|getGrog query - VTL| C[DynamoDB SlapTracker]
+    B -->|getGrog query - VTL| C[DynamoDB SlapWise]
     B -->|takeGrogShot mutation| D[grog-resolver Lambda]
     B -->|redeemAddBack mutation| D
     B -->|clearAddBack mutation| D
