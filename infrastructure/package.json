@@ -7,7 +7,7 @@
     "watch": "tsc -w",
     "cdk": "cdk",
     "deploy": "tsc && cdk deploy --all --profile slapwise --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
-    "synth": "cdk synth --profile slaptracker"
+    "synth": "cdk synth --profile slapwise"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
