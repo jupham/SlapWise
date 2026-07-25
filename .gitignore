@@ -53,7 +53,6 @@ coverage/
 Thumbs.db
 .vscode/settings.json
 .idea/
-.vs/
 
 # ─── Logs ────────────────────────────────────────────────────────────────────
 *.log
@@ -69,6 +68,10 @@ app/android/app/src/main/assets/index.android.bundle
 app/android/app/src/main/assets/index.android.bundle.map
 app/.kotlin/
 
+# ─── Visual Studio & .NET (MAUI app in mobile/) ──────────────────────────────
+# Per-session IDE state: .suo, .vsidx, .dtbcache.v2, ProjectEvaluation/*.bin
+.vs/
+# Note: scoped to mobile/ on purpose — a bare bin/ would swallow
+# infrastructure/bin/app.ts, which is tracked CDK source.
 mobile/bin/
-
 mobile/obj/
