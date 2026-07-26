@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
@@ -54,7 +55,8 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
     }
   }, [groupId]);
 
-  useEffect(() => { void load(); }, [load]);
+  // Tabs stay mounted, so refetch on focus rather than only on mount.
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const handleShare = async () => {
     if (!inviteCode) return;
