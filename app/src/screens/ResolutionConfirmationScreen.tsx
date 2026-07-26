@@ -217,7 +217,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
               onPress={() => setSelectedPunishment('slap')}
             >
               <Text style={[styles.punishBtnText, selectedPunishment === 'slap' && styles.punishBtnTextSelected]}>
-                👋 Slap
+                Slap
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -225,7 +225,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
               onPress={() => setSelectedPunishment('infinity_grog')}
             >
               <Text style={[styles.punishBtnText, selectedPunishment === 'infinity_grog' && styles.punishBtnTextSelected]}>
-                🍺 Infinity Grog
+                Infinity grog
               </Text>
             </TouchableOpacity>
           </View>
@@ -261,7 +261,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
               onPress={() => setSelectedPunishment('slap')}
             >
               <Text style={[styles.punishBtnText, selectedPunishment === 'slap' && styles.punishBtnTextSelected]}>
-                👋 Slap
+                Slap
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -269,7 +269,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
               onPress={() => setSelectedPunishment('infinity_grog')}
             >
               <Text style={[styles.punishBtnText, selectedPunishment === 'infinity_grog' && styles.punishBtnTextSelected]}>
-                🍺 Infinity Grog
+                Infinity grog
               </Text>
             </TouchableOpacity>
           </View>

@@ -12,7 +12,7 @@ serverless backend.
 | `infrastructure/` | AWS CDK (TypeScript). Cognito, AppSync, API Gateway, DynamoDB, Lambda, notifications. |
 
 `app/src/` is organised as `screens/`, `services/`, `store/` (Zustand),
-`navigation/`, `types/`, `tests/`.
+`navigation/`, `theme/`, `constants/`, `config/`, `types/`, `tests/`.
 
 ### Directories that no longer exist
 
@@ -48,7 +48,32 @@ and then `scripts/generate-amplify-config.js` to write
 it's gitignored, so a fresh clone has to deploy (or obtain it) before the app
 can authenticate.
 
+`app/.easignore` exists solely because of that. EAS Build uploads via git, so a
+gitignored config would be absent from the build — which compiles fine and then
+fails on device with no Amplify config. When `.easignore` is present EAS uses it
+*instead of* `.gitignore`, so it has to restate every other exclusion; if you add
+something to `.gitignore` that must not ship, add it there too.
+
 Node version is pinned in `.node-version` (24.14.0).
+
+### Seeding dev data
+
+`npm --prefix infrastructure run seed` repopulates a deployed stack with three
+users, a group, and Manchesters covering every state the UI renders. Add
+`-- --wipe-first` to clear the Cognito users *and* the DynamoDB table first;
+without the wipe it is still safe to re-run, since it reuses a same-named group
+and tolerates repeat joins and read-ins.
+
+It drives the real REST and GraphQL APIs rather than writing DynamoDB directly.
+That is deliberate: one Manchester is a transaction of a `DEBT#` record plus a
+GSI4 index row per participant, each carrying denormalised status, statement,
+debtor, creditor and punishment. Hand-writing those rows would be a second copy
+of the write model that goes stale the moment a resolver changes.
+
+Two things worth knowing before editing it. Resolution and delivery each need
+**two** confirmations, one per party, and only the second flips the debt — seed
+one side and everything sits in Needs Action. And every grog mutation is
+admin-gated, so liquor has to be added as the group creator.
 
 ### Naming
 
@@ -62,6 +87,58 @@ The infrastructure was originally named `SlapTracker` and was renamed on
 (`.kiro/specs/social-slap-tracker/`, and the `// Feature: social-slap-tracker`
 comment convention in tests) — that's a spec identifier, not an AWS name, and
 was deliberately left alone.
+
+## Design system
+
+`app/src/theme/index.ts` is the single source of colour, type, spacing and
+radius. **No screen should contain a hex literal** — the only survivors are two
+`shadowColor: '#000'`, which are shadows rather than palette values.
+
+The direction is "Scoreboard": Clemson orange `#F56600` on near-black, with
+Clemson regalia purple as the secondary marker. The group is called Clemson
+Boys, so the accent carries a real signal rather than being an arbitrary pick.
+
+Three rules the tokens encode, worth not undoing:
+
+- **Destructive is an outline, never a fill**, and `dangerText` is deliberately
+  not orange-adjacent. The old palette used one red for both `Delete Group` and
+  ordinary navigation links.
+- **Weight lives in the family name, never in `fontWeight`.** Oswald ships via
+  `@expo-google-fonts/oswald` and is loaded in `App.tsx`. On Android a custom
+  family *plus* a `fontWeight` makes React Native look for a synthetic variant,
+  fail, and silently fall back to the system face — you get the layout of the
+  custom font with none of the type.
+- **Every screen pushed above the tabs uses `navigation/screenOptions.ts`.**
+  Without it the native stack falls back to the platform's white header. It also
+  sets `contentStyle`, so a new screen lands on the dark ground before anyone
+  styles it.
+
+`displayName()` in the theme strips the local part off an email. It is a
+fallback for legacy rows, not the mechanism — see below.
+
+## Display names
+
+Players choose a display name at signup. It lives in the Cognito
+`preferred_username` attribute, which the pool already declared as mutable and
+which carries no uniqueness constraint (`signInAliases` is email-only), so two
+friends may share a name.
+
+The name is written in three places and read from a fourth, so a change has to
+fan out: `post-confirmation` writes the Player profile, `create-group` and
+`join-group` denormalise a copy onto each Member record, and the group screens
+read those copies. `update-username` handles the fan-out with one GSI1 query —
+Member records carry `GSI1PK = PLAYER#<id>` and the profile shares that
+partition.
+
+**`update-username` deliberately does not touch Cognito.** Doing so needs the
+user pool id, and `CognitoStack` already depends on `LambdaStack` for its
+triggers, so referencing the pool from a Lambda is a circular stack dependency.
+The client updates its own attribute through Amplify's user-scoped call and the
+Lambda does the DynamoDB half. Cognito is written first on purpose: if the
+fan-out fails, new joins still pick up the new name and a retry converges.
+
+The app client has `adminUserPassword: true` **only** so the seed script can
+mint tokens. The app itself signs in over SRP and never uses that flow.
 
 ## Expo specifics
 
@@ -100,6 +177,15 @@ never been tested.
 
 - **The EAS iOS build has never actually been run.** It is the one unproven part
   of the Expo migration and the migration's whole purpose. `npm run build:ios:preview`.
+  It also needs a paid Apple Developer account: `eas.json`'s `preview` profile is
+  `distribution: "internal"`, and there is no way to get an ad-hoc iOS build onto
+  a device without one.
+- **The design has only ever run on an Android emulator.** The safe-area work is
+  written correctly — the tab bar grows by `insets.bottom` — but a notched iPhone
+  has very different insets, and the Grog screen's absolutely-positioned drawer
+  tab is the kind of thing that lands wrong there.
+- **No test covers the display-name path or the seed script.** The 44 vitest tests
+  predate both and exercise domain logic only.
 - `infrastructure/bin/app.ts` is CDK **source**, not a build output. Ignore rules
   for `bin/`/`obj/` must stay path-scoped or they will swallow it.
 - `README.md` is an empty stub (UTF-16, one heading).
