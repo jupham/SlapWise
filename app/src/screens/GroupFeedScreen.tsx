@@ -12,8 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FeedService } from '../services/FeedService';
 import { GroupService } from '../services/GroupService';
+import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
-import { FeedEntry } from '../types';
+import { FeedEntry, SlapDebt } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import { punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space, title } from '../theme';
@@ -93,6 +94,8 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
 
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  // Keyed by debtId, joined to threads on refId.
+  const [debts, setDebts] = useState<Record<string, SlapDebt>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const subRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -104,14 +107,16 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
     if (!hasLoadedRef.current) setLoading(true);
     setError(null);
     try {
-      const [entries, members] = await Promise.all([
+      const [entries, members, allDebts] = await Promise.all([
         FeedService.getFeed(groupId),
         GroupService.getGroupMembers(groupId),
+        ManchesterService.getAllDebts(groupId),
       ]);
       const nameMap: Record<string, string> = {};
       for (const m of members) nameMap[m.playerId] = m.username ?? m.playerId;
       setMemberNames(nameMap);
       setFeed(entries);
+      setDebts(Object.fromEntries(allDebts.map((d) => [d.debtId, d])));
     } catch (e) {
       console.error('[GroupFeedScreen] load failed:', e);
       setError('Failed to load feed');
@@ -184,14 +189,64 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   const faceFor = (entry: FeedEntry): string | null | undefined =>
     entry.type === 'manchester_created' ? entry.challengerId ?? entry.actorId : entry.debtorId ?? entry.actorId;
 
-  const threadStatus = (thread: Thread) => {
+  /**
+   * A first confirmation writes no feed entry — only the second one does, since
+   * one person answering is a state rather than an event. So "waiting on Kyle"
+   * cannot be read off the entries; it comes from the debt the thread points
+   * at, joined on refId.
+   *
+   * Returns `urgent` when the viewer is the one holding it up, so the thread can
+   * say so rather than sitting under a generic "open".
+   */
+  const threadStatus = (thread: Thread): { text: string; urgent: boolean } => {
     const last = thread.steps[thread.steps.length - 1];
+
     if (last.type === 'slap_delivered') {
-      return last.punishment === 'infinity_grog' ? 'Settled with grog' : 'Settled';
+      return {
+        text: last.punishment === 'infinity_grog' ? 'Settled with grog' : 'Settled',
+        urgent: false,
+      };
     }
-    if (last.type === 'manchester_resolved') return 'Ruled · awaiting delivery';
-    if (last.type === 'manchester_created') return 'Called · open';
-    return last.summary;
+
+    const debt = debts[thread.refId];
+
+    if (last.type === 'manchester_resolved') {
+      if (debt && (isYou(debt.debtorId) || isYou(debt.creditorId))) {
+        const mineConfirmed = isYou(debt.debtorId)
+          ? debt.debtorDeliveryConfirmed
+          : debt.creditorDeliveryConfirmed;
+        if (!mineConfirmed) return { text: 'Ruled · confirm it happened', urgent: true };
+        const otherId = isYou(debt.debtorId) ? debt.creditorId : debt.debtorId;
+        return { text: `Ruled · waiting on ${nameFor(otherId)}`, urgent: false };
+      }
+      return { text: 'Ruled · awaiting delivery', urgent: false };
+    }
+
+    if (last.type === 'manchester_created') {
+      if (!debt) return { text: 'Called · open', urgent: false };
+
+      const iAmChallenger = isYou(debt.challengerId);
+      const iAmMaker = isYou(debt.statementMakerId);
+      const myAnswer = iAmChallenger
+        ? debt.challengerConfirmation
+        : iAmMaker
+          ? debt.statementMakerConfirmation
+          : null;
+
+      if ((iAmChallenger || iAmMaker) && !myAnswer) {
+        return { text: 'Called · your answer needed', urgent: true };
+      }
+      if (iAmChallenger || iAmMaker) {
+        const otherId = iAmChallenger ? debt.statementMakerId : debt.challengerId;
+        return { text: `Called · waiting on ${nameFor(otherId)}`, urgent: false };
+      }
+
+      const answered =
+        (debt.challengerConfirmation ? 1 : 0) + (debt.statementMakerConfirmation ? 1 : 0);
+      return { text: answered === 1 ? 'Called · one answer in' : 'Called · open', urgent: false };
+    }
+
+    return { text: last.summary, urgent: false };
   };
 
   /** A thread involves you if you are named anywhere in it. */
@@ -221,6 +276,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
           const settled = thread.steps[thread.steps.length - 1].type === 'slap_delivered';
           const mine = threadIsMine(thread);
           const statement = thread.steps.find((s) => s.statement)?.statement;
+          const status = threadStatus(thread);
 
           return (
             <TouchableOpacity
@@ -233,8 +289,14 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
               activeOpacity={0.7}
             >
               <View style={styles.threadHeader}>
-                <Text style={[styles.threadStatus, settled && styles.threadStatusSettled]}>
-                  {threadStatus(thread)}
+                <Text
+                  style={[
+                    styles.threadStatus,
+                    settled && styles.threadStatusSettled,
+                    status.urgent && styles.threadStatusUrgent,
+                  ]}
+                >
+                  {status.text}
                 </Text>
                 <Text style={styles.threadTime}>{shortTime(thread.latestAt)}</Text>
               </View>
@@ -303,6 +365,9 @@ const styles = StyleSheet.create({
   },
   threadStatus: { ...label },
   threadStatusSettled: { color: color.regalia },
+  // Something is waiting on you specifically. Stays in the accent rather than
+  // taking a new colour, so it reads as emphasis rather than a fourth state.
+  threadStatusUrgent: { color: color.accent },
   threadTime: { fontSize: size.label, color: color.textDim },
 
   step: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },

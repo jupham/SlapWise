@@ -208,6 +208,41 @@ silently. On an EAS **iOS** build it warns and continues, since these targets ar
 Android-only. Whether all eight patches are still individually necessary has
 never been tested.
 
+## Backend sharp edges
+
+Much of the backend predates the model being fully worked out, so it has places
+where the obvious reading is wrong. Each of these cost real debugging time —
+add to the list rather than rediscovering them.
+
+**`getDebts(groupId)` does not return all debts.** `status` is optional in the
+schema, but the resolver defaults a missing one to `pending`:
+
+```
+#set($status = $util.defaultIfNullOrBlank($ctx.args.status, "pending"))
+```
+
+It queries GSI2, whose partition key is `GROUP#<id>#STATUS#<status>`, so a
+single call can only ever return one status. Omitting it quietly returns
+pending — not everything, and no error. Fetch each status you need in parallel;
+`ManchesterService.getAllDebts` does exactly that.
+
+**A first resolution confirmation writes no feed entry.** Only the second one
+does, because one party answering is a state rather than an event. Anything that
+needs to know whose turn it is has to read the debt, not the feed.
+
+**`getCurrentUser().username` is not a username.** The pool signs in by email
+alias, so Cognito's own username is a generated UUID. Read `preferred_username`
+from the user attributes instead — see `AuthService.currentPlayer`.
+
+**Every grog mutation is admin-gated**, including adding liquor. `isAdmin` is
+checked in the grog resolver, so non-admin members get `UNAUTHORIZED` on writes
+that look innocuous.
+
+**Tab screens must refetch on focus.** They stay mounted, so a mount-only
+`useEffect` never sees anything that happened while you were on another tab.
+All four use `useFocusEffect`; a new tab screen needs it too, with a
+`hasLoadedRef` guard so the spinner only blocks the first load.
+
 ## Known rough edges
 
 - **The EAS iOS build has never actually been run.** It is the one unproven part

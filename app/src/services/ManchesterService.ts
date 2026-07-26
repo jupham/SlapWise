@@ -41,6 +41,17 @@ const GET_DEBTS_BY_STATUS = /* GraphQL */ `
   }
 `;
 
+/**
+ * Statuses the feed needs debt state for. `delivered` is absent on purpose: a
+ * settled thread reads entirely from its own entries.
+ *
+ * `status` looks optional on getDebts, but the resolver defaults a missing one
+ * to "pending" and queries GSI2, whose partition key is
+ * GROUP#<id>#STATUS#<status> — so one call can only ever return one status, and
+ * omitting it quietly returns pending rather than everything.
+ */
+const FEED_DEBT_STATUSES = ['pending', 'pending_confirmation', 'resolved'] as const;
+
 const GET_MY_DEBTS = /* GraphQL */ `
   query GetMyDebts($groupId: ID!) {
     getMyDebts(groupId: $groupId) {
@@ -114,6 +125,14 @@ export const ManchesterService = {
       variables: { groupId, status },
     });
     return (result as { data: { getDebts: SlapDebt[] } }).data.getDebts;
+  },
+
+  /** Every debt the feed needs live state for, across the statuses above. */
+  async getAllDebts(groupId: string): Promise<SlapDebt[]> {
+    const pages = await Promise.all(
+      FEED_DEBT_STATUSES.map((status) => this.getDebtsByStatus(groupId, status))
+    );
+    return pages.flat();
   },
 
   async getMyDebts(groupId: string): Promise<PlayerDebtIndex[]> {
