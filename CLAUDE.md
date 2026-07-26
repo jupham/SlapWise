@@ -75,6 +75,11 @@ Two things worth knowing before editing it. Resolution and delivery each need
 one side and everything sits in Needs Action. And every grog mutation is
 admin-gated, so liquor has to be added as the group creator.
 
+After a wipe, run `adb shell pm clear com.slapwise`. JWTs are stateless, so
+deleting the Cognito user does not invalidate the token already on the device:
+the app bootstraps happily as a player who no longer exists, finds no groups,
+and lands on the welcome screen as though you had never signed up.
+
 ### Naming
 
 Everything is `SlapWise` / `slapwise` — the AWS profile, the DynamoDB table, the
@@ -115,6 +120,36 @@ Three rules the tokens encode, worth not undoing:
 
 `displayName()` in the theme strips the local part off an email. It is a
 fallback for legacy rows, not the mechanism — see below.
+
+## The feed
+
+`GroupFeedScreen` groups entries by `refId` into threads, orders steps
+oldest-first inside a thread and threads newest-first between them, so a settled
+Manchester that gains a step jumps back to the top and still reads in order.
+The grouping is entirely client-side.
+
+Feed entries carry denormalised detail — statement, the two parties, outcome,
+punishment — because a bare entry cannot say who did what to whom, and joining
+per row would be an N+1. **Ids, never names**: display names are editable, so a
+stored name makes every historical entry lie after a rename. The client resolves
+ids against the group's member list at render time. Every field is nullable and
+the row falls back to `summary`, which is all that entries written before this
+carry.
+
+`member_joined` is in the `FeedEntryType` enum but **nothing writes it**, and
+`chug_event` is deliberately unstyled for now — it is one caller and a list of
+chugged players, so it does not fit the two-party thread shape.
+
+### Who a punishment happens to
+
+`src/copy/punishment.ts` owns this phrasing, and it is the only place that
+should. **The debtor takes the punishment; the creditor delivers it** — the grog
+resolver rejects a shot unless the caller is the debtor, which settles the
+direction. The app used to say "Marcus owes Jordan a slap", which reads as
+Marcus having to go and slap Jordan: exactly backwards. It now says what
+physically happens — "Marcus gets slapped by Jordan", "Kyle takes a shot from
+the grog". Slaps name both people; the grog is impersonal because the thread
+already shows who the dispute was with.
 
 ## Display names
 
