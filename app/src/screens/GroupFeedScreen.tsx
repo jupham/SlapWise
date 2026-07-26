@@ -14,15 +14,21 @@ import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { FeedEntry, FeedEntryType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
+import { color, displayName, font, label, radius, size, space, title } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, never>;
 
-const EVENT_ICON: Record<FeedEntryType, string> = {
-  manchester_created: '🎯',
-  manchester_resolved: '⚖️',
-  slap_delivered: '👋',
-  chug_event: '🍺',
-  member_joined: '👋',
+/**
+ * Each entry type gets a coloured left rule instead of an emoji: emoji ignore
+ * tint, sit on their own baseline, and read as decoration rather than as the
+ * category marker they were doing duty as.
+ */
+const EVENT_COLOR: Record<FeedEntryType, string> = {
+  manchester_created: color.accent,
+  manchester_resolved: color.success,
+  slap_delivered: color.regalia,
+  chug_event: color.regalia,
+  member_joined: color.textDim,
 };
 
 const EVENT_LABEL: Record<FeedEntryType, string> = {
@@ -81,7 +87,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
 
   const nameFor = (id: string | null | undefined) => {
     if (!id) return 'Someone';
-    const name = memberNames[id] ?? id;
+    const name = displayName(memberNames[id] ?? id);
     return id === currentPlayerId ? `${name} (you)` : name;
   };
 
@@ -96,7 +102,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
     // chug_event and member_joined have no detail screen yet
   };
 
-  if (loading) return <ActivityIndicator style={styles.center} />;
+  if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -105,26 +111,24 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
         data={feed}
         keyExtractor={(e) => e.entryId}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={<Text style={styles.screenTitle}>Feed</Text>}
         ListEmptyComponent={<Text style={styles.empty}>No activity yet</Text>}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { borderLeftColor: EVENT_COLOR[item.type] }]}
             onPress={() => handlePress(item)}
             activeOpacity={0.7}
           >
-            <View style={styles.row}>
-              <Text style={styles.icon}>{EVENT_ICON[item.type]}</Text>
-              <View style={styles.content}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.eventLabel}>{EVENT_LABEL[item.type]}</Text>
-                  <Text style={styles.date}>
-                    {new Date(item.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-                <Text style={styles.summary}>{item.summary}</Text>
-                <Text style={styles.actor}>by {nameFor(item.actorId)}</Text>
-              </View>
+            <View style={styles.cardHeader}>
+              <Text style={[styles.eventLabel, { color: EVENT_COLOR[item.type] }]}>
+                {EVENT_LABEL[item.type]}
+              </Text>
+              <Text style={styles.date}>
+                {new Date(item.createdAt).toLocaleDateString()}
+              </Text>
             </View>
+            <Text style={styles.summary}>{item.summary}</Text>
+            <Text style={styles.actor}>{nameFor(item.actorId)}</Text>
           </TouchableOpacity>
         )}
       />
@@ -133,21 +137,24 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1 },
-  list: { padding: 16, paddingBottom: 40 },
-  error: { color: '#FF3B30', margin: 16 },
-  empty: { fontSize: 14, color: '#aaa', textAlign: 'center', marginTop: 40 },
+  container: { flex: 1, backgroundColor: color.bg },
+  center: { flex: 1, backgroundColor: color.bg },
+  list: { paddingHorizontal: space.lg, paddingBottom: 40 },
+  screenTitle: { ...title, marginTop: space.md, marginBottom: space.lg },
+  error: { color: color.dangerText, marginBottom: space.md, fontSize: size.caption },
+  empty: { fontSize: size.body, color: color.textDim, textAlign: 'center', marginTop: 40 },
   card: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 12, marginBottom: 10, backgroundColor: '#fafafa',
+    backgroundColor: color.surface,
+    borderLeftWidth: 3,
+    padding: space.md,
+    marginBottom: space.sm,
   },
-  row: { flexDirection: 'row', alignItems: 'flex-start' },
-  icon: { fontSize: 24, marginRight: 12, marginTop: 2 },
-  content: { flex: 1 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  eventLabel: { fontSize: 13, fontWeight: '700', color: '#333' },
-  date: { fontSize: 12, color: '#888' },
-  summary: { fontSize: 13, color: '#555' },
-  actor: { fontSize: 11, color: '#aaa', marginTop: 4 },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: space.xs,
+  },
+  eventLabel: { ...label, color: color.accent },
+  date: { fontSize: size.label, color: color.textDim },
+  summary: { fontSize: size.body, color: color.text, marginTop: space.xs, lineHeight: 20 },
+  actor: { fontSize: size.caption, color: color.textMuted, marginTop: space.sm },
 });

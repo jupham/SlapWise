@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthService } from '../services/AuthService';
 import { useStore } from '../store';
 import type { RootStackParamList } from '../navigation/types';
+import { color, font, label, radius, size, space, title } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
@@ -57,14 +58,35 @@ export default function WelcomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 32, justifyContent: 'center', alignItems: 'center' },
-  heading: { fontSize: 28, fontWeight: '800', color: '#1a1a1a', marginBottom: 8, textAlign: 'center' },
-  sub: { fontSize: 16, color: '#555', marginBottom: 4 },
-  body: { fontSize: 16, color: '#666', marginBottom: 48, textAlign: 'center' },
-  primaryBtn: { backgroundColor: '#007AFF', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 12, marginBottom: 16, width: '100%', alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  secondaryBtn: { backgroundColor: '#34C759', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 12, width: '100%', alignItems: 'center' },
-  secondaryBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  logoutBtn: { marginRight: 8 },
-  logoutText: { color: '#FF3B30', fontWeight: '600' },
+  container: {
+    flex: 1, backgroundColor: color.bg, padding: space.xxl,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  heading: { ...title, textAlign: 'center', marginBottom: space.sm },
+  sub: { fontSize: size.body, color: color.textMuted, marginBottom: space.xs },
+  body: {
+    fontSize: size.body, color: color.textMuted,
+    marginBottom: 48, textAlign: 'center', lineHeight: 22,
+  },
+  // Only one filled button on the screen: create is the primary path, join is
+  // the alternative. Two solid fills would make them read as equal weight.
+  primaryBtn: {
+    backgroundColor: color.accent, paddingVertical: space.lg,
+    borderRadius: radius.sm, marginBottom: space.md,
+    width: '100%', alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: color.accentInk, fontSize: size.body, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  secondaryBtn: {
+    borderWidth: 1, borderColor: color.borderStrong, paddingVertical: space.lg,
+    borderRadius: radius.sm, width: '100%', alignItems: 'center',
+  },
+  secondaryBtnText: {
+    color: color.text, fontSize: size.body, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  logoutBtn: { marginRight: space.sm },
+  logoutText: { color: color.textMuted, fontWeight: '600' },
 });
