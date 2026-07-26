@@ -3,6 +3,7 @@ import {
   signIn,
   signOut,
   getCurrentUser,
+  fetchUserAttributes,
 } from 'aws-amplify/auth';
 import { Player } from '../types';
 
@@ -68,10 +69,15 @@ export const AuthService: AuthService = {
 
   async currentPlayer(): Promise<Player | null> {
     try {
-      const { userId, username } = await getCurrentUser();
+      const { userId } = await getCurrentUser();
+      // Not getCurrentUser().username: this pool signs in by email alias, so
+      // Cognito's own username is an internal UUID. It was surfacing raw on the
+      // welcome screen and in the drawer ("Hey 64384458-8031-…").
+      const attrs = await fetchUserAttributes();
       return {
         playerId: userId,
-        username,
+        username: attrs.preferred_username ?? attrs.email ?? userId,
+        email: attrs.email ?? '',
       } as Player;
     } catch {
       return null;
