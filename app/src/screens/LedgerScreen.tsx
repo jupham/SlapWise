@@ -13,6 +13,7 @@ import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt, DebtStatus, GameType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
+import { debtStatusLabel } from '../copy/punishment';
 import { color, radius } from '../theme';
 
 
@@ -155,7 +156,7 @@ export default function LedgerScreen({ route }: Props) {
       (isCreditor && item.creditorDeliveryConfirmed);
 
     const gameLabel = item.gameType === 'manchester' ? 'MANCHESTER' : 'READ IN';
-    const statusLabel = item.status.replace(/_/g, ' ').toUpperCase();
+    const statusLabel = debtStatusLabel(item.status).toUpperCase();
 
     return (
       <View style={styles.card}>

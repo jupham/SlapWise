@@ -14,7 +14,7 @@ import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { SlapDebt, ResolutionOutcome, PunishmentType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
-import { punishmentPhrase } from '../copy/punishment';
+import { debtStatusLabel, punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ResolutionConfirmation'>;
@@ -62,6 +62,42 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * The route registers a static "Confirm Resolution", which is wrong for most
+   * of the states this screen renders — you often cannot confirm anything,
+   * either because it is not your Manchester or because you already answered.
+   * Retitle from the state the viewer is actually in.
+   *
+   * Sits above the early returns so the hook order stays fixed, and guards on
+   * `debt` instead.
+   */
+  useEffect(() => {
+    if (!debt) return;
+    const me = player?.playerId ?? '';
+    const challenger = debt.challengerId;
+    const maker = debt.statementMakerId;
+    const iAmParty = me === challenger || me === maker;
+    const iAnswered =
+      (me === challenger && debt.challengerConfirmation != null) ||
+      (me === maker && debt.statementMakerConfirmation != null);
+
+    let heading: string;
+    if (debt.status === 'delivered') {
+      heading = 'Settled';
+    } else if (debt.status === 'resolved') {
+      heading = 'Ruled';
+    } else if (iAmParty && !iAnswered) {
+      heading = 'Confirm resolution';
+    } else if (iAmParty) {
+      const otherId = me === challenger ? maker : challenger;
+      heading = `Waiting on ${memberNames[otherId ?? ''] ?? 'the other party'}`;
+    } else {
+      heading = 'Manchester';
+    }
+
+    navigation.setOptions({ title: heading });
+  }, [debt, memberNames, navigation, player]);
 
   const handleSubmit = async (outcome: ResolutionOutcome, punishment: PunishmentType) => {
     setSubmitting(true);
@@ -166,7 +202,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
 
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Status</Text>
-          <Text style={styles.statusValue}>{debt.status.replace(/_/g, ' ')}</Text>
+          <Text style={styles.statusValue}>{debtStatusLabel(debt.status)}</Text>
         </View>
       </View>
 

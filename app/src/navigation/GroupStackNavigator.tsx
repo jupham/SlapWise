@@ -39,7 +39,10 @@ export default function GroupStackNavigator() {
       <Stack.Screen
         name="ResolutionConfirmation"
         component={ResolutionConfirmationScreen}
-        options={{ title: 'Confirm Resolution' }}
+        // Placeholder only, shown while the debt loads. The screen retitles
+        // itself once it knows whether you can act, are waiting, or are just
+        // looking at someone else's Manchester.
+        options={{ title: 'Manchester' }}
       />
       <Stack.Screen
         name="Ledger"

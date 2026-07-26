@@ -49,3 +49,27 @@ export function punishmentPhrase({
 export function punishmentLabel(punishment: PunishmentType): string {
   return punishment === 'infinity_grog' ? 'Infinity grog' : 'Slap';
 }
+
+/**
+ * The debt lifecycle in the app's own vocabulary — called, ruled, settled.
+ *
+ * `DebtStatus` is the storage enum and leaked into the UI verbatim, so a screen
+ * titled "Ruled" sat directly above "Status: RESOLVED", and
+ * "pending_confirmation" rendered as "pending confirmation" without saying whose
+ * turn it was. Keep display strings here so the words stay in step with the
+ * feed.
+ */
+export function debtStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Called';
+    case 'pending_confirmation':
+      return 'Awaiting the other answer';
+    case 'resolved':
+      return 'Ruled';
+    case 'delivered':
+      return 'Settled';
+    default:
+      return status.replace(/_/g, ' ');
+  }
+}
