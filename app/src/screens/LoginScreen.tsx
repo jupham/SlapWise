@@ -12,7 +12,8 @@ import type { AuthStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
-import { color, font, label, radius, size, space, title } from '../theme';
+import { color, radius, size, space, title } from '../theme';
+
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList>;
 

@@ -14,6 +14,7 @@ import type { LiquorCategory } from '../../types';
 import { BOTTLE_SIZE_PRESETS } from '../../constants/grog';
 import { GrogService } from '../../services/GrogService';
 import AddLiquorSheet from './AddLiquorSheet';
+import { color } from '../../theme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheetWrapper: { justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: color.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
@@ -286,64 +287,64 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
   },
   handle: {
-    width: 40, height: 4, backgroundColor: '#555',
+    width: 40, height: 4, backgroundColor: color.borderStrong,
     borderRadius: 2, alignSelf: 'center', marginBottom: 16,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '600', color: '#aaa', marginBottom: 6 },
-  error: { color: '#FF3B30', fontSize: 12, marginBottom: 4 },
+  title: { fontSize: 18, fontWeight: '700', color: color.text, marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: '600', color: color.textMuted, marginBottom: 6 },
+  error: { color: color.accent, fontSize: 12, marginBottom: 4 },
   globalError: { marginTop: 12, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   input: {
-    backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: '#444',
-    borderRadius: 8, padding: 12, fontSize: 15, color: '#fff',
+    backgroundColor: color.surfaceRaised, borderWidth: 1, borderColor: color.borderStrong,
+    borderRadius: 8, padding: 12, fontSize: 15, color: color.text,
   },
   inputFlex: { flex: 1 },
-  inputError: { borderColor: '#FF3B30' },
+  inputError: { borderColor: color.accent },
   amountInput: { width: 80 },
   unitToggle: {
-    backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: '#555',
+    backgroundColor: color.surfaceRaised, borderWidth: 1, borderColor: color.borderStrong,
     borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12,
     justifyContent: 'center', alignItems: 'center',
   },
   unitToggleSmall: {
-    backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: '#555',
+    backgroundColor: color.surfaceRaised, borderWidth: 1, borderColor: color.borderStrong,
     borderRadius: 8, paddingHorizontal: 10, paddingVertical: 12,
     justifyContent: 'center', alignItems: 'center',
   },
-  unitToggleText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  unitToggleText: { color: color.text, fontWeight: '700', fontSize: 13 },
   presetRow: { flexDirection: 'row', gap: 8, marginBottom: 20, flexWrap: 'wrap' },
   presetBtn: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    borderWidth: 1, borderColor: '#555', backgroundColor: '#2a2a2a',
+    borderWidth: 1, borderColor: color.borderStrong, backgroundColor: color.surfaceRaised,
   },
-  presetBtnActive: { backgroundColor: '#FF3B30', borderColor: '#FF3B30' },
-  presetBtnText: { color: '#ccc', fontSize: 13 },
+  presetBtnActive: { backgroundColor: color.accent, borderColor: color.accent },
+  presetBtnText: { color: color.textMuted, fontSize: 13 },
   seedHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 8,
   },
-  addSeedBtn: { color: '#FF3B30', fontSize: 14, fontWeight: '600' },
-  emptySeeds: { color: '#666', fontSize: 13, fontStyle: 'italic', marginBottom: 16 },
+  addSeedBtn: { color: color.accent, fontSize: 14, fontWeight: '600' },
+  emptySeeds: { color: color.textDim, fontSize: 13, fontStyle: 'italic', marginBottom: 16 },
   seedRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#2a2a2a', borderRadius: 8, padding: 10, marginBottom: 8,
+    backgroundColor: color.surfaceRaised, borderRadius: 8, padding: 10, marginBottom: 8,
   },
   seedMeta: { flex: 1, marginRight: 8 },
-  seedBrand: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  seedCategory: { color: '#888', fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
+  seedBrand: { color: color.text, fontSize: 14, fontWeight: '600' },
+  seedCategory: { color: color.textMuted, fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
   removeBtn: {
-    backgroundColor: '#3a1a1a', borderRadius: 6,
+    backgroundColor: color.surfaceRaised, borderRadius: 6,
     paddingHorizontal: 10, paddingVertical: 10,
   },
-  removeBtnText: { color: '#FF3B30', fontSize: 14, fontWeight: '700' },
+  removeBtnText: { color: color.accent, fontSize: 14, fontWeight: '700' },
   actions: { flexDirection: 'row', marginTop: 24, gap: 12 },
   cancelBtn: {
     flex: 1, padding: 14, borderRadius: 8,
-    borderWidth: 1, borderColor: '#555', alignItems: 'center',
+    borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center',
   },
-  cancelBtnText: { color: '#ccc', fontSize: 15, fontWeight: '600' },
-  submitBtn: { flex: 1, padding: 14, borderRadius: 8, backgroundColor: '#FF3B30', alignItems: 'center' },
+  cancelBtnText: { color: color.textMuted, fontSize: 15, fontWeight: '600' },
+  submitBtn: { flex: 1, padding: 14, borderRadius: 8, backgroundColor: color.accent, alignItems: 'center' },
   submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  submitBtnText: { color: color.text, fontSize: 15, fontWeight: '700' },
 });

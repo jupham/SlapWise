@@ -20,6 +20,8 @@ import AddLiquorSheet from './components/AddLiquorSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CATEGORY_COLORS } from '../constants/grog';
+import { color } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'InfinityGrogSentence'>;
 
@@ -258,91 +260,91 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a0a' },
+  root: { flex: 1, backgroundColor: color.bg },
   container: { flex: 1 },
   content: { padding: 24, paddingBottom: 60, alignItems: 'center' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: color.bg },
   groupName: {
-    fontSize: 13, fontWeight: '600', color: '#666',
+    fontSize: 13, fontWeight: '600', color: color.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, marginTop: 60,
   },
-  heading: { fontSize: 32, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 8 },
-  subheading: { fontSize: 16, color: '#888', textAlign: 'center', marginBottom: 32 },
+  heading: { fontSize: 32, fontWeight: '800', color: color.text, textAlign: 'center', marginBottom: 8 },
+  subheading: { fontSize: 16, color: color.textMuted, textAlign: 'center', marginBottom: 32 },
   skullContainer: { alignItems: 'center', marginBottom: 40 },
   shotBtn: {
-    backgroundColor: '#FF3B30', paddingVertical: 18, paddingHorizontal: 48,
+    backgroundColor: color.accent, paddingVertical: 18, paddingHorizontal: 48,
     borderRadius: 12, alignItems: 'center', marginBottom: 16,
-    shadowColor: '#FF3B30', shadowOffset: { width: 0, height: 4 },
+    shadowColor: color.accent, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
   },
   shotBtnDisabled: { opacity: 0.5 },
-  shotBtnText: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
+  shotBtnText: { color: color.accentInk, fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
   takeLaterBtn: {
     paddingVertical: 12, paddingHorizontal: 32,
     borderRadius: 10, alignItems: 'center', marginBottom: 40,
-    borderWidth: 1, borderColor: '#444',
+    borderWidth: 1, borderColor: color.borderStrong,
   },
-  takeLaterBtnText: { color: '#888', fontSize: 15, fontWeight: '600' },
-  inlineError: { color: '#FF3B30', fontSize: 14, textAlign: 'center', marginBottom: 16 },
-  errorText: { color: '#FF3B30', fontSize: 15, marginBottom: 16, textAlign: 'center', paddingHorizontal: 24 },
-  retryBtn: { backgroundColor: '#FF3B30', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
-  retryBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  takeLaterBtnText: { color: color.textMuted, fontSize: 15, fontWeight: '600' },
+  inlineError: { color: color.accent, fontSize: 14, textAlign: 'center', marginBottom: 16 },
+  errorText: { color: color.accent, fontSize: 15, marginBottom: 16, textAlign: 'center', paddingHorizontal: 24 },
+  retryBtn: { backgroundColor: color.accent, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
+  retryBtnText: { color: color.accentInk, fontWeight: '600', fontSize: 14 },
   // Drawer
   drawerTab: {
     position: 'absolute', right: 0, top: 8,
-    backgroundColor: '#1e1e1e', borderTopLeftRadius: 6, borderBottomLeftRadius: 6,
+    backgroundColor: color.surfaceRaised, borderTopLeftRadius: 6, borderBottomLeftRadius: 6,
     paddingVertical: 6, paddingHorizontal: 10,
-    borderWidth: 1, borderRightWidth: 0, borderColor: '#444', zIndex: 10,
+    borderWidth: 1, borderRightWidth: 0, borderColor: color.borderStrong, zIndex: 10,
   },
-  drawerTabText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
+  drawerTabText: { color: color.textDim, fontSize: 13, fontWeight: '600' },
   drawer: {
     position: 'absolute', top: 0, right: 0, bottom: 0, width: '72%',
-    backgroundColor: '#111', borderLeftWidth: 1, borderLeftColor: '#333',
+    backgroundColor: color.surface, borderLeftWidth: 1, borderLeftColor: color.border,
     shadowColor: '#000', shadowOffset: { width: -4, height: 0 },
     shadowOpacity: 0.6, shadowRadius: 12, elevation: 16,
   },
   drawerContent: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  drawerTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 12 },
+  drawerTitle: { fontSize: 16, fontWeight: '700', color: color.text, marginBottom: 12 },
   entryRow: {
-    backgroundColor: '#1a1a1a', borderRadius: 6, borderLeftWidth: 3,
+    backgroundColor: color.surface, borderRadius: 6, borderLeftWidth: 3,
     padding: 8, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 6,
   },
   colorDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   entryInfo: { flex: 1, minWidth: 0 },
-  entryBrand: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  entryCategory: { color: '#888', fontSize: 10, marginTop: 1, textTransform: 'capitalize' },
-  entryVolume: { color: '#aaa', fontSize: 10, marginTop: 1 },
+  entryBrand: { color: color.text, fontSize: 12, fontWeight: '600' },
+  entryCategory: { color: color.textMuted, fontSize: 10, marginTop: 1, textTransform: 'capitalize' },
+  entryVolume: { color: color.textDim, fontSize: 10, marginTop: 1 },
   // Post-shot dialog
   dialogBackdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center', alignItems: 'center', padding: 32,
   },
   dialogBox: {
-    backgroundColor: '#1a1a1a', borderRadius: 16, padding: 24,
-    width: '100%', borderWidth: 1, borderColor: '#333',
+    backgroundColor: color.surface, borderRadius: 16, padding: 24,
+    width: '100%', borderWidth: 1, borderColor: color.border,
   },
   dialogTitle: {
-    fontSize: 22, fontWeight: '800', color: '#fff',
+    fontSize: 22, fontWeight: '800', color: color.text,
     textAlign: 'center', marginBottom: 12,
   },
   dialogBody: {
-    fontSize: 15, color: '#aaa', textAlign: 'center', marginBottom: 24, lineHeight: 22,
+    fontSize: 15, color: color.textDim, textAlign: 'center', marginBottom: 24, lineHeight: 22,
   },
   dialogPrimaryBtn: {
-    backgroundColor: '#FF3B30', paddingVertical: 16,
+    backgroundColor: color.accent, paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginBottom: 12,
   },
-  dialogPrimaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  dialogPrimaryBtnText: { color: color.accentInk, fontSize: 16, fontWeight: '700' },
   dialogSecondaryBtn: {
     paddingVertical: 14, borderRadius: 12, alignItems: 'center',
-    borderWidth: 1, borderColor: '#444',
+    borderWidth: 1, borderColor: color.borderStrong,
   },
-  dialogSecondaryBtnText: { color: '#888', fontSize: 15, fontWeight: '600' },
+  dialogSecondaryBtnText: { color: color.textMuted, fontSize: 15, fontWeight: '600' },
   // Redeeming overlay
   redeemingOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center', alignItems: 'center',
   },
-  redeemingText: { color: '#fff', fontSize: 15, marginTop: 12, fontWeight: '600' },
+  redeemingText: { color: color.text, fontSize: 15, marginTop: 12, fontWeight: '600' },
 });

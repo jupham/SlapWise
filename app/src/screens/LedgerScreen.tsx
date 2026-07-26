@@ -12,7 +12,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt, DebtStatus, GameType } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color, radius } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'Ledger'>;
 
@@ -269,31 +271,31 @@ export default function LedgerScreen({ route }: Props) {
 
 function statusBadgeStyle(status: DebtStatus) {
   switch (status) {
-    case 'resolved': return { backgroundColor: '#34C759' };
-    case 'delivered': return { backgroundColor: '#007AFF' };
-    case 'pending_confirmation': return { backgroundColor: '#FFCC00' };
-    default: return { backgroundColor: '#FF3B30' };
+    case 'resolved': return { backgroundColor: color.success };
+    case 'delivered': return { backgroundColor: color.regalia };
+    case 'pending_confirmation': return { backgroundColor: color.textDim };
+    default: return { backgroundColor: color.accent };
   }
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: color.bg },
   center: { flex: 1 },
-  error: { color: '#FF3B30', marginHorizontal: 16, marginTop: 8 },
-  filterBar: { maxHeight: 48, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  error: { color: color.dangerText, marginHorizontal: 16, marginTop: 8 },
+  filterBar: { maxHeight: 48, borderBottomWidth: 1, borderBottomColor: color.border },
   filterBarContent: { paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center' },
   chip: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-    borderWidth: 1, borderColor: '#ddd', marginRight: 8, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: color.border, marginRight: 8, backgroundColor: color.bg,
   },
-  chipActive: { backgroundColor: '#FF3B30', borderColor: '#FF3B30' },
-  chipText: { fontSize: 12, color: '#555' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
-  chipDivider: { width: 1, height: 24, backgroundColor: '#ddd', marginRight: 8 },
+  chipActive: { backgroundColor: color.accent, borderColor: color.accent },
+  chipText: { fontSize: 12, color: color.textMuted },
+  chipTextActive: { color: color.accentInk, fontWeight: '700' },
+  chipDivider: { width: 1, height: 24, backgroundColor: color.border, marginRight: 8 },
   listContent: { padding: 16 },
   card: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 14, marginBottom: 12, backgroundColor: '#fafafa',
+    borderWidth: 1, borderColor: color.border, borderRadius: 10,
+    padding: 14, marginBottom: 12, backgroundColor: color.surface,
   },
   cardHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -301,24 +303,24 @@ const styles = StyleSheet.create({
   },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   gameBadge: {
-    backgroundColor: '#FF3B30', color: '#fff', fontSize: 11,
+    backgroundColor: color.accent, color: color.accentInk, fontSize: 9, letterSpacing: 1.2,
     fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
   statusBadge: {
-    color: '#fff', fontSize: 11, fontWeight: '700',
+    color: color.accentInk, fontSize: 9, letterSpacing: 1.2, fontWeight: '700',
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
-  date: { fontSize: 12, color: '#888' },
-  statement: { fontSize: 14, fontStyle: 'italic', marginBottom: 10, color: '#333' },
+  date: { fontSize: 12, color: color.textMuted },
+  statement: { fontSize: 14, fontStyle: 'italic', marginBottom: 10, color: color.text },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  label: { fontSize: 12, color: '#888' },
-  value: { fontSize: 12, fontWeight: '600', color: '#333' },
+  label: { fontSize: 12, color: color.textMuted },
+  value: { fontSize: 12, fontWeight: '600', color: color.text },
   confirmBtn: {
-    marginTop: 12, backgroundColor: '#007AFF', borderRadius: 8,
+    marginTop: 12, backgroundColor: color.accent, borderRadius: radius.sm,
     paddingVertical: 10, alignItems: 'center',
   },
   btnDisabled: { opacity: 0.6 },
-  confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  confirmedText: { marginTop: 10, fontSize: 13, color: '#34C759', fontWeight: '600' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#aaa' },
+  confirmBtnText: { color: color.accentInk, fontWeight: '700', fontSize: 14 },
+  confirmedText: { marginTop: 10, fontSize: 13, color: color.success, fontWeight: '600' },
+  empty: { textAlign: 'center', marginTop: 40, color: color.textDim },
 });

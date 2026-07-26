@@ -4,12 +4,13 @@ import { StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GroupTabParamList } from './types';
 import { useStore } from '../store';
-import { color, font, size } from '../theme';
+
 import GroupFeedScreen from '../screens/GroupFeedScreen';
 import MySlateScreen from '../screens/MySlateScreen';
 import InfinityGrogReviewScreen from '../screens/InfinityGrogReviewScreen';
 import GroupHomeScreen from '../screens/GroupHomeScreen';
 import { CrewIcon, FeedIcon, GrogIcon, SlateIcon } from '../screens/components/TabIcons';
+import { color, font, size } from '../theme';
 
 const Tab = createBottomTabNavigator<GroupTabParamList>();
 

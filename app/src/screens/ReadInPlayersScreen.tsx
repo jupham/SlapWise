@@ -9,7 +9,9 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ReadInService } from '../services/ReadInService';
 import { Member } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ReadInPlayers'>;
 
@@ -60,13 +62,13 @@ export default function ReadInPlayersScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  container: { flex: 1, backgroundColor: color.bg, padding: 16 },
   center: { flex: 1 },
-  count: { fontSize: 14, color: '#888', marginBottom: 12 },
+  count: { fontSize: 14, color: color.textMuted, marginBottom: 12 },
   row: {
-    paddingVertical: 12, borderBottomWidth: 1, borderColor: '#eee',
+    paddingVertical: 12, borderBottomWidth: 1, borderColor: color.border,
   },
-  name: { fontSize: 15, color: '#333' },
-  emptyText: { fontSize: 14, color: '#888', marginTop: 24, textAlign: 'center' },
-  errorText: { color: '#FF3B30', fontSize: 14, marginBottom: 12 },
+  name: { fontSize: 15, color: color.text },
+  emptyText: { fontSize: 14, color: color.textMuted, marginTop: 24, textAlign: 'center' },
+  errorText: { color: color.dangerText, fontSize: 14, marginBottom: 12 },
 });

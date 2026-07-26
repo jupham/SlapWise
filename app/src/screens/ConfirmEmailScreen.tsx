@@ -5,7 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 import type { AuthStackParamList } from '../navigation/types';
-import { color, font, label, radius, size, space, title } from '../theme';
+import { color, radius, size, space, title } from '../theme';
+
 
 type ConfirmEmailRouteProp = RouteProp<AuthStackParamList, 'ConfirmEmail'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'ConfirmEmail'>;

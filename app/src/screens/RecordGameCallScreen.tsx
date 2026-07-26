@@ -13,7 +13,9 @@ import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { Member } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'RecordGameCall'>;
 
@@ -132,24 +134,24 @@ export default function RecordGameCallScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: color.bg },
   content: { padding: 16, paddingBottom: 40 },
   center: { flex: 1 },
-  gateContainer: { flex: 1, backgroundColor: '#fff', padding: 24, justifyContent: 'center', alignItems: 'center' },
-  gateText: { fontSize: 16, color: '#555', textAlign: 'center' },
-  label: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8 },
-  hint: { fontSize: 12, color: '#888', marginBottom: 8 },
+  gateContainer: { flex: 1, backgroundColor: color.bg, padding: 24, justifyContent: 'center', alignItems: 'center' },
+  gateText: { fontSize: 16, color: color.textMuted, textAlign: 'center' },
+  label: { fontSize: 16, fontWeight: '700', color: color.text, marginBottom: 8 },
+  hint: { fontSize: 12, color: color.textMuted, marginBottom: 8 },
   option: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 12, marginBottom: 8, backgroundColor: '#fafafa',
+    borderWidth: 1, borderColor: color.border, borderRadius: 8,
+    padding: 12, marginBottom: 8, backgroundColor: color.surface,
   },
-  optionSelected: { borderColor: '#007AFF', backgroundColor: '#EAF4FF' },
-  optionText: { fontSize: 15, color: '#333' },
-  optionTextSelected: { color: '#007AFF', fontWeight: '600' },
+  optionSelected: { borderColor: color.accent, backgroundColor: color.surfaceRaised },
+  optionText: { fontSize: 15, color: color.text },
+  optionTextSelected: { color: color.accent, fontWeight: '600' },
   submitBtn: {
-    marginTop: 32, backgroundColor: '#FF3B30',
+    marginTop: 32, backgroundColor: color.accent,
     padding: 16, borderRadius: 10, alignItems: 'center',
   },
   btnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  submitBtnText: { color: color.accentInk, fontWeight: '700', fontSize: 16 },
 });

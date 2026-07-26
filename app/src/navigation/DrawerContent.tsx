@@ -15,6 +15,7 @@ import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { color, label, radius, size, space, title } from '../theme';
 
+
 export default function DrawerContent({ navigation }: DrawerContentComponentProps) {
   const player = useStore((s) => s.player);
   const groups = useStore((s) => s.groups);

@@ -12,7 +12,9 @@ import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color, space } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'PendingDebts'>;
 
@@ -84,9 +86,9 @@ export default function PendingDebtsScreen({ route, navigation }: Props) {
           const statementMakerOutcome = item.statementMakerConfirmation?.outcome ?? null;
 
           const outcomeLabel = (outcome: string | null) => {
-            if (outcome === 'followed_through') return { text: '✓ Followed Through', color: '#34C759' };
-            if (outcome === 'did_not_follow_through') return { text: '✗ Did Not Follow Through', color: '#FF3B30' };
-            return { text: '— Pending', color: '#aaa' };
+            if (outcome === 'followed_through') return { text: '✓ Followed Through', color: color.success };
+            if (outcome === 'did_not_follow_through') return { text: 'Did not follow through', color: color.accent };
+            return { text: '— Pending', color: color.textDim };
           };
 
           const nameFor = (id: string | null | undefined) => {
@@ -153,40 +155,40 @@ export default function PendingDebtsScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  container: { flex: 1, backgroundColor: color.bg, padding: 16 },
   center: { flex: 1 },
   heading: { fontSize: 20, fontWeight: '700', marginBottom: 16 },
-  error: { color: '#FF3B30', marginBottom: 8 },
+  error: { color: color.dangerText, marginBottom: space.sm },
   card: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 14, marginBottom: 12, backgroundColor: '#fafafa',
+    borderWidth: 1, borderColor: color.border, borderRadius: 10,
+    padding: 14, marginBottom: 12, backgroundColor: color.surface,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   badge: {
-    backgroundColor: '#FF3B30', color: '#fff', fontSize: 11,
+    backgroundColor: color.accent, color: color.accentInk, fontSize: 9, letterSpacing: 1.2,
     fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
-  date: { fontSize: 12, color: '#888' },
-  statement: { fontSize: 15, fontStyle: 'italic', color: '#333' },
-  statementBy: { fontSize: 13, color: '#666', marginTop: 2, marginBottom: 10 },
-  calledBy: { fontSize: 13, color: '#555', marginBottom: 12 },
+  date: { fontSize: 12, color: color.textMuted },
+  statement: { fontSize: 15, fontStyle: 'italic', color: color.text },
+  statementBy: { fontSize: 13, color: color.textMuted, marginTop: 2, marginBottom: 10 },
+  calledBy: { fontSize: 13, color: color.textMuted, marginBottom: 12 },
   confirmRow: {
     flexDirection: 'row',
-    borderWidth: 1, borderColor: '#eee', borderRadius: 8,
+    borderWidth: 1, borderColor: color.border, borderRadius: 8,
     overflow: 'hidden', marginBottom: 8,
   },
   confirmCol: { flex: 1, padding: 10 },
-  confirmColLeft: { borderRightWidth: 1, borderRightColor: '#eee' },
+  confirmColLeft: { borderRightWidth: 1, borderRightColor: color.border },
   confirmDivider: { width: 0 },
-  confirmName: { fontSize: 12, color: '#888', marginBottom: 3 },
+  confirmName: { fontSize: 12, color: color.textMuted, marginBottom: 3 },
   confirmOutcome: { fontSize: 12, fontWeight: '700' },
-  tapHint: { fontSize: 11, color: '#007AFF', textAlign: 'right' },
-  empty: { textAlign: 'center', marginTop: 40, color: '#aaa' },
+  tapHint: { fontSize: 11, color: color.accent, textAlign: 'right' },
+  empty: { textAlign: 'center', marginTop: 40, color: color.textDim },
   fab: {
     position: 'absolute', bottom: 24, right: 24,
-    backgroundColor: '#FF3B30', paddingHorizontal: 20, paddingVertical: 14,
-    borderRadius: 30, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2,
+    backgroundColor: color.accent, paddingHorizontal: 20, paddingVertical: 14,
+    borderRadius: 30, elevation: 4, shadowColor: color.bg, shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 4,
   },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  fabText: { color: color.accentInk, fontWeight: '700', fontSize: 15 },
 });

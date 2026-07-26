@@ -4,7 +4,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthService } from '../services/AuthService';
 import { useStore } from '../store';
 import type { RootStackParamList } from '../navigation/types';
-import { color, font, label, radius, size, space, title } from '../theme';
+import { color, radius, size, space, title } from '../theme';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 

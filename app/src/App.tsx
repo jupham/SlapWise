@@ -6,16 +6,18 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Oswald_600SemiBold, Oswald_700Bold } from '@expo-google-fonts/oswald';
 import type { RootStackParamList } from './navigation/types';
+import { stackScreenOptions } from './navigation/screenOptions';
 import { AuthService } from './services/AuthService';
 import { GroupService } from './services/GroupService';
 import { useStore } from './store';
-import { color } from './theme';
+
 
 import AuthNavigator from './navigation/AuthNavigator';
 import AppNavigator from './navigation/AppNavigator';
 import WelcomeScreen from './screens/WelcomeScreen';
 import CreateGroupScreen from './screens/CreateGroupScreen';
 import JoinGroupScreen from './screens/JoinGroupScreen';
+import { color } from './theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -71,7 +73,10 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor={color.bg} />
         <NavigationContainer>
-          <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+          <Stack.Navigator
+            initialRouteName={initialRoute}
+            screenOptions={{ ...stackScreenOptions, headerShown: false }}
+          >
             <Stack.Screen name="Auth" component={AuthNavigator} />
             <Stack.Screen
               name="Welcome"

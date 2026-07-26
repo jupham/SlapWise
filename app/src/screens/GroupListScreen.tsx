@@ -12,7 +12,9 @@ import { GroupService } from '../services/GroupService';
 import { AuthService } from '../services/AuthService';
 import { useStore } from '../store';
 import { Group } from '../types';
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../navigation/types';
+import { color } from '../theme';
+
 
 // GroupListScreen is kept for reference but replaced by DrawerContent + GroupTabNavigator in the new nav.
 // It uses RootStackParamList which no longer has GroupList/GroupDetail — suppress with a local type.
@@ -63,7 +65,7 @@ export default function GroupListScreen({ navigation }: Props) {
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity onPress={handleLogout} style={{ marginRight: 8 }}>
-          <Text style={{ color: '#FF3B30', fontWeight: '600' }}>Logout</Text>
+          <Text style={{ color: color.textMuted, fontWeight: '600' }}>Logout</Text>
         </TouchableOpacity>
       ),
     });
@@ -103,15 +105,15 @@ export default function GroupListScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: color.bg },
   center: { flex: 1 },
-  row: { padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
+  row: { padding: 16, borderBottomWidth: 1, borderColor: color.border },
   name: { fontSize: 16, fontWeight: '600' },
-  sub: { fontSize: 12, color: '#888', marginTop: 2 },
-  empty: { textAlign: 'center', marginTop: 40, color: '#aaa' },
+  sub: { fontSize: 12, color: color.textMuted, marginTop: 2 },
+  empty: { textAlign: 'center', marginTop: 40, color: color.textDim },
   error: { color: 'red', padding: 12, textAlign: 'center' },
   actions: { flexDirection: 'row', padding: 16, gap: 12 },
-  btn: { flex: 1, backgroundColor: '#007AFF', padding: 14, borderRadius: 8, alignItems: 'center' },
-  btnSecondary: { backgroundColor: '#34C759' },
-  btnText: { color: '#fff', fontWeight: '600' },
+  btn: { flex: 1, backgroundColor: color.accent, padding: 14, borderRadius: 8, alignItems: 'center' },
+  btnSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: color.borderStrong },
+  btnText: { color: color.accentInk, fontWeight: '600' },
 });

@@ -20,7 +20,7 @@ import GrogSkull from './components/GrogSkull';
 import AddLiquorSheet from './components/AddLiquorSheet';
 import InitializeGrogSheet from './components/InitializeGrogSheet';
 import { CATEGORY_COLORS } from '../constants/grog';
-import { color, displayName, font, label, radius, size, space, title } from '../theme';
+import { color, displayName, label, space, title } from '../theme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

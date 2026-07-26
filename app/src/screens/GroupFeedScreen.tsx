@@ -14,7 +14,7 @@ import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { FeedEntry, FeedEntryType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
-import { color, displayName, font, label, radius, size, space, title } from '../theme';
+import { color, displayName, label, size, space, title } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, never>;
 

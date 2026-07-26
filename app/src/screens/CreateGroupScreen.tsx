@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'CreateGroup'>;
 
@@ -57,10 +59,10 @@ export default function CreateGroupScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 24 },
+  container: { flex: 1, backgroundColor: color.bg, padding: 24 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 8 },
+  input: { borderWidth: 1, borderColor: color.border, borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 8 },
   error: { color: 'red', marginBottom: 12, fontSize: 13 },
-  btn: { backgroundColor: '#007AFF', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  btnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  btn: { backgroundColor: color.accent, padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  btnText: { color: color.accentInk, fontWeight: '600', fontSize: 16 },
 });
