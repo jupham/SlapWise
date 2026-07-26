@@ -154,17 +154,20 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
           : usernameFor(debt.challengerId))
       : '';
 
+  const subjectLabel = isStatementMaker ? 'you' : usernameFor(debt.statementMakerId);
   const challengerName = usernameFor(debt.challengerId);
   const statementMakerName = usernameFor(debt.statementMakerId);
 
+  /**
+   * Both parties answer one question — did the *statement maker* follow through
+   * — so these are votes, not descriptions of the person named above them.
+   * Rendering the raw outcome under each name read as though both of them had
+   * failed, which only one of them can do.
+   */
   const outcomeLabel = (outcome: string | null | undefined) => {
-    if (outcome === 'followed_through') {
-      return { text: 'Followed through', tint: color.success };
-    }
-    if (outcome === 'did_not_follow_through') {
-      return { text: 'Did not follow through', tint: color.accent };
-    }
-    return { text: 'Awaiting answer', tint: color.textDim };
+    if (outcome === 'followed_through') return { text: 'Yes', tint: color.success };
+    if (outcome === 'did_not_follow_through') return { text: 'No', tint: color.accent };
+    return { text: 'No answer yet', tint: color.textDim };
   };
 
   const challengerStatus = outcomeLabel(debt.challengerConfirmation?.outcome);
@@ -184,16 +187,20 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
 
         <Text style={styles.calledBy}>{challengerName} called Manchester</Text>
 
-        {/* Side-by-side confirmations */}
+        {/* Both sides answer one question about the statement maker, so the
+            question is stated once and each column is that person's answer. */}
+        <Text style={styles.confirmQuestion}>
+          Did {statementMakerName} follow through?
+        </Text>
         <View style={styles.confirmRow}>
           <View style={[styles.confirmCol, styles.confirmColLeft]}>
-            <Text style={styles.confirmName} numberOfLines={1}>{challengerName}</Text>
+            <Text style={styles.confirmName} numberOfLines={1}>{challengerName} said</Text>
             <Text style={[styles.confirmOutcome, { color: challengerStatus.tint }]}>
               {challengerStatus.text}
             </Text>
           </View>
           <View style={styles.confirmCol}>
-            <Text style={styles.confirmName} numberOfLines={1}>{statementMakerName}</Text>
+            <Text style={styles.confirmName} numberOfLines={1}>{statementMakerName} said</Text>
             <Text style={[styles.confirmOutcome, { color: statementMakerStatus.tint }]}>
               {statementMakerStatus.text}
             </Text>
@@ -273,20 +280,20 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.actionsHeading, { marginTop: 16 }]}>What happened?</Text>
+          <Text style={[styles.actionsHeading, { marginTop: 16 }]}>Did {subjectLabel} follow through?</Text>
           <TouchableOpacity
             style={[styles.btn, styles.btnGreen, (!selectedPunishment || submitting) && styles.btnDisabled]}
             onPress={() => selectedPunishment && handleSubmit('followed_through', selectedPunishment)}
             disabled={!selectedPunishment || submitting}
           >
-            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>Followed Through</Text>}
+            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>Yes</Text>}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.btn, styles.btnRed, (!selectedPunishment || submitting) && styles.btnDisabled]}
             onPress={() => selectedPunishment && handleSubmit('did_not_follow_through', selectedPunishment)}
             disabled={!selectedPunishment || submitting}
           >
-            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>Did Not Follow Through</Text>}
+            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>No</Text>}
           </TouchableOpacity>
           {!selectedPunishment && (
             <Text style={styles.punishHint}>Select your punishment first</Text>
@@ -317,12 +324,14 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.actionsHeading, { marginTop: 16 }]}>Confirm what happened</Text>
+          <Text style={[styles.actionsHeading, { marginTop: 16 }]}>
+            Did {subjectLabel} follow through?
+          </Text>
           <View style={[styles.infoBox, styles.pendingBox]}>
             <Text style={styles.infoText}>
               {firstPartyName} said:{' '}
               <Text style={{ fontWeight: '700' }}>
-                {firstPartyOutcome === 'followed_through' ? 'Followed Through' : 'Did Not Follow Through'}
+                {firstPartyOutcome === 'followed_through' ? 'Yes' : 'No'}
               </Text>
             </Text>
             <Text style={[styles.infoText, { marginTop: space.sm, color: color.textMuted }]}>
@@ -368,6 +377,10 @@ const styles = StyleSheet.create({
   statementBy: { fontSize: size.caption, color: color.textMuted, marginTop: space.xs },
   calledBy: { fontSize: size.caption, color: color.textMuted, marginBottom: space.md },
 
+  confirmQuestion: {
+    fontSize: size.caption, color: color.textMuted,
+    marginBottom: space.sm,
+  },
   confirmRow: {
     flexDirection: 'row', backgroundColor: color.surfaceRaised,
     borderRadius: radius.sm, overflow: 'hidden', marginBottom: space.md,

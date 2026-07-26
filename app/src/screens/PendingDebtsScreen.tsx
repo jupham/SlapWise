@@ -12,8 +12,8 @@ import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
-import { color, space } from '../theme';
+import type { GroupStackParamList } from '../navigation/types';
+import { color, size, space } from '../theme';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'PendingDebts'>;
@@ -86,9 +86,9 @@ export default function PendingDebtsScreen({ route, navigation }: Props) {
           const statementMakerOutcome = item.statementMakerConfirmation?.outcome ?? null;
 
           const outcomeLabel = (outcome: string | null) => {
-            if (outcome === 'followed_through') return { text: '✓ Followed Through', color: color.success };
-            if (outcome === 'did_not_follow_through') return { text: 'Did not follow through', color: color.accent };
-            return { text: '— Pending', color: color.textDim };
+            if (outcome === 'followed_through') return { text: 'Yes', color: color.success };
+            if (outcome === 'did_not_follow_through') return { text: 'No', color: color.accent };
+            return { text: 'No answer yet', color: color.textDim };
           };
 
           const nameFor = (id: string | null | undefined) => {
@@ -120,17 +120,17 @@ export default function PendingDebtsScreen({ route, navigation }: Props) {
               {/* Who called it */}
               <Text style={styles.calledBy}>{challengerName} called Manchester</Text>
 
-              {/* Side-by-side confirmations */}
+              <Text style={styles.confirmQuestion}>Did {statementMakerName} follow through?</Text>
               <View style={styles.confirmRow}>
                 <View style={[styles.confirmCol, styles.confirmColLeft]}>
-                  <Text style={styles.confirmName} numberOfLines={1}>{challengerName}</Text>
+                  <Text style={styles.confirmName} numberOfLines={1}>{challengerName} said</Text>
                   <Text style={[styles.confirmOutcome, { color: challengerStatus.color }]}>
                     {challengerStatus.text}
                   </Text>
                 </View>
                 <View style={styles.confirmDivider} />
                 <View style={styles.confirmCol}>
-                  <Text style={styles.confirmName} numberOfLines={1}>{statementMakerName}</Text>
+                  <Text style={styles.confirmName} numberOfLines={1}>{statementMakerName} said</Text>
                   <Text style={[styles.confirmOutcome, { color: statementMakerStatus.color }]}>
                     {statementMakerStatus.text}
                   </Text>
@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
   statement: { fontSize: 15, fontStyle: 'italic', color: color.text },
   statementBy: { fontSize: 13, color: color.textMuted, marginTop: 2, marginBottom: 10 },
   calledBy: { fontSize: 13, color: color.textMuted, marginBottom: 12 },
+  confirmQuestion: { fontSize: size.caption, color: color.textMuted, marginBottom: space.sm },
   confirmRow: {
     flexDirection: 'row',
     borderWidth: 1, borderColor: color.border, borderRadius: 8,
