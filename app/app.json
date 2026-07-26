@@ -20,6 +20,9 @@
         "projectId": "56e39eae-e67b-430a-95a1-037e28e81251"
       }
     },
-    "owner": "nupham"
+    "owner": "nupham",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

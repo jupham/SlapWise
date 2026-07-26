@@ -13,6 +13,7 @@ export interface ApiGatewayStackProps extends cdk.StackProps {
   getGroupFn: lambda.Function;
   getGroupsFn: lambda.Function;
   deleteGroupFn: lambda.Function;
+  updateUsernameFn: lambda.Function;
 }
 
 export class ApiGatewayStack extends cdk.Stack {
@@ -21,7 +22,16 @@ export class ApiGatewayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiGatewayStackProps) {
     super(scope, id, props);
 
-    const { stage, userPool, createGroupFn, joinGroupFn, getGroupFn, getGroupsFn, deleteGroupFn } = props;
+    const {
+      stage,
+      userPool,
+      createGroupFn,
+      joinGroupFn,
+      getGroupFn,
+      getGroupsFn,
+      deleteGroupFn,
+      updateUsernameFn,
+    } = props;
 
     // Required account-level setting: CloudWatch Logs role for API Gateway
     const cloudWatchRole = new iam.Role(this, 'ApiGatewayCloudWatchRole', {
@@ -79,6 +89,14 @@ export class ApiGatewayStack extends cdk.Stack {
     groupsResource.addMethod(
       'POST',
       new apigateway.LambdaIntegration(createGroupFn),
+      authMethodOptions
+    );
+
+    // PUT /players/me/username
+    const meResource = this.api.root.addResource('players').addResource('me');
+    meResource.addResource('username').addMethod(
+      'PUT',
+      new apigateway.LambdaIntegration(updateUsernameFn),
       authMethodOptions
     );
 

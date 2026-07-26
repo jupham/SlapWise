@@ -4,14 +4,13 @@ import {
   Animated,
   Dimensions,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GrogService } from '../services/GrogService';
 import { GroupService } from '../services/GroupService';
@@ -21,6 +20,7 @@ import GrogSkull from './components/GrogSkull';
 import AddLiquorSheet from './components/AddLiquorSheet';
 import InitializeGrogSheet from './components/InitializeGrogSheet';
 import { CATEGORY_COLORS } from '../constants/grog';
+import { color, displayName, label, space, title } from '../theme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ function mlToOz(ml: number): string {
 function buildMemberMap(members: Member[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const m of members) {
-    map.set(m.playerId, m.username ?? m.playerId);
+    map.set(m.playerId, displayName(m.username ?? m.playerId));
   }
   return map;
 }
@@ -55,7 +55,6 @@ export default function InfinityGrogReviewScreen() {
 
   const player = useStore((s) => s.player);
   const insets = useSafeAreaInsets();
-  const isFocused = useIsFocused();
 
   const [grog, setGrog] = useState<Grog | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -294,17 +293,11 @@ export default function InfinityGrogReviewScreen() {
     );
   };
 
-  // This tab has no nav header, so it owns the status bar while focused.
-  const statusBar = isFocused ? (
-    <StatusBar barStyle="light-content" backgroundColor="#111" />
-  ) : null;
-
   // ── Loading / error states ───────────────────────────────────────────────────
 
   if (!groupId) {
     return (
       <View style={styles.center}>
-        {statusBar}
         <Text style={styles.emptyText}>No group selected.</Text>
       </View>
     );
@@ -313,8 +306,7 @@ export default function InfinityGrogReviewScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        {statusBar}
-        <ActivityIndicator size="large" color="#FF3B30" />
+        <ActivityIndicator size="large" color={color.accent} />
       </View>
     );
   }
@@ -322,7 +314,6 @@ export default function InfinityGrogReviewScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        {statusBar}
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => void load()}>
           <Text style={styles.retryBtnText}>Retry</Text>
@@ -337,7 +328,6 @@ export default function InfinityGrogReviewScreen() {
 
   return (
     <>
-      {statusBar}
       <View style={styles.root}>
         <ScrollView
           style={styles.container}
@@ -488,7 +478,7 @@ export default function InfinityGrogReviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111',
+    backgroundColor: color.bg,
   },
   content: {
     padding: 16,
@@ -498,7 +488,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#111',
+    backgroundColor: color.bg,
   },
   headerRow: {
     flexDirection: 'row',
@@ -507,9 +497,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   heading: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
+    ...title,
     flex: 1,
   },
   skullContainer: {
@@ -522,14 +510,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   headerBtnText: {
-    color: '#FF3B30',
+    color: color.accent,
     fontSize: 15,
     fontWeight: '600',
   },
   // Drawer
   root: {
     flex: 1,
-    backgroundColor: '#111',
+    backgroundColor: color.bg,
   },
   drawer: {
     position: 'absolute',
@@ -537,9 +525,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: '72%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: color.surface,
     borderLeftWidth: 1,
-    borderLeftColor: '#333',
+    borderLeftColor: color.border,
     shadowColor: '#000',
     shadowOffset: { width: -4, height: 0 },
     shadowOpacity: 0.5,
@@ -554,14 +542,14 @@ const styles = StyleSheet.create({
   drawerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: color.text,
     marginBottom: 12,
   },
   drawerTab: {
     position: 'absolute',
     right: 0,
     top: 8,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: color.surfaceRaised,
     borderTopLeftRadius: 6,
     borderBottomLeftRadius: 6,
     paddingVertical: 6,
@@ -570,23 +558,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderRightWidth: 0,
-    borderColor: '#444',
+    borderColor: color.borderStrong,
     zIndex: 10,
   },
   drawerTabText: {
-    color: '#aaa',
+    color: color.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
   initBtn: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: color.accent,
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
   },
   initBtnText: {
-    color: '#fff',
+    color: color.text,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -595,19 +583,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   addBtnText: {
-    color: '#FF3B30',
+    color: color.accent,
     fontSize: 15,
     fontWeight: '600',
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#aaa',
-    marginBottom: 10,
-    marginTop: 8,
+    ...label,
+    marginBottom: space.md,
+    marginTop: space.lg,
   },
   emptyText: {
-    color: '#666',
+    color: color.textDim,
     fontSize: 14,
     fontStyle: 'italic',
     marginBottom: 16,
@@ -617,7 +603,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   pendingRow: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: color.surface,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -629,17 +615,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pendingUsername: {
-    color: '#fff',
+    color: color.text,
     fontSize: 14,
     fontWeight: '600',
   },
   pendingDate: {
-    color: '#888',
+    color: color.textMuted,
     fontSize: 12,
     marginTop: 2,
   },
   pendingError: {
-    color: '#FF3B30',
+    color: color.accent,
     fontSize: 12,
     marginTop: 4,
   },
@@ -648,32 +634,32 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addShotBtn: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: color.accent,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
   },
   addShotBtnText: {
-    color: '#fff',
+    color: color.text,
     fontSize: 12,
     fontWeight: '700',
   },
   clearBtn: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: color.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: color.borderStrong,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
   },
   clearBtnText: {
-    color: '#aaa',
+    color: color.textMuted,
     fontSize: 12,
     fontWeight: '600',
   },
   // Entry row
   entryRow: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: color.surface,
     borderRadius: 6,
     borderLeftWidth: 3,
     padding: 8,
@@ -693,18 +679,18 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   entryBrand: {
-    color: '#fff',
+    color: color.text,
     fontSize: 12,
     fontWeight: '600',
   },
   entryCategory: {
-    color: '#888',
+    color: color.textMuted,
     fontSize: 10,
     marginTop: 1,
     textTransform: 'capitalize',
   },
   entryVolume: {
-    color: '#aaa',
+    color: color.textMuted,
     fontSize: 10,
     marginTop: 1,
   },
@@ -715,35 +701,35 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     width: 44,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: color.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: color.borderStrong,
     borderRadius: 4,
     paddingHorizontal: 4,
     paddingVertical: 3,
-    color: '#fff',
+    color: color.text,
     fontSize: 11,
     textAlign: 'center',
   },
   adjustBtn: {
-    backgroundColor: '#2a7aff',
+    backgroundColor: color.regalia,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 4,
   },
   adjustBtnText: {
-    color: '#fff',
+    color: color.text,
     fontSize: 11,
     fontWeight: '700',
   },
   removeBtn: {
-    backgroundColor: '#3a1a1a',
+    backgroundColor: color.surfaceRaised,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 4,
   },
   removeBtnText: {
-    color: '#FF3B30',
+    color: color.accent,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -753,33 +739,33 @@ const styles = StyleSheet.create({
   // History row
   historyRow: {
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: color.surfaceRaised,
     paddingVertical: 10,
   },
   historyDesc: {
-    color: '#ddd',
+    color: color.text,
     fontSize: 14,
   },
   historyDate: {
-    color: '#666',
+    color: color.textDim,
     fontSize: 11,
     marginTop: 2,
   },
   // Error state
   errorText: {
-    color: '#FF3B30',
+    color: color.accent,
     fontSize: 15,
     marginBottom: 16,
     textAlign: 'center',
   },
   retryBtn: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: color.accent,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 8,
   },
   retryBtnText: {
-    color: '#fff',
+    color: color.text,
     fontWeight: '600',
     fontSize: 14,
   },

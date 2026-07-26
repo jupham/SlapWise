@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { GroupStackParamList } from './types';
+import { stackScreenOptions } from './screenOptions';
 
 import GroupTabNavigator from './GroupTabNavigator';
 import CreateChallengeScreen from '../screens/CreateChallengeScreen';
@@ -19,7 +20,7 @@ const Stack = createNativeStackNavigator<GroupStackParamList>();
 
 export default function GroupStackNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: true }}>
+    <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen
         name="GroupTabs"
         component={GroupTabNavigator}

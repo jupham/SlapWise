@@ -14,6 +14,7 @@ import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { SlapDebt, ResolutionOutcome, PunishmentType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
+import { color, displayName, font, label, radius, size, space } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ResolutionConfirmation'>;
 
@@ -47,7 +48,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
       ]);
       setDebt(debt ?? null);
       const nameMap: Record<string, string> = {};
-      for (const m of groupMembers) nameMap[m.playerId] = m.username ?? m.playerId;
+      for (const m of groupMembers) nameMap[m.playerId] = displayName(m.username ?? m.playerId);
       setMemberNames(nameMap);
     } catch (err) {
       console.error('[ResolutionConfirmationScreen] load failed:', err);
@@ -77,7 +78,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
     }
   };
 
-  if (loading) return <ActivityIndicator style={styles.center} />;
+  if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
 
   if (!debt) {
     return (
@@ -120,9 +121,13 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
   const statementMakerName = usernameFor(debt.statementMakerId);
 
   const outcomeLabel = (outcome: string | null | undefined) => {
-    if (outcome === 'followed_through') return { text: '✓ Followed Through', color: '#34C759' };
-    if (outcome === 'did_not_follow_through') return { text: '✗ Did Not Follow Through', color: '#FF3B30' };
-    return { text: '— Pending', color: '#aaa' };
+    if (outcome === 'followed_through') {
+      return { text: 'Followed through', tint: color.success };
+    }
+    if (outcome === 'did_not_follow_through') {
+      return { text: 'Did not follow through', tint: color.accent };
+    }
+    return { text: 'Awaiting answer', tint: color.textDim };
   };
 
   const challengerStatus = outcomeLabel(debt.challengerConfirmation?.outcome);
@@ -146,13 +151,13 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
         <View style={styles.confirmRow}>
           <View style={[styles.confirmCol, styles.confirmColLeft]}>
             <Text style={styles.confirmName} numberOfLines={1}>{challengerName}</Text>
-            <Text style={[styles.confirmOutcome, { color: challengerStatus.color }]}>
+            <Text style={[styles.confirmOutcome, { color: challengerStatus.tint }]}>
               {challengerStatus.text}
             </Text>
           </View>
           <View style={styles.confirmCol}>
             <Text style={styles.confirmName} numberOfLines={1}>{statementMakerName}</Text>
-            <Text style={[styles.confirmOutcome, { color: statementMakerStatus.color }]}>
+            <Text style={[styles.confirmOutcome, { color: statementMakerStatus.tint }]}>
               {statementMakerStatus.text}
             </Text>
           </View>
@@ -174,7 +179,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
             style={[styles.btn, styles.btnGrog]}
             onPress={() => navigation.navigate('InfinityGrogSentence', { debtId, groupId, groupName })}
           >
-            <Text style={styles.btnText}>Take the Shot</Text>
+            <Text style={styles.btnTextOnAccent}>Take the Shot</Text>
           </TouchableOpacity>
         </View>
       ) : debt.status === 'resolved' ? (
@@ -231,14 +236,14 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
             onPress={() => selectedPunishment && handleSubmit('followed_through', selectedPunishment)}
             disabled={!selectedPunishment || submitting}
           >
-            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Followed Through</Text>}
+            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>Followed Through</Text>}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.btn, styles.btnRed, (!selectedPunishment || submitting) && styles.btnDisabled]}
             onPress={() => selectedPunishment && handleSubmit('did_not_follow_through', selectedPunishment)}
             disabled={!selectedPunishment || submitting}
           >
-            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Did Not Follow Through</Text>}
+            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>Did Not Follow Through</Text>}
           </TouchableOpacity>
           {!selectedPunishment && (
             <Text style={styles.punishHint}>Select your punishment first</Text>
@@ -277,7 +282,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
                 {firstPartyOutcome === 'followed_through' ? 'Followed Through' : 'Did Not Follow Through'}
               </Text>
             </Text>
-            <Text style={[styles.infoText, { marginTop: 6, color: '#888' }]}>
+            <Text style={[styles.infoText, { marginTop: space.sm, color: color.textMuted }]}>
               If you disagree, sort it out with them first and come back.
             </Text>
           </View>
@@ -286,7 +291,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
             onPress={() => selectedPunishment && handleSubmit(firstPartyOutcome as ResolutionOutcome, selectedPunishment)}
             disabled={!selectedPunishment || submitting}
           >
-            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Agree &amp; Confirm</Text>}
+            {submitting ? <ActivityIndicator color={color.text} /> : <Text style={styles.btnText}>Agree &amp; Confirm</Text>}
           </TouchableOpacity>
           {!selectedPunishment && (
             <Text style={styles.punishHint}>Select your punishment first</Text>
@@ -298,56 +303,96 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  center: { flex: 1 },
+  container: { flex: 1, backgroundColor: color.bg },
+  content: { padding: space.lg },
+  center: { flex: 1, backgroundColor: color.bg },
   card: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 14, marginBottom: 16, backgroundColor: '#fafafa',
+    backgroundColor: color.surface,
+    borderLeftWidth: 3, borderLeftColor: color.accent,
+    padding: space.md, marginBottom: space.lg,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: space.sm,
+  },
   badge: {
-    backgroundColor: '#FF3B30', color: '#fff', fontSize: 11,
-    fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: color.accent, color: color.accentInk, fontSize: 9,
+    fontWeight: '700', letterSpacing: 1.2, paddingHorizontal: space.sm,
+    paddingVertical: 3, borderRadius: radius.sm, overflow: 'hidden',
   },
-  date: { fontSize: 12, color: '#888' },
-  statement: { fontSize: 15, fontStyle: 'italic', color: '#333' },
-  statementBy: { fontSize: 13, color: '#666', marginTop: 2, marginBottom: 10 },
-  calledBy: { fontSize: 13, color: '#555', marginBottom: 12 },
+  date: { fontSize: size.label, color: color.textDim },
+  statement: { fontSize: size.body, color: color.text, lineHeight: 20 },
+  statementBy: { fontSize: size.caption, color: color.textMuted, marginTop: space.xs },
+  calledBy: { fontSize: size.caption, color: color.textMuted, marginBottom: space.md },
+
   confirmRow: {
-    flexDirection: 'row',
-    borderWidth: 1, borderColor: '#eee', borderRadius: 8,
-    overflow: 'hidden', marginBottom: 12,
+    flexDirection: 'row', backgroundColor: color.surfaceRaised,
+    borderRadius: radius.sm, overflow: 'hidden', marginBottom: space.md,
   },
-  confirmCol: { flex: 1, padding: 10 },
-  confirmColLeft: { borderRightWidth: 1, borderRightColor: '#eee' },
-  confirmName: { fontSize: 12, color: '#888', marginBottom: 3 },
-  confirmOutcome: { fontSize: 12, fontWeight: '700' },
-  statusRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  statusLabel: { fontSize: 13, color: '#888' },
-  statusValue: { fontSize: 13, fontWeight: '600', color: '#333', textTransform: 'capitalize' },
+  confirmCol: { flex: 1, padding: space.md },
+  confirmColLeft: { borderRightWidth: 1, borderRightColor: color.border },
+  confirmName: { ...label, color: color.textMuted, marginBottom: space.xs },
+  confirmOutcome: { fontSize: size.caption, fontWeight: '700', color: color.text },
+  statusRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginTop: space.xs,
+  },
+  statusLabel: { fontSize: size.caption, color: color.textMuted },
+  statusValue: {
+    fontFamily: font.condensed, fontSize: size.heading,
+    letterSpacing: 0.6, color: color.text, textTransform: 'uppercase',
+  },
+
   infoBox: {
-    backgroundColor: '#F0F0F0', borderRadius: 8,
-    padding: 14, marginBottom: 16, alignItems: 'center',
+    backgroundColor: color.surface, borderLeftWidth: 3, borderLeftColor: color.borderStrong,
+    padding: space.md, marginBottom: space.lg,
   },
-  pendingBox: { backgroundColor: '#FFF3CD' },
-  infoText: { fontSize: 14, color: '#333', textAlign: 'center' },
-  errorText: { color: '#FF3B30', fontSize: 14, marginBottom: 12, textAlign: 'center' },
-  actions: { marginTop: 8 },
-  actionsHeading: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#333' },
-  punishmentRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  pendingBox: { borderLeftColor: color.regalia },
+  infoText: { fontSize: size.body, color: color.text, lineHeight: 21 },
+  errorText: {
+    color: color.dangerText, fontSize: size.caption,
+    marginBottom: space.md, textAlign: 'center',
+  },
+
+  actions: { marginTop: space.sm },
+  actionsHeading: { ...label, marginBottom: space.md },
+  punishmentRow: { flexDirection: 'row', gap: space.md, marginBottom: space.xs },
+  // Selection reads as a filled accent rather than a tinted border: on a dark
+  // ground a 2px border shift is far too quiet to register as "chosen".
   punishBtn: {
-    flex: 1, padding: 14, borderRadius: 8, alignItems: 'center',
-    borderWidth: 2, borderColor: '#ddd', backgroundColor: '#fafafa',
+    flex: 1, paddingVertical: space.lg, borderRadius: radius.sm, alignItems: 'center',
+    borderWidth: 1, borderColor: color.border, backgroundColor: color.surface,
   },
-  punishBtnSelected: { borderColor: '#007AFF', backgroundColor: '#E8F0FE' },
-  punishBtnText: { fontSize: 14, fontWeight: '600', color: '#555' },
-  punishBtnTextSelected: { color: '#007AFF' },
-  punishHint: { fontSize: 12, color: '#FF3B30', textAlign: 'center', marginTop: 4 },
-  btn: { padding: 16, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
-  btnGreen: { backgroundColor: '#34C759' },
-  btnRed: { backgroundColor: '#FF3B30' },
-  btnGrog: { backgroundColor: '#FF9500', marginTop: 12, marginBottom: 0 },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  punishBtnSelected: { borderColor: color.accent, backgroundColor: color.accent },
+  punishBtnText: {
+    fontSize: size.caption, fontWeight: '700', color: color.textMuted,
+    letterSpacing: 0.8, textTransform: 'uppercase',
+  },
+  punishBtnTextSelected: { color: color.accentInk },
+  punishHint: {
+    fontSize: size.label, color: color.dangerText,
+    textAlign: 'center', marginTop: space.sm,
+  },
+
+  btn: {
+    paddingVertical: space.lg, borderRadius: radius.sm,
+    alignItems: 'center', marginBottom: space.md,
+  },
+  // "Followed through" is the affirmative outcome and "did not" the negative,
+  // but neither is destructive — both are ordinary answers, so they take
+  // outlines and let the accent stay on the primary action.
+  btnGreen: { borderWidth: 1, borderColor: color.success },
+  btnRed: { borderWidth: 1, borderColor: color.borderStrong },
+  btnGrog: { backgroundColor: color.accent, marginTop: space.md, marginBottom: 0 },
+  btnDisabled: { opacity: 0.5 },
+  btnText: {
+    color: color.text, fontWeight: '700', fontSize: size.caption,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  // Dark ink for the one button that carries an accent fill; the near-white
+  // btnText is only legible against the outlined variants.
+  btnTextOnAccent: {
+    color: color.accentInk, fontWeight: '700', fontSize: size.caption,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
 });

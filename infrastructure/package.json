@@ -6,10 +6,12 @@
     "build": "tsc",
     "watch": "tsc -w",
     "cdk": "cdk",
+    "seed": "node scripts/seed-dev-data.js",
     "deploy": "tsc && cdk deploy --all --profile slapwise --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
     "synth": "cdk synth --profile slapwise"
   },
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1095.0",
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "24.x",
     "aws-cdk": "^2.200.0",

@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 import type { AuthStackParamList } from '../navigation/types';
+import { color, radius, size, space, title } from '../theme';
+
 
 type ConfirmEmailRouteProp = RouteProp<AuthStackParamList, 'ConfirmEmail'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'ConfirmEmail'>;
@@ -60,6 +62,7 @@ export default function ConfirmEmailScreen() {
 
       <TextInput
         style={styles.input}
+        placeholderTextColor={color.textDim}
         placeholder="Verification code"
         keyboardType="number-pad"
         value={code}
@@ -81,20 +84,27 @@ export default function ConfirmEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 24 },
+  container: { flex: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
+  title: { ...title, marginBottom: space.xl },
+  subtitle: { fontSize: size.body, color: color.textMuted, marginTop: -space.md, marginBottom: space.xl },
   input: {
-    borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
-    padding: 12, marginBottom: 12, fontSize: 16,
+    backgroundColor: color.surface,
+    borderWidth: 1, borderColor: color.border, borderRadius: radius.sm,
+    paddingHorizontal: space.md, paddingVertical: space.md,
+    marginBottom: space.md, fontSize: size.body, color: color.text,
   },
-  error: { color: 'red', marginBottom: 12 },
-  success: { color: 'green', marginBottom: 12 },
+  error: { color: color.dangerText, marginBottom: space.md, fontSize: size.caption },
+  success: { color: color.success, marginBottom: space.md, fontSize: size.caption },
   button: {
-    backgroundColor: '#007AFF', borderRadius: 8,
-    padding: 14, alignItems: 'center', marginTop: 8,
+    backgroundColor: color.accent, borderRadius: radius.sm,
+    paddingVertical: space.lg, alignItems: 'center', marginTop: space.sm,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  resend: { marginTop: 16, alignItems: 'center' },
-  resendText: { color: '#007AFF', fontSize: 14 },
+  buttonText: {
+    color: color.accentInk, fontSize: size.body, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  link: { marginTop: space.xl, alignItems: 'center' },
+  linkText: { color: color.textMuted, fontSize: size.caption },
+  resend: { marginTop: space.xl, alignItems: 'center' },
+  resendText: { color: color.textMuted, fontSize: size.caption },
 });

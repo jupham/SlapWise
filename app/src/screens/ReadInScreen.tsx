@@ -10,7 +10,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ReadInService } from '../services/ReadInService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color, radius } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ReadIn'>;
 
@@ -113,25 +115,25 @@ export default function ReadInScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 24 },
+  container: { flex: 1, backgroundColor: color.bg, padding: 24 },
   center: { flex: 1 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 16, color: '#333' },
-  prompt: { fontSize: 15, color: '#555', lineHeight: 22, marginBottom: 32 },
+  title: { fontSize: 22, fontWeight: '700', marginBottom: 16, color: color.text },
+  prompt: { fontSize: 15, color: color.textMuted, lineHeight: 22, marginBottom: 32 },
   checkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   checkbox: {
-    width: 24, height: 24, borderWidth: 2, borderColor: '#007AFF',
+    width: 24, height: 24, borderWidth: 2, borderColor: color.accent,
     borderRadius: 4, marginRight: 12, alignItems: 'center', justifyContent: 'center',
   },
-  checkboxChecked: { backgroundColor: '#007AFF' },
-  checkmark: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  checkLabel: { fontSize: 15, color: '#333', flex: 1 },
-  errorText: { color: '#FF3B30', fontSize: 14, marginBottom: 16 },
+  checkboxChecked: { backgroundColor: color.accent },
+  checkmark: { color: color.accentInk, fontWeight: '700', fontSize: 14 },
+  checkLabel: { fontSize: 15, color: color.text, flex: 1 },
+  errorText: { color: color.dangerText, fontSize: 14, marginBottom: 16 },
   confirmBtn: {
-    backgroundColor: '#FF3B30', padding: 16, borderRadius: 10, alignItems: 'center',
+    backgroundColor: color.accent, padding: 16, borderRadius: radius.sm, alignItems: 'center',
   },
   btnDisabled: { opacity: 0.5 },
-  confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  alreadyText: { fontSize: 16, color: '#555', marginBottom: 24 },
+  confirmBtnText: { color: color.accentInk, fontWeight: '700', fontSize: 16 },
+  alreadyText: { fontSize: 16, color: color.textMuted, marginBottom: 24 },
   backBtn: { alignSelf: 'flex-start' },
-  backBtnText: { color: '#007AFF', fontSize: 15 },
+  backBtnText: { color: color.accent, fontSize: 15 },
 });

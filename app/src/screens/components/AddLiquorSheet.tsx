@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import type { LiquorCategory } from '../../types';
 import { LIQUOR_BRANDS } from '../../constants/grog';
+import { color } from '../../theme';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: color.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#555',
+    backgroundColor: color.borderStrong,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 16,
@@ -219,39 +220,39 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: color.text,
     marginBottom: 20,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#aaa',
+    color: color.textMuted,
     marginBottom: 6,
   },
   categoryLabel: {
     marginTop: 16,
   },
   error: {
-    color: '#FF3B30',
+    color: color.accent,
     fontSize: 12,
     marginBottom: 4,
   },
   input: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: color.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: color.borderStrong,
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#fff',
+    color: color.text,
   },
   inputError: {
-    borderColor: '#FF3B30',
+    borderColor: color.accent,
   },
   suggestionsContainer: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: color.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: color.borderStrong,
     borderRadius: 8,
     marginTop: 4,
     maxHeight: 200,
@@ -263,16 +264,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: color.border,
   },
   suggestionBrand: {
     fontSize: 14,
-    color: '#fff',
+    color: color.text,
     flex: 1,
   },
   suggestionCategory: {
     fontSize: 12,
-    color: '#888',
+    color: color.textMuted,
     marginLeft: 8,
   },
   categoryScroll: {
@@ -283,20 +284,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: color.borderStrong,
     marginRight: 8,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: color.surfaceRaised,
   },
   categoryChipSelected: {
-    backgroundColor: '#FF3B30',
-    borderColor: '#FF3B30',
+    backgroundColor: color.accent,
+    borderColor: color.accent,
   },
   categoryChipText: {
     fontSize: 13,
-    color: '#ccc',
+    color: color.textMuted,
   },
   categoryChipTextSelected: {
-    color: '#fff',
+    color: color.text,
     fontWeight: '600',
   },
   actions: {
@@ -309,11 +310,11 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: color.borderStrong,
     alignItems: 'center',
   },
   cancelBtnText: {
-    color: '#ccc',
+    color: color.textMuted,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -321,11 +322,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: '#FF3B30',
+    backgroundColor: color.accent,
     alignItems: 'center',
   },
   submitBtnText: {
-    color: '#fff',
+    color: color.text,
     fontSize: 15,
     fontWeight: '700',
   },

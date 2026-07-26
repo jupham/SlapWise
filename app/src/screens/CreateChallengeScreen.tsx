@@ -14,7 +14,9 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { Member } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+import { color } from '../theme';
+
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'CreateChallenge'>;
 
@@ -129,23 +131,23 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  container: { flex: 1, backgroundColor: color.bg, padding: 16 },
   center: { flex: 1 },
   heading: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 4 },
-  error: { color: '#FF3B30', fontSize: 13, marginBottom: 4 },
-  memberList: { maxHeight: 200, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginBottom: 16 },
-  memberRow: { padding: 12, borderBottomWidth: 1, borderColor: '#eee' },
-  memberRowSelected: { backgroundColor: '#007AFF' },
+  label: { fontSize: 14, fontWeight: '600', color: color.text, marginBottom: 4 },
+  error: { color: color.dangerText, fontSize: 13, marginBottom: 4 },
+  memberList: { maxHeight: 200, borderWidth: 1, borderColor: color.border, borderRadius: 8, marginBottom: 16 },
+  memberRow: { padding: 12, borderBottomWidth: 1, borderColor: color.border },
+  memberRowSelected: { backgroundColor: color.accent },
   memberName: { fontSize: 15 },
-  memberNameSelected: { color: '#fff', fontWeight: '600' },
-  empty: { padding: 16, color: '#aaa', textAlign: 'center' },
+  memberNameSelected: { color: color.accentInk, fontWeight: '600' },
+  empty: { padding: 16, color: color.textDim, textAlign: 'center' },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
+    borderWidth: 1, borderColor: color.border, borderRadius: 8,
     padding: 12, fontSize: 15, marginBottom: 20, minHeight: 80,
   },
-  inputError: { borderColor: '#FF3B30' },
-  btn: { backgroundColor: '#FF3B30', padding: 16, borderRadius: 8, alignItems: 'center' },
+  inputError: { borderColor: color.dangerText },
+  btn: { backgroundColor: color.accent, padding: 16, borderRadius: 8, alignItems: 'center' },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  btnText: { color: color.accentInk, fontWeight: '700', fontSize: 16 },
 });

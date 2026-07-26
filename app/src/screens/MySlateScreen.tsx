@@ -16,6 +16,7 @@ import { useStore } from '../store';
 import { Grog, LiquorCategory, PendingAddBack, PlayerDebtIndex } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import AddLiquorSheet from './components/AddLiquorSheet';
+import { color, displayName, font, label, radius, size, space, title } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, never>;
 
@@ -28,8 +29,8 @@ type Section = {
 };
 
 const PUNISHMENT_LABEL: Record<string, string> = {
-  slap: '👋 Slap',
-  infinity_grog: '🍺 Infinity Grog',
+  slap: 'SLAP',
+  infinity_grog: 'INFINITY GROG',
 };
 
 export default function MySlateScreen({ navigation }: { navigation: Props['navigation'] }) {
@@ -76,7 +77,7 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
 
   const nameFor = (id: string | null | undefined) => {
     if (!id) return 'Unknown';
-    const name = memberNames[id] ?? id;
+    const name = displayName(memberNames[id] ?? id);
     return id === currentPlayerId ? `${name} (you)` : name;
   };
 
@@ -140,12 +141,13 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
     ? [debtSections[0], debtSections[1], addBackSection, debtSections[2]]
     : debtSections;
 
-  if (loading) return <ActivityIndicator style={styles.center} />;
+  if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {error && <Text style={styles.error}>{error}</Text>}
       <SectionList
+        ListHeaderComponent={<Text style={styles.screenTitle}>My slate</Text>}
         sections={sections}
         keyExtractor={(item) => {
           if ('debtId' in item && 'debtorId' in item && !('playerId' in item)) {
@@ -181,9 +183,10 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
                   <Text style={styles.date}>{new Date(addBack.createdAt).toLocaleDateString()}</Text>
                 </View>
                 <View style={[styles.punishmentBanner, styles.addBackBanner]}>
-                  <Text style={styles.punishmentText}>🍺 You have a pending add-back</Text>
+                  <Text style={styles.punishmentText}>Pending add-back</Text>
+                  <Text style={[styles.punishmentValue, styles.addBackValue]}>OWED</Text>
                 </View>
-                <Text style={styles.tapHint}>Tap to add liquor back →</Text>
+                <Text style={styles.tapHint}>Add liquor back →</Text>
               </TouchableOpacity>
             );
           }
@@ -235,16 +238,17 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
               {isOutstanding && debt.debtPunishment && (
                 <View style={[styles.punishmentBanner, isDebtor ? styles.owesBanner : styles.owedBanner]}>
                   <Text style={styles.punishmentText}>
-                    {isDebtor
-                      ? `You owe ${nameFor(debt.creditorId)}: ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`
-                      : `${nameFor(debt.debtorId)} owes you: ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`}
+                    {isDebtor ? `You owe ${nameFor(debt.creditorId)}` : `${nameFor(debt.debtorId)} owes you`}
+                  </Text>
+                  <Text style={[styles.punishmentValue, isDebtor ? styles.owesValue : styles.owedValue]}>
+                    {PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}
                   </Text>
                 </View>
               )}
 
               {section.title === 'History' && debt.debtPunishment && (
                 <Text style={styles.deliveredText}>
-                  ✓ {isDebtor || isCreditor
+                  {isDebtor || isCreditor
                     ? `${nameFor(debt.debtorId)} paid ${nameFor(debt.creditorId)} — ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`
                     : 'Delivered'}
                 </Text>
@@ -281,35 +285,64 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1 },
-  list: { padding: 16, paddingBottom: 40 },
-  error: { color: '#FF3B30', margin: 16 },
-  sectionHeader: {
-    fontSize: 16, fontWeight: '700', color: '#333',
-    marginTop: 20, marginBottom: 8,
-  },
-  empty: { fontSize: 13, color: '#aaa', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: color.bg },
+  center: { flex: 1, backgroundColor: color.bg },
+  list: { paddingHorizontal: space.lg, paddingBottom: 40 },
+  screenTitle: { ...title, marginTop: space.md, marginBottom: space.xs },
+  error: { color: color.dangerText, marginHorizontal: space.lg, marginTop: space.md, fontSize: size.caption },
+  sectionHeader: { ...label, marginTop: space.xl, marginBottom: space.sm },
+  empty: { fontSize: size.caption, color: color.textDim, marginBottom: space.md },
+
+  // A left rule in the accent does the work a border-radius card used to:
+  // it aligns every entry to one edge, so the column scans like a table.
   card: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 14, marginBottom: 12, backgroundColor: '#fafafa',
+    backgroundColor: color.surface,
+    borderLeftWidth: 3,
+    borderLeftColor: color.accent,
+    padding: space.md,
+    marginBottom: space.sm,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: space.sm,
+  },
   badge: {
-    backgroundColor: '#FF3B30', color: '#fff', fontSize: 11,
-    fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: color.accent, color: color.accentInk,
+    fontSize: 9, fontWeight: '700', letterSpacing: 1.2,
+    paddingHorizontal: space.sm, paddingVertical: 3,
+    borderRadius: radius.sm, overflow: 'hidden',
   },
-  date: { fontSize: 12, color: '#888' },
-  statement: { fontSize: 14, fontStyle: 'italic', color: '#333' },
-  attribution: { fontSize: 12, color: '#666', marginTop: 2, marginBottom: 4 },
-  calledBy: { fontSize: 12, color: '#555', marginBottom: 8 },
-  punishmentBanner: { borderRadius: 8, padding: 10, marginBottom: 4 },
-  owesBanner: { backgroundColor: '#FFE5E5' },
-  owedBanner: { backgroundColor: '#E5F5E5' },
-  addBackBanner: { backgroundColor: '#FFF3E0' },
-  punishmentText: { fontSize: 13, fontWeight: '600', color: '#333' },
-  deliveredText: { fontSize: 13, color: '#34C759', fontWeight: '600', marginTop: 4 },
-  tapHint: { fontSize: 11, color: '#007AFF', textAlign: 'right', marginTop: 6 },
-  grogBadge: { backgroundColor: '#FF9500' },
-  floatingError: { color: '#FF3B30', marginHorizontal: 16, marginBottom: 4, fontSize: 13 },
+  grogBadge: { backgroundColor: color.regalia, color: color.text },
+  date: { fontSize: size.label, color: color.textDim },
+
+  statement: { fontSize: size.body, color: color.text, fontFamily: font.body, lineHeight: 20 },
+  attribution: { fontSize: size.caption, color: color.textMuted, marginTop: space.xs },
+  calledBy: { fontSize: size.caption, color: color.textMuted, marginBottom: space.md },
+
+  punishmentBanner: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: color.surfaceRaised, paddingHorizontal: space.md,
+    paddingVertical: space.sm, borderRadius: radius.sm,
+  },
+  owesBanner: {},
+  owedBanner: {},
+  addBackBanner: {},
+  punishmentText: { fontSize: size.caption, color: color.textMuted },
+  punishmentValue: {
+    fontFamily: font.condensed, fontSize: size.heading,
+    letterSpacing: 0.6, color: color.text,
+  },
+  owesValue: { color: color.accent },
+  owedValue: { color: color.success },
+  addBackValue: { color: color.accent },
+
+  deliveredText: { fontSize: size.caption, color: color.success, marginTop: space.sm },
+  tapHint: {
+    fontSize: size.label, color: color.accent, textAlign: 'right',
+    marginTop: space.md, fontWeight: '700', letterSpacing: 0.8,
+  },
+  floatingError: {
+    color: color.dangerText, marginHorizontal: space.lg,
+    marginBottom: space.xs, fontSize: size.caption,
+  },
 });
