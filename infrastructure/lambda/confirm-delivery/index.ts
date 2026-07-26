@@ -143,7 +143,13 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
               type: { S: 'slap_delivered' },
               refId: { S: debtId },
               actorId: { S: callerId! },
+              // summary is the pre-detail fallback; the client prefers the
+              // fields below. debtorId took the punishment, creditorId gave it.
               summary: { S: `A punishment was delivered` },
+              statement: { S: updated.statement?.S ?? '' },
+              debtorId: { S: debtorId! },
+              creditorId: { S: creditorId! },
+              punishment: { S: updated.debtPunishment?.S ?? '' },
               readInOnly: { BOOL: false },
               createdAt: { S: now },
             },

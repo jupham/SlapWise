@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ManchesterService } from '../services/ManchesterService';
@@ -16,6 +17,7 @@ import { useStore } from '../store';
 import { Grog, LiquorCategory, PendingAddBack, PlayerDebtIndex } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import AddLiquorSheet from './components/AddLiquorSheet';
+import { punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space, title } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, never>;
@@ -73,13 +75,18 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
     }
   }, [groupId]);
 
-  useEffect(() => { void load(); }, [load]);
+  // Tabs stay mounted, so refetch on focus rather than only on mount.
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const nameFor = (id: string | null | undefined) => {
     if (!id) return 'Unknown';
     const name = displayName(memberNames[id] ?? id);
     return id === currentPlayerId ? `${name} (you)` : name;
   };
+
+  /** No "(you)" suffix — punishmentPhrase puts "you" inline in the sentence. */
+  const plainNameFor = (id: string | null | undefined) =>
+    id ? displayName(memberNames[id] ?? id) : 'Someone';
 
   // Needs Action: it's your turn to do something
 
@@ -238,7 +245,13 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
               {isOutstanding && debt.debtPunishment && (
                 <View style={[styles.punishmentBanner, isDebtor ? styles.owesBanner : styles.owedBanner]}>
                   <Text style={styles.punishmentText}>
-                    {isDebtor ? `You owe ${nameFor(debt.creditorId)}` : `${nameFor(debt.debtorId)} owes you`}
+                    {punishmentPhrase({
+                      punishment: debt.debtPunishment,
+                      debtor: plainNameFor(debt.debtorId),
+                      creditor: plainNameFor(debt.creditorId),
+                      debtorIsYou: isDebtor,
+                      creditorIsYou: isCreditor,
+                    })}
                   </Text>
                   <Text style={[styles.punishmentValue, isDebtor ? styles.owesValue : styles.owedValue]}>
                     {PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}
@@ -249,8 +262,15 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
               {section.title === 'History' && debt.debtPunishment && (
                 <Text style={styles.deliveredText}>
                   {isDebtor || isCreditor
-                    ? `${nameFor(debt.debtorId)} paid ${nameFor(debt.creditorId)} — ${PUNISHMENT_LABEL[debt.debtPunishment] ?? debt.debtPunishment}`
-                    : 'Delivered'}
+                    ? punishmentPhrase({
+                        punishment: debt.debtPunishment,
+                        debtor: plainNameFor(debt.debtorId),
+                        creditor: plainNameFor(debt.creditorId),
+                        debtorIsYou: isDebtor,
+                        creditorIsYou: isCreditor,
+                        past: true,
+                      })
+                    : 'Settled'}
                 </Text>
               )}
 

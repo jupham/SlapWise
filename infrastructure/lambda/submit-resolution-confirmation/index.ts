@@ -194,7 +194,16 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
             type: { S: 'manchester_resolved' },
             refId: { S: debtId },
             actorId: { S: callerId! },
+            // summary is the pre-detail fallback; the client prefers the fields
+            // below. debtorId is the player who takes the punishment.
             summary: { S: `A Manchester was resolved` },
+            statement: { S: debt.statement?.S ?? '' },
+            challengerId: { S: challengerId! },
+            statementMakerId: { S: statementMakerId! },
+            debtorId: { S: debtorId },
+            creditorId: { S: creditorId },
+            outcome: { S: resolvedOutcome },
+            punishment: { S: debtorPunishment },
             readInOnly: { BOOL: false },
             createdAt: { S: now },
           },

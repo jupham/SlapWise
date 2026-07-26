@@ -14,6 +14,7 @@ import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { SlapDebt, ResolutionOutcome, PunishmentType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
+import { punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space } from '../theme';
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ResolutionConfirmation'>;
@@ -173,7 +174,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
       {debt.status === 'resolved' && debt.debtPunishment === 'infinity_grog' && debt.debtorId === currentPlayerId ? (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            {`Resolved — you must take a shot from the infinity grog`}
+            {'Ruled — you take a shot from the grog'}
           </Text>
           <TouchableOpacity
             style={[styles.btn, styles.btnGrog]}
@@ -185,9 +186,15 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
       ) : debt.status === 'resolved' ? (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            {debt.debtPunishment === 'infinity_grog'
-              ? `Resolved — ${usernameFor(debt.debtorId)} must take a shot from the infinity grog`
-              : `Resolved — ${usernameFor(debt.debtorId)} owes ${usernameFor(debt.creditorId)} a slap`}
+            {debt.debtPunishment
+              ? `Ruled — ${punishmentPhrase({
+                  punishment: debt.debtPunishment,
+                  debtor: usernameFor(debt.debtorId),
+                  creditor: usernameFor(debt.creditorId),
+                  debtorIsYou: debt.debtorId === currentPlayerId,
+                  creditorIsYou: debt.creditorId === currentPlayerId,
+                })}`
+              : 'Ruled'}
           </Text>
         </View>
       ) : null}

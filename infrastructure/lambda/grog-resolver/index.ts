@@ -492,7 +492,14 @@ async function takeGrogShot(callerId: string, args: Args): Promise<GrogItem> {
         type: { S: 'slap_delivered' },
         refId: { S: debtId },
         actorId: { S: callerId },
+        // summary is the pre-detail fallback; the client prefers the fields
+        // below. The shot is taken by the debtor, hence callerId === debtorId.
         summary: { S: 'A grog shot was taken' },
+        statement: { S: debt.statement?.S ?? '' },
+        debtorId: { S: debtorId },
+        creditorId: { S: creditorId },
+        punishment: { S: 'infinity_grog' },
+        amountMl: { N: String(SHOT_ML) },
         readInOnly: { BOOL: false },
         createdAt: { S: now },
       },

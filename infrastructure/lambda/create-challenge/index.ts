@@ -129,7 +129,12 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
             type: { S: 'manchester_created' },
             refId: { S: debtId },
             actorId: { S: challengerId },
+            // summary is the pre-detail fallback for entries written before the
+            // structured fields existed; the client prefers the fields below.
             summary: { S: `Manchester called on a statement` },
+            statement: { S: statement },
+            challengerId: { S: challengerId },
+            statementMakerId: { S: statementMakerId },
             readInOnly: { BOOL: false },
             createdAt: { S: now },
           },

@@ -86,6 +86,22 @@ type FeedEntry {
   actorId: ID!
   summary: String!
   createdAt: AWSDateTime!
+
+  # Denormalised detail so the feed can say who did what to whom without
+  # fetching the underlying debt per row. All nullable: entries written before
+  # this existed have none of them, and the client falls back to `summary`.
+  #
+  # Ids, never names. Display names are editable, so a stored name would make
+  # every historical entry lie the moment someone renamed themselves. The
+  # client resolves these against the group's member list at render time.
+  statement: String
+  challengerId: ID
+  statementMakerId: ID
+  debtorId: ID
+  creditorId: ID
+  outcome: ResolutionOutcome
+  punishment: PunishmentType
+  amountMl: Float
 }
 
 enum GameType {

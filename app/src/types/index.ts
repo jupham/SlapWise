@@ -96,8 +96,24 @@ export interface FeedEntry {
   readInOnly: boolean;
   refId: string;
   actorId: string;
+  /** Generic fallback text for entries written before the fields below existed. */
   summary: string;
   createdAt: string;
+
+  // Denormalised detail, all optional — entries predating this carry none of
+  // it. Ids rather than names: display names are editable, so a stored name
+  // would make old entries lie after a rename. Resolved against the member
+  // list at render time.
+  statement?: string | null;
+  challengerId?: string | null;
+  statementMakerId?: string | null;
+  /** The player who takes the punishment. */
+  debtorId?: string | null;
+  /** The player who delivers it. */
+  creditorId?: string | null;
+  outcome?: ResolutionOutcome | null;
+  punishment?: PunishmentType | null;
+  amountMl?: number | null;
 }
 
 

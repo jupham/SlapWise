@@ -5,6 +5,8 @@ const GET_FEED = /* GraphQL */ `
   query GetFeed($groupId: ID!) {
     getFeed(groupId: $groupId) {
       entryId groupId type readInOnly refId actorId summary createdAt
+      statement challengerId statementMakerId debtorId creditorId
+      outcome punishment amountMl
     }
   }
 `;
