@@ -7,20 +7,24 @@ import {
 import { Player } from '../types';
 
 export interface AuthService {
-  register(email: string, password: string): Promise<void>;
+  register(email: string, password: string, username: string): Promise<void>;
   login(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
   currentPlayer(): Promise<Player | null>;
 }
 
 export const AuthService: AuthService = {
-  async register(email: string, password: string): Promise<void> {
+  async register(email: string, password: string, username: string): Promise<void> {
     try {
       await signUp({
+        // Cognito's sign-in identifier stays the email (signInAliases is
+        // email-only). preferred_username carries the display name — it is a
+        // mutable standard attribute and, since it isn't a sign-in alias, it
+        // has no uniqueness constraint, so two friends may share a name.
         username: email,
         password,
         options: {
-          userAttributes: { email },
+          userAttributes: { email, preferred_username: username },
         },
       });
     } catch (err: unknown) {

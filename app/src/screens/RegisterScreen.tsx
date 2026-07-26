@@ -10,11 +10,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
+import { color, font, label, radius, size, space, title } from '../theme';
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavProp>();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +25,12 @@ export default function RegisterScreen() {
   async function handleSubmit() {
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
+    if (!username.trim() || !email.trim() || !password.trim()) {
       setError('All fields are required.');
+      return;
+    }
+    if (username.trim().length < 2 || username.trim().length > 24) {
+      setError('Display name must be between 2 and 24 characters.');
       return;
     }
     if (password.length < 8) {
@@ -34,7 +40,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await AuthService.register(email.trim(), password);
+      await AuthService.register(email.trim(), password, username.trim());
       navigation.navigate('ConfirmEmail', { email: email.trim() });
     } catch (err: unknown) {
       const e = err as Error;
@@ -55,6 +61,17 @@ export default function RegisterScreen() {
 
       <TextInput
         style={styles.input}
+        placeholderTextColor={color.textDim}
+        placeholder="Display name — what the group sees"
+        autoCapitalize="words"
+        autoCorrect={false}
+        maxLength={24}
+        value={username}
+        onChangeText={setUsername}
+      />
+      <TextInput
+        style={styles.input}
+        placeholderTextColor={color.textDim}
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -63,6 +80,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={styles.input}
+        placeholderTextColor={color.textDim}
         placeholder="Password (min 8 chars, uppercase + number)"
         secureTextEntry
         value={password}
@@ -85,23 +103,27 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 24 },
+  container: { flex: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
+  title: { ...title, marginBottom: space.xl },
+  subtitle: { fontSize: size.body, color: color.textMuted, marginTop: -space.md, marginBottom: space.xl },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
+    backgroundColor: color.surface,
+    borderWidth: 1, borderColor: color.border, borderRadius: radius.sm,
+    paddingHorizontal: space.md, paddingVertical: space.md,
+    marginBottom: space.md, fontSize: size.body, color: color.text,
   },
-  error: { color: 'red', marginBottom: 12 },
+  error: { color: color.dangerText, marginBottom: space.md, fontSize: size.caption },
+  success: { color: color.success, marginBottom: space.md, fontSize: size.caption },
   button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
+    backgroundColor: color.accent, borderRadius: radius.sm,
+    paddingVertical: space.lg, alignItems: 'center', marginTop: space.sm,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: {
+    color: color.accentInk, fontSize: size.body, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  link: { marginTop: space.xl, alignItems: 'center' },
+  linkText: { color: color.textMuted, fontSize: size.caption },
+  resend: { marginTop: space.xl, alignItems: 'center' },
+  resendText: { color: color.textMuted, fontSize: size.caption },
 });

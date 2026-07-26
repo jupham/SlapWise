@@ -30,6 +30,7 @@ export class LambdaStack extends cdk.Stack {
   public readonly notificationDispatcherFn: lambda.Function;
   public readonly grogResolverFn: lambda.Function;
   public readonly confirmReadInFn: lambda.Function;
+  public readonly updateUsernameFn: lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -191,6 +192,17 @@ export class LambdaStack extends cdk.Stack {
     });
     table.grantReadWriteData(this.leaveGroupFn);
     snsTopic.grantPublish(this.leaveGroupFn);
+
+    // updateUsername Lambda (REST) — fans a display-name change out across the
+    // Player PROFILE and every denormalised Member copy.
+    this.updateUsernameFn = new lambda.Function(this, 'UpdateUsernameFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slapwise-update-username`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/update-username')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.updateUsernameFn);
 
     // notificationDispatcher Lambda
     this.notificationDispatcherFn = new lambda.Function(this, 'NotificationDispatcherFn', {

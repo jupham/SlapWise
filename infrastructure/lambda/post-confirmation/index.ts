@@ -9,6 +9,11 @@ export const handler: PostConfirmationTriggerHandler = async (event: PostConfirm
   const email = event.request.userAttributes.email;
   const createdAt = new Date().toISOString();
 
+  // Registration requires a display name, so preferred_username is normally
+  // present. The fallback only fires if a client signs up without it — use the
+  // local part rather than the address so a full email never reaches the UI.
+  const username = event.request.userAttributes.preferred_username || email.split('@')[0];
+
   await client.send(
     new PutItemCommand({
       TableName: TABLE_NAME,
@@ -16,7 +21,7 @@ export const handler: PostConfirmationTriggerHandler = async (event: PostConfirm
         PK: { S: `PLAYER#${playerId}` },
         SK: { S: 'PROFILE' },
         playerId: { S: playerId },
-        username: { S: email },
+        username: { S: username },
         email: { S: email },
         createdAt: { S: createdAt },
         pushEnabled: { BOOL: true },

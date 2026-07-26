@@ -17,6 +17,11 @@ function generateInviteCode(): string {
 export const handler: APIGatewayProxyHandler = async (event) => {
   const callerId = event.requestContext.authorizer?.claims?.sub as string | undefined;
   const callerEmail = event.requestContext.authorizer?.claims?.email as string | undefined;
+  // Display name chosen at signup. Denormalised onto the Member record; the
+  // update-username Lambda fans a later change out across these copies.
+  const callerName = event.requestContext.authorizer?.claims?.preferred_username as
+    | string
+    | undefined;
   if (!callerId) {
     return { headers: CORS_HEADERS, statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
   }
@@ -62,7 +67,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             SK: { S: `MEMBER#${callerId}` },
             playerId: { S: callerId },
             groupId: { S: groupId },
-            username: { S: callerEmail ?? callerId },
+            username: { S: callerName ?? callerEmail?.split('@')[0] ?? callerId },
             name: { S: body.name.trim() },
             creatorId: { S: callerId },
             adminIds: { SS: [callerId] },

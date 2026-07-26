@@ -1,4 +1,4 @@
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { fetchAuthSession, updateUserAttributes } from 'aws-amplify/auth';
 import { getClient } from './amplifyClient';
 import { Group, Member } from '../types';
 
@@ -72,6 +72,32 @@ export interface JoinGroupResponse {
 
 
 export const GroupService = {
+  /**
+   * Changes the player's display name.
+   *
+   * Two stores hold it: the Cognito preferred_username attribute, which
+   * create-group and join-group read when writing a new Member record, and the
+   * copies denormalised onto the Player profile and existing Member records.
+   * Cognito goes first — if the fan-out fails, future joins still pick up the
+   * new name and a retry converges; the reverse order could leave Cognito
+   * permanently stale.
+   */
+  async updateUsername(username: string): Promise<void> {
+    const trimmed = username.trim();
+    await updateUserAttributes({
+      userAttributes: { preferred_username: trimmed },
+    });
+
+    const res = await authFetch('/players/me/username', {
+      method: 'PUT',
+      body: JSON.stringify({ username: trimmed }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Failed to update display name: ${res.status} ${detail}`);
+    }
+  },
+
   async createGroup(name: string): Promise<CreateGroupResponse> {
     const res = await authFetch('/groups', {
       method: 'POST',
