@@ -53,6 +53,15 @@ export class CognitoStack extends cdk.Stack {
       authFlows: {
         userSrp: true,
         userPassword: false,
+        // ADMIN_USER_PASSWORD_AUTH. Used only by scripts/seed-dev-data.js to
+        // mint tokens so the seeder drives the real REST/GraphQL API rather
+        // than writing DynamoDB behind the Lambdas' backs.
+        //
+        // Callable only by an IAM principal holding cognito-idp:AdminInitiateAuth
+        // — a principal that could already impersonate any user via
+        // AdminSetUserPassword, so this does not widen real exposure. The app
+        // itself still signs in over SRP and never uses this flow.
+        adminUserPassword: true,
       },
       generateSecret: false,
       oAuth: {
