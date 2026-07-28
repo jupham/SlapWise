@@ -95,18 +95,31 @@ export function applyRemoveLiquor(
 
 /**
  * Applies proportional removal of one SHOT_ML across all entries.
- * Entries whose amountMl drops to ≤ 0.01 mL are removed.
  * Returns entries unchanged if totalAmountMl is 0.
+ *
+ * Nothing is dropped, however small it gets. Proportional removal only ever
+ * shaves a fraction off an entry, so an entry approaches zero without reaching
+ * it — the grog keeps a trace of every bottle ever poured into it, and the
+ * contents list is where that record lives. Entry count is bounded by distinct
+ * brands rather than by shots taken, since applyAddLiquor merges by
+ * brand+category, so keeping them does not grow the list without limit.
+ *
+ * The skull drops bands it cannot draw at a visible thickness. That is a
+ * rendering decision and deliberately not this function's business.
+ *
+ * You cannot pour more than is in the bottle: when the grog holds less than a
+ * full shot, it drains to exactly empty rather than going negative. The old
+ * `> 0.01` filter concealed that — entries went negative and were then dropped
+ * for being below the threshold, so the underflow never surfaced.
  */
 export function applyProportionalRemoval(entries: GrogEntry[]): GrogEntry[] {
   const totalAmountMl = entries.reduce((sum, e) => sum + e.amountMl, 0);
   if (totalAmountMl <= 0) return entries.map(e => ({ ...e }));
-  return entries
-    .map(e => ({
-      ...e,
-      amountMl: e.amountMl - SHOT_ML * (e.amountMl / totalAmountMl),
-    }))
-    .filter(e => e.amountMl > 0.01);
+  const removedMl = Math.min(SHOT_ML, totalAmountMl);
+  return entries.map(e => ({
+    ...e,
+    amountMl: Math.max(0, e.amountMl - removedMl * (e.amountMl / totalAmountMl)),
+  }));
 }
 
 /**

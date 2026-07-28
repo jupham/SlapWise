@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
-  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +18,7 @@ import GrogSkull from './components/GrogSkull';
 import AddLiquorSheet from './components/AddLiquorSheet';
 import InitializeGrogSheet from './components/InitializeGrogSheet';
 import { CATEGORY_COLORS } from '../constants/grog';
-import { color, displayName, label, space, title } from '../theme';
+import { color, displayName, label, radius, space, title } from '../theme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,6 +26,51 @@ const OZ_PER_ML = 1 / 29.5735;
 
 function mlToOz(ml: number): string {
   return (ml * OZ_PER_ML).toFixed(2);
+}
+
+/**
+ * Proportional removal shaves a fraction off every entry, so amounts get very
+ * small without ever reaching zero. "0.0 mL" reads as a bug; this reads as
+ * a trace, which is what it is.
+ */
+function formatMl(ml: number): string {
+  return ml < 0.1 ? '< 0.1 mL' : `${ml.toFixed(1)} mL`;
+}
+
+function categoryLabel(category: LiquorCategory): string {
+  return category.replace(/_/g, ' ');
+}
+
+/** Same order the skull stacks its bands in, so the two stay in step. */
+const CATEGORY_ORDER = Object.keys(CATEGORY_COLORS) as LiquorCategory[];
+
+interface CategoryGroup {
+  category: LiquorCategory;
+  amountMl: number;
+  brands: string[];
+}
+
+/**
+ * The contents list mirrors the skull: one row per liquor type, brands named
+ * underneath. Returned top-of-skull first, so reading down the list matches
+ * reading down the picture — the drawer used to run the other way.
+ */
+function groupByCategory(entries: GrogEntry[]): CategoryGroup[] {
+  const groups = new Map<LiquorCategory, CategoryGroup>();
+  for (const entry of entries) {
+    const existing = groups.get(entry.category);
+    if (existing) {
+      existing.amountMl += entry.amountMl;
+      if (!existing.brands.includes(entry.brand)) existing.brands.push(entry.brand);
+    } else {
+      groups.set(entry.category, {
+        category: entry.category,
+        amountMl: entry.amountMl,
+        brands: [entry.brand],
+      });
+    }
+  }
+  return CATEGORY_ORDER.flatMap((category) => groups.get(category) ?? []).reverse();
 }
 
 function buildMemberMap(members: Member[]): Map<string, string> {
@@ -76,17 +119,6 @@ export default function InfinityGrogReviewScreen() {
   // Per-pending-add-back inline errors
   const [pendingErrors, setPendingErrors] = useState<Record<string, string>>({});
   const [clearingDebtId, setClearingDebtId] = useState<string | null>(null);
-
-  // Drawer
-  const DRAWER_WIDTH = Dimensions.get('window').width * 0.72;
-  const drawerAnim = useRef(new Animated.Value(DRAWER_WIDTH)).current;
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const toggleDrawer = () => {
-    const toValue = drawerOpen ? DRAWER_WIDTH : 0;
-    Animated.spring(drawerAnim, { toValue, useNativeDriver: true, damping: 20, stiffness: 120 }).start();
-    setDrawerOpen(!drawerOpen);
-  };
 
   // Per-entry editable amountMl state: entryId → draft string value
   const [amountDrafts, setAmountDrafts] = useState<Record<string, string>>({});
@@ -260,6 +292,66 @@ export default function InfinityGrogReviewScreen() {
     );
   };
 
+  /** View mode: one row per liquor type, mirroring a band in the skull. */
+  const renderCategoryRow = (group: CategoryGroup) => (
+    <View key={group.category} style={styles.contentRow}>
+      <View
+        style={[styles.contentSwatch, { backgroundColor: CATEGORY_COLORS[group.category] }]}
+      />
+      <View style={styles.contentInfo}>
+        <Text style={styles.contentCategory}>{categoryLabel(group.category)}</Text>
+        <Text style={styles.contentBrands} numberOfLines={2}>
+          {group.brands.join(', ')}
+        </Text>
+      </View>
+      <Text style={styles.contentAmount}>{formatMl(group.amountMl)}</Text>
+    </View>
+  );
+
+  /** Manage mode: the flat entry list, because you adjust and remove entries,
+   *  not types. Every entry shows, however small — the grog forgets nothing. */
+  const renderManageRow = (entry: GrogEntry) => {
+    const swatch = CATEGORY_COLORS[entry.category];
+    const draftValue =
+      amountDrafts[entry.entryId] !== undefined
+        ? amountDrafts[entry.entryId]
+        : entry.amountMl.toFixed(1);
+    return (
+      <View key={entry.entryId} style={[styles.entryRow, { borderLeftColor: swatch }]}>
+        <View style={styles.entryInfo}>
+          <Text style={styles.entryBrand} numberOfLines={1}>{entry.brand}</Text>
+          <Text style={styles.entryCategory}>{categoryLabel(entry.category)}</Text>
+          <Text style={styles.entryVolume}>
+            {formatMl(entry.amountMl)} / {mlToOz(entry.amountMl)} oz
+          </Text>
+        </View>
+        <View style={styles.entryAdminControls}>
+          <TextInput
+            style={styles.amountInput}
+            value={draftValue}
+            onChangeText={(t) => setAmountDrafts((prev) => ({ ...prev, [entry.entryId]: t }))}
+            keyboardType="decimal-pad"
+            selectTextOnFocus
+          />
+          <TouchableOpacity
+            style={[styles.adjustBtn, adjusting[entry.entryId] && styles.btnDisabled]}
+            onPress={() => void handleAdjust(entry)}
+            disabled={adjusting[entry.entryId]}
+          >
+            <Text style={styles.adjustBtnText}>{adjusting[entry.entryId] ? '…' : '✓'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.removeBtn, removing[entry.entryId] && styles.btnDisabled]}
+            onPress={() => void handleRemove(entry.entryId)}
+            disabled={removing[entry.entryId]}
+          >
+            <Text style={styles.removeBtnText}>{removing[entry.entryId] ? '…' : '✕'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const renderPendingAddBack = (entry: PendingAddBack) => {
     const username = memberMap.get(entry.debtorId) ?? entry.debtorId;
     const date = formatDate(entry.createdAt);
@@ -323,6 +415,10 @@ export default function InfinityGrogReviewScreen() {
   }
 
   const pendingAddBacks = grog?.pendingAddBacks ?? [];
+  // Manage mode counts entries because that is what it lists; view mode counts
+  // types, so the number matches the bands you can see in the skull.
+  const entries = grog?.entries ?? [];
+  const contentsCount = manageMode ? entries.length : groupByCategory(entries).length;
 
   // ── Main render ──────────────────────────────────────────────────────────────
 
@@ -333,17 +429,7 @@ export default function InfinityGrogReviewScreen() {
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
         >
-          <View style={styles.headerRow}>
-            <Text style={styles.heading}>{manageMode ? 'Managing Grog' : 'The Grog'}</Text>
-            {isAdmin && (
-              <TouchableOpacity
-                onPress={() => setManageMode((prev) => !prev)}
-                style={styles.headerBtn}
-              >
-                <Text style={styles.headerBtnText}>{manageMode ? 'Done' : 'Manage'}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <Text style={styles.heading}>{manageMode ? 'Managing Grog' : 'The Grog'}</Text>
 
           <View style={styles.skullContainer}>
             <GrogSkull
@@ -354,15 +440,39 @@ export default function InfinityGrogReviewScreen() {
             />
           </View>
 
-          {/* Initialize Grog — only in manage mode */}
-          {manageMode && grog === null && (
-            <TouchableOpacity style={styles.initBtn} onPress={() => setShowInitialize(true)}>
-              <Text style={styles.initBtnText}>Initialize Grog</Text>
-            </TouchableOpacity>
+          {/* Contents. Replaces the slide-in drawer, which covered the skull it
+              was describing and put its toggle on top of the Manage button.
+              Manage lives here because managing the grog *is* editing contents. */}
+          {(grog !== null || isAdmin) && (
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeaderLabel}>
+                Contents{contentsCount > 0 ? ` · ${contentsCount}` : ''}
+              </Text>
+              {isAdmin && (
+                <TouchableOpacity onPress={() => setManageMode((prev) => !prev)} hitSlop={8}>
+                  <Text style={styles.sectionAction}>{manageMode ? 'Done' : 'Manage'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
-          {grog === null && !manageMode && (
-            <Text style={styles.emptyText}>The grog has not been initialized yet.</Text>
+          {grog === null ? (
+            manageMode ? (
+              <TouchableOpacity style={styles.initBtn} onPress={() => setShowInitialize(true)}>
+                <Text style={styles.initBtnText}>Initialize Grog</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.emptyText}>The grog has not been initialized yet.</Text>
+            )
+          ) : manageMode ? (
+            <>
+              <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddLiquor(true)}>
+                <Text style={styles.addBtnText}>+ Add Liquor</Text>
+              </TouchableOpacity>
+              {grog.entries.map(renderManageRow)}
+            </>
+          ) : (
+            groupByCategory(grog.entries).map(renderCategoryRow)
           )}
 
           {/* Pending Add-Backs section — manage mode only */}
@@ -386,75 +496,6 @@ export default function InfinityGrogReviewScreen() {
             </>
           )}
         </ScrollView>
-
-        {/* Drawer toggle tab */}
-        {grog !== null && grog.entries.length > 0 && (
-          <TouchableOpacity
-            style={[styles.drawerTab, { top: insets.top + 8 }]}
-            onPress={toggleDrawer}
-          >
-            <Text style={styles.drawerTabText}>{drawerOpen ? '› Contents' : '‹ Contents'}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Slide-in drawer */}
-        <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
-          <ScrollView
-            contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + 20 }]}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.drawerTitle}>Contents</Text>
-            {/* Add Liquor button — manage mode only */}
-            {manageMode && (
-              <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddLiquor(true)}>
-                <Text style={styles.addBtnText}>+ Add Liquor</Text>
-              </TouchableOpacity>
-            )}
-            {grog?.entries.map((entry) => {
-              const color = CATEGORY_COLORS[entry.category];
-              const draftValue =
-                amountDrafts[entry.entryId] !== undefined
-                  ? amountDrafts[entry.entryId]
-                  : entry.amountMl.toFixed(1);
-              return (
-                <View key={entry.entryId} style={[styles.entryRow, { borderLeftColor: color }]}>
-                  <View style={[styles.colorDot, { backgroundColor: color }]} />
-                  <View style={styles.entryInfo}>
-                    <Text style={styles.entryBrand} numberOfLines={1}>{entry.brand}</Text>
-                    <Text style={styles.entryCategory}>{entry.category.replace(/_/g, ' ')}</Text>
-                    <Text style={styles.entryVolume}>{entry.amountMl.toFixed(1)} mL / {mlToOz(entry.amountMl)} oz</Text>
-                  </View>
-                  {/* Per-entry admin controls — manage mode only */}
-                  {manageMode && (
-                    <View style={styles.entryAdminControls}>
-                      <TextInput
-                        style={styles.amountInput}
-                        value={draftValue}
-                        onChangeText={(t) => setAmountDrafts((prev) => ({ ...prev, [entry.entryId]: t }))}
-                        keyboardType="decimal-pad"
-                        selectTextOnFocus
-                      />
-                      <TouchableOpacity
-                        style={[styles.adjustBtn, adjusting[entry.entryId] && styles.btnDisabled]}
-                        onPress={() => void handleAdjust(entry)}
-                        disabled={adjusting[entry.entryId]}
-                      >
-                        <Text style={styles.adjustBtnText}>{adjusting[entry.entryId] ? '…' : '✓'}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.removeBtn, removing[entry.entryId] && styles.btnDisabled]}
-                        onPress={() => void handleRemove(entry.entryId)}
-                        disabled={removing[entry.entryId]}
-                      >
-                        <Text style={styles.removeBtnText}>{removing[entry.entryId] ? '…' : '✕'}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
       </View>
 
       {showAddLiquor && (
@@ -490,81 +531,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: color.bg,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
   heading: {
     ...title,
-    flex: 1,
+    marginBottom: 16,
   },
   skullContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
   },
-  // Header button
-  headerBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  headerBtnText: {
-    color: color.accent,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  // Drawer
   root: {
     flex: 1,
     backgroundColor: color.bg,
   },
-  drawer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: '72%',
-    backgroundColor: color.surface,
-    borderLeftWidth: 1,
-    borderLeftColor: color.border,
-    shadowColor: '#000',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 16,
-  },
-  drawerContent: {
-    padding: 16,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  drawerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: color.text,
-    marginBottom: 12,
-  },
-  drawerTab: {
-    position: 'absolute',
-    right: 0,
-    top: 8,
-    backgroundColor: color.surfaceRaised,
-    borderTopLeftRadius: 6,
-    borderBottomLeftRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+  // Section header carrying an action on the right
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRightWidth: 0,
-    borderColor: color.borderStrong,
-    zIndex: 10,
+    justifyContent: 'space-between',
+    marginTop: space.lg,
+    marginBottom: space.md,
   },
-  drawerTabText: {
-    color: color.textMuted,
-    fontSize: 13,
+  sectionHeaderLabel: {
+    ...label,
+  },
+  sectionAction: {
+    color: color.accent,
+    fontSize: 15,
     fontWeight: '600',
+  },
+  // Contents row — one per liquor type, matching a band in the skull
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.sm + 1,
+    borderBottomWidth: 1,
+    borderBottomColor: color.surfaceRaised,
+  },
+  contentSwatch: {
+    width: 4,
+    height: 26,
+    borderRadius: radius.sm,
+    flexShrink: 0,
+  },
+  contentInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  contentCategory: {
+    color: color.text,
+    fontSize: 15,
+    textTransform: 'capitalize',
+  },
+  contentBrands: {
+    color: color.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  contentAmount: {
+    color: color.textMuted,
+    fontSize: 12,
   },
   initBtn: {
     backgroundColor: color.accent,
@@ -667,12 +693,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  colorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    flexShrink: 0,
   },
   entryInfo: {
     flex: 1,

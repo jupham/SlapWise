@@ -230,7 +230,11 @@ describe('Feature: grog-shot-delivery-flow, Property 1 — takeGrogShot applies 
     );
   });
 
-  it('entries that drop to ≤ 0.01 mL are removed', () => {
+  it('keeps every entry and never goes negative', () => {
+    // Taking a shot shaves a proportion off each entry rather than draining any
+    // one of them, so nothing is ever removed — a bottle poured in long ago
+    // stays in the contents at a trace. A grog holding less than a full shot
+    // drains to exactly zero instead of underflowing.
     fc.assert(
       fc.property(
         fc.array(grogEntryArb, { minLength: 1 }),
@@ -245,8 +249,9 @@ describe('Feature: grog-shot-delivery-flow, Property 1 — takeGrogShot applies 
             debtorId, debtId, '2025-06-01T12:00:00.000Z', shotEventId,
           );
 
+          expect(newEntries.map(e => e.entryId)).toEqual(entries.map(e => e.entryId));
           for (const e of newEntries) {
-            expect(e.amountMl).toBeGreaterThan(0.01);
+            expect(e.amountMl).toBeGreaterThanOrEqual(0);
           }
         },
       ),

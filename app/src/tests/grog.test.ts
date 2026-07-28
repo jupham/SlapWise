@@ -183,12 +183,17 @@ describe('Property 5: Shot delivery reduces all entry amounts proportionally', (
     );
   });
 
-  it('entries at or below 0.01 mL are removed', () => {
+  it('keeps every entry, however small it gets', () => {
+    // The grog is a record as much as a drink: a bottle poured in years ago
+    // still shows in the contents at a trace. Proportional removal can only
+    // approach zero, never reach it, so nothing ever needs dropping.
     fc.assert(
       fc.property(arbNonEmptyEntries, (entries) => {
         const result = applyProportionalRemoval(entries);
+        expect(result).toHaveLength(entries.length);
+        expect(result.map(e => e.entryId)).toEqual(entries.map(e => e.entryId));
         for (const e of result) {
-          expect(e.amountMl).toBeGreaterThan(0.01);
+          expect(e.amountMl).toBeGreaterThanOrEqual(0);
         }
       }),
     );
@@ -292,14 +297,13 @@ describe('Property 7: Shot delivery with add-back records both events; duplicate
         );
         expect(merged).toBeDefined();
 
-        // After proportional removal the entry's amount is reduced, then SHOT_ML is added back
-        const expectedAfterRemoval = beforeAmount - SHOT_ML * (beforeAmount / total);
-        if (expectedAfterRemoval > 0.01) {
-          expect(merged!.amountMl).toBeCloseTo(expectedAfterRemoval + SHOT_ML, 3);
-        } else {
-          // Entry was wiped by removal, re-created with SHOT_ML
-          expect(merged!.amountMl).toBeCloseTo(SHOT_ML, 3);
-        }
+        // After proportional removal the entry's amount is reduced, then SHOT_ML
+        // is added back. The entry always survives removal, so there is no
+        // wiped-and-recreated case to special-case any more; a grog holding less
+        // than a shot simply drains to zero first.
+        const removed = Math.min(SHOT_ML, total);
+        const afterRemoval = Math.max(0, beforeAmount - removed * (beforeAmount / total));
+        expect(merged!.amountMl).toBeCloseTo(afterRemoval + SHOT_ML, 3);
       }),
     );
   });

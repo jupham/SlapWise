@@ -238,6 +238,29 @@ from the user attributes instead — see `AuthService.currentPlayer`.
 checked in the grog resolver, so non-admin members get `UNAUTHORIZED` on writes
 that look innocuous.
 
+**The grog never drops an entry, and that is the point.** A shot shaves a
+proportion off every entry, so an entry approaches zero without reaching it —
+the contents keep a trace of every bottle ever poured in. `applyAddLiquor`
+merges by brand+category, so the entry count is bounded by *distinct brands ever
+used*, not by shots taken; ~18 in a 400-shot simulation. Do not reintroduce a
+threshold filter to "clean up" trace entries.
+
+The one that used to be there (`.filter(e => e.amountMl > 0.01)`) was also
+hiding a bug. Removing a full `SHOT_ML` proportionally from a grog holding
+*less* than a shot drove every entry negative; the filter then swept the
+negatives away, so the underflow never surfaced. `applyProportionalRemoval` now
+removes `min(SHOT_ML, total)` and clamps at zero, so a near-empty grog drains to
+exactly empty.
+
+**The skull is the picture; the contents list is the record.** They are allowed
+to disagree. `computeLayers` draws one band per *liquor type* — `CATEGORY_COLORS`
+is keyed by category, so per-entry bands drew a seam through the middle of what
+already looked like one band — and drops any band thinner than `MIN_BAND_UNITS`,
+renormalising the rest so the surface still lands at the right height. The
+contents list shows every entry regardless. Both order themselves by the
+`CATEGORY_COLORS` key order so the list reads in the same direction as the
+skull.
+
 **Tab screens must refetch on focus.** They stay mounted, so a mount-only
 `useEffect` never sees anything that happened while you were on another tab.
 All four use `useFocusEffect`; a new tab screen needs it too, with a

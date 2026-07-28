@@ -4,18 +4,28 @@ export const SHOT_ML = 44.36; // 1.5 US fl oz
 
 export const BOTTLE_SIZE_PRESETS = [375, 750, 1000, 1750]; // mL
 
+/**
+ * Layer colours for the skull, and the dots in the contents list.
+ *
+ * Tuned to sit on the near-black ground: the old set mixed pastels
+ * (`#A8D8EA` vodka, `#A8D5A2` gin) that washed out against it with a rum so
+ * dark (`#4A1C00`) it read as an empty gap in the stack. These hold a similar
+ * mid-luminance band so no layer disappears, and the five whiskies are spread
+ * across hue rather than only lightness, since they are the ones most often
+ * stacked next to each other.
+ */
 export const CATEGORY_COLORS: Record<LiquorCategory, string> = {
-  vodka:            '#A8D8EA',
-  whiskey:          '#C8860A',
-  bourbon:          '#B85C00',
-  scotch:           '#8B7536',
-  irish_whiskey:    '#D4A017',
-  canadian_whiskey: '#E8C97A',
-  rum:              '#4A1C00',
-  gin:              '#A8D5A2',
-  tequila:          '#F0C040',
-  brandy:           '#7B1C3E',
-  other:            '#7B5EA7',
+  vodka:            '#8FD3F0', // clear spirit — cold and pale
+  gin:              '#7FD494',
+  tequila:          '#F2C230',
+  whiskey:          '#E08A2E',
+  bourbon:          '#C6511F',
+  scotch:           '#A8862E',
+  irish_whiskey:    '#F3B95C',
+  canadian_whiskey: '#D9C27A',
+  rum:              '#7A4020',
+  brandy:           '#9E2B4E',
+  other:            '#8B6BC4', // regalia, lifted enough to read on the ground
 };
 
 export const LIQUOR_BRANDS: Array<{ brand: string; category: LiquorCategory }> = [
