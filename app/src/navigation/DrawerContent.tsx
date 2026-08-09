@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   StyleSheet,
   Text,
@@ -25,6 +26,7 @@ export default function DrawerContent({ navigation }: DrawerContentComponentProp
 
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -66,6 +68,44 @@ export default function DrawerContent({ navigation }: DrawerContentComponentProp
     },
     [setActiveGroup, navigation]
   );
+
+  /**
+   * Deletion is never blocked, including mid-Manchester. The guideline asks
+   * that it be easy to find and not obstructed, and gating it behind settling
+   * up would be exactly that. The Alert says plainly what survives, because
+   * "anonymised" is not what people picture when they tap delete.
+   */
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete account?',
+      'Your login and profile are deleted for good. Manchesters you were part of stay in the group, with your name replaced — they are the other player’s history too. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDeleting(true);
+              try {
+                await AuthService.deleteAccount();
+              } catch (err: unknown) {
+                console.error('[DrawerContent] deleteAccount:', err);
+                setDeleting(false);
+                Alert.alert(
+                  'Could not delete account',
+                  'Nothing has been deleted. Check your connection and try again.'
+                );
+                return;
+              }
+              setPlayer(null);
+              navigation.getParent()?.reset({ index: 0, routes: [{ name: 'Auth' }] });
+            })();
+          },
+        },
+      ]
+    );
+  }, [navigation, setPlayer]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -179,11 +219,25 @@ export default function DrawerContent({ navigation }: DrawerContentComponentProp
         </TouchableOpacity>
       </View>
 
-      {/* Divider + Logout */}
+      {/* Divider + Logout + Delete Account */}
       <View style={styles.footer}>
         <View style={styles.divider} />
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+        {/* App Store guideline 5.1.1(v): an app that creates accounts has to let
+            people delete them from inside it, and the control has to be easy to
+            find — so this sits beside Logout rather than behind a settings
+            screen the app does not otherwise have. */}
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+          accessibilityRole="button"
+        >
+          <Text style={styles.deleteText}>
+            {deleting ? 'Deleting…' : 'Delete Account'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -255,4 +309,14 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: color.border, marginBottom: space.md },
   logoutBtn: { paddingVertical: space.md },
   logoutText: { color: color.textMuted, fontSize: size.body, fontWeight: '600' },
+  // Destructive is an outline, never a fill — same treatment as Delete Group.
+  deleteBtn: {
+    marginTop: space.md, alignSelf: 'flex-start',
+    paddingHorizontal: space.lg, paddingVertical: space.md,
+    borderWidth: 1, borderColor: color.dangerBorder, borderRadius: radius.sm,
+  },
+  deleteText: {
+    color: color.dangerText, fontWeight: '700', fontSize: size.caption,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
 });

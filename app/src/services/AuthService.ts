@@ -4,7 +4,9 @@ import {
   signOut,
   getCurrentUser,
   fetchUserAttributes,
+  deleteUser,
 } from 'aws-amplify/auth';
+import { authFetch } from './authFetch';
 import { Player } from '../types';
 
 export interface AuthService {
@@ -12,6 +14,7 @@ export interface AuthService {
   login(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
   currentPlayer(): Promise<Player | null>;
+  deleteAccount(): Promise<void>;
 }
 
 export const AuthService: AuthService = {
@@ -82,5 +85,29 @@ export const AuthService: AuthService = {
     } catch {
       return null;
     }
+  },
+
+  /**
+   * Deletes the account, as App Store guideline 5.1.1(v) requires of any app
+   * that supports account creation.
+   *
+   * Split across two calls for the same reason updateUsername is: a Lambda in
+   * LambdaStack cannot reference the user pool without a circular stack
+   * dependency, so the client owns the Cognito half via the user-scoped
+   * deleteUser().
+   *
+   * Order is the opposite of updateUsername's, though. There, Cognito goes
+   * first so a failed fan-out still converges. Here the DynamoDB cleanup has to
+   * go first: it is an authenticated call, and deleting the Cognito user is the
+   * step that cannot be undone or retried. If the API call fails, nothing has
+   * happened yet and the caller can try again.
+   */
+  async deleteAccount(): Promise<void> {
+    const res = await authFetch('/players/me', { method: 'DELETE' });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Failed to delete account data: ${res.status} ${detail}`);
+    }
+    await deleteUser();
   },
 };

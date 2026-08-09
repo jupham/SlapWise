@@ -1,28 +1,7 @@
-import { fetchAuthSession, updateUserAttributes } from 'aws-amplify/auth';
+import { updateUserAttributes } from 'aws-amplify/auth';
 import { getClient } from './amplifyClient';
+import { authFetch } from './authFetch';
 import { Group, Member } from '../types';
-
-async function authFetch(path: string, options: RequestInit): Promise<Response> {
-  const { tokens } = await fetchAuthSession();
-  const token = tokens?.idToken?.toString();
-  if (!token) throw new Error('Not authenticated');
-
-  // Import the REST endpoint from amplifyconfiguration at runtime
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const config = require('../../amplifyconfiguration.json') as {
-    API: { REST: { SlapWiseRest: { endpoint: string } } };
-  };
-  const base = config.API.REST.SlapWiseRest.endpoint.replace(/\/$/, '');
-
-  return fetch(`${base}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token,
-      ...options.headers,
-    },
-  });
-}
 
 const GET_GROUPS = /* GraphQL */ `
   query GetGroups {

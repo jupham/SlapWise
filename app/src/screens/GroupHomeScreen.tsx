@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
@@ -132,7 +132,24 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
       keyExtractor={(m) => m.playerId}
       ListHeaderComponent={
         <View>
-          <Text style={styles.heading}>{groupName}</Text>
+          <View style={styles.headingRow}>
+            <Text style={styles.heading}>{groupName}</Text>
+            {/* The only way into the drawer. It has no header and nothing else
+                calls openDrawer, so the edge-swipe gesture was the sole entry —
+                and the tab navigator's own horizontal swipe wins over it, which
+                left Logout, the name editor and Delete Account unreachable. */}
+            <TouchableOpacity
+              style={styles.accountBtn}
+              // Dispatched rather than called on a getParent() chain: the action
+              // bubbles up until a navigator handles it, so this does not care
+              // how many navigators sit between this screen and the drawer.
+              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+              accessibilityRole="button"
+              accessibilityLabel="Account"
+            >
+              <Text style={styles.accountBtnText}>Account</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Invite card */}
           {inviteCode && (
@@ -226,7 +243,13 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space.lg, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: color.bg },
   noGroup: { fontSize: size.body, color: color.textMuted },
-  heading: { ...title, marginTop: space.md, marginBottom: space.lg },
+  headingRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: space.md, marginBottom: space.lg,
+  },
+  heading: { ...title, flexShrink: 1 },
+  accountBtn: { paddingHorizontal: space.md, paddingVertical: space.sm },
+  accountBtnText: { color: color.accent, fontSize: size.body, fontWeight: '600' },
 
   inviteBox: {
     backgroundColor: color.surface, borderLeftWidth: 3, borderLeftColor: color.regalia,

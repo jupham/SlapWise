@@ -59,6 +59,7 @@ const apiGatewayStack = new ApiGatewayStack(app, `${stage}-SlapWiseApiGatewaySta
   getGroupsFn: lambdaStack.getGroupsFn,
   deleteGroupFn: lambdaStack.deleteGroupFn,
   updateUsernameFn: lambdaStack.updateUsernameFn,
+  deleteAccountFn: lambdaStack.deleteAccountFn,
 });
 
 // Ensure stacks are deployed in the right order

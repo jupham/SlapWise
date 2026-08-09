@@ -31,6 +31,7 @@ export class LambdaStack extends cdk.Stack {
   public readonly grogResolverFn: lambda.Function;
   public readonly confirmReadInFn: lambda.Function;
   public readonly updateUsernameFn: lambda.Function;
+  public readonly deleteAccountFn: lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -203,6 +204,18 @@ export class LambdaStack extends cdk.Stack {
       environment: commonEnv,
     });
     table.grantReadWriteData(this.updateUsernameFn);
+
+    // deleteAccount Lambda (REST) — deletes the Player PROFILE and anonymises
+    // every Member copy. Same GSI1 fan-out as updateUsername, and Cognito is
+    // left to the client for the same circular-dependency reason.
+    this.deleteAccountFn = new lambda.Function(this, 'DeleteAccountFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slapwise-delete-account`,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/delete-account')),
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.deleteAccountFn);
 
     // notificationDispatcher Lambda
     this.notificationDispatcherFn = new lambda.Function(this, 'NotificationDispatcherFn', {

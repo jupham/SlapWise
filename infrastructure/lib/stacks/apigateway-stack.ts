@@ -14,6 +14,7 @@ export interface ApiGatewayStackProps extends cdk.StackProps {
   getGroupsFn: lambda.Function;
   deleteGroupFn: lambda.Function;
   updateUsernameFn: lambda.Function;
+  deleteAccountFn: lambda.Function;
 }
 
 export class ApiGatewayStack extends cdk.Stack {
@@ -31,6 +32,7 @@ export class ApiGatewayStack extends cdk.Stack {
       getGroupsFn,
       deleteGroupFn,
       updateUsernameFn,
+      deleteAccountFn,
     } = props;
 
     // Required account-level setting: CloudWatch Logs role for API Gateway
@@ -97,6 +99,13 @@ export class ApiGatewayStack extends cdk.Stack {
     meResource.addResource('username').addMethod(
       'PUT',
       new apigateway.LambdaIntegration(updateUsernameFn),
+      authMethodOptions
+    );
+
+    // DELETE /players/me — App Store guideline 5.1.1(v)
+    meResource.addMethod(
+      'DELETE',
+      new apigateway.LambdaIntegration(deleteAccountFn),
       authMethodOptions
     );
 
