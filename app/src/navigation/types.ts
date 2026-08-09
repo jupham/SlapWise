@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 // Auth stack
 export type AuthStackParamList = {
   Login: undefined;
@@ -5,9 +7,14 @@ export type AuthStackParamList = {
   ConfirmEmail: { email: string };
 };
 
-// Drawer — active group stored in Zustand, not nav params
+// Drawer — active group stored in Zustand, not nav params.
+//
+// The nested NavigatorScreenParams here and below exist for one caller: a
+// tapped push notification, which has to jump straight to a screen three
+// navigators down from the root. Ordinary in-app navigation addresses its own
+// level and ignores them.
 export type DrawerParamList = {
-  GroupHome: undefined;
+  GroupHome: NavigatorScreenParams<GroupStackParamList> | undefined;
 };
 
 // Bottom tabs — each tab reads activeGroup from Zustand
@@ -20,7 +27,7 @@ export type GroupTabParamList = {
 
 // Stack screens pushed on top of the tab navigator
 export type GroupStackParamList = {
-  GroupTabs: undefined;
+  GroupTabs: NavigatorScreenParams<GroupTabParamList> | undefined;
   CreateChallenge: { groupId: string; groupName: string };
   PendingDebts: { groupId: string; groupName: string };
   ResolutionConfirmation: { debtId: string; groupId: string; groupName: string };
@@ -38,7 +45,7 @@ export type GroupStackParamList = {
 export type RootStackParamList = {
   Auth: undefined;
   Welcome: undefined;
-  App: undefined;
+  App: NavigatorScreenParams<DrawerParamList> | undefined;
   CreateGroup: undefined;
   JoinGroup: undefined;
 };

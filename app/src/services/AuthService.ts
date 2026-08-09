@@ -7,6 +7,7 @@ import {
   deleteUser,
 } from 'aws-amplify/auth';
 import { authFetch } from './authFetch';
+import { unregisterFromPush } from './PushService';
 import { Player } from '../types';
 
 export interface AuthService {
@@ -67,6 +68,10 @@ export const AuthService: AuthService = {
   },
 
   async logout(): Promise<void> {
+    // Before signOut, while the request can still authenticate. It swallows its
+    // own failures, so a device that cannot reach the API still gets to log
+    // out — the token it leaves behind expires on its TTL.
+    await unregisterFromPush();
     await signOut({ global: true });
   },
 

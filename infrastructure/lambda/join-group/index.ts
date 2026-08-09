@@ -6,6 +6,7 @@ import {
   TransactWriteItemsCommand,
   TransactWriteItemsCommandInput,
 } from '@aws-sdk/client-dynamodb';
+import { publishNotification } from '../shared/notifications';
 
 const dynamo = new DynamoDBClient({});
 const TABLE = process.env.TABLE_NAME!;
@@ -100,6 +101,15 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     }
     throw err;
   }
+
+  // Published after the transaction, so a duplicate join that lost the
+  // ConditionExpression race never announces anyone twice.
+  await publishNotification({
+    type: 'member_joined',
+    groupId,
+    audience: { kind: 'group', excludePlayerIds: [callerId] },
+    joinedPlayerId: callerId,
+  });
 
   return {
     headers: CORS_HEADERS,

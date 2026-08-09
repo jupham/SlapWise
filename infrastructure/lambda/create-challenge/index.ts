@@ -4,6 +4,7 @@ import {
   TransactWriteItemsCommand,
 } from '@aws-sdk/client-dynamodb';
 import { randomUUID } from 'crypto';
+import { publishNotification } from '../shared/notifications';
 
 const dynamo = new DynamoDBClient({});
 const TABLE = process.env.TABLE_NAME!;
@@ -142,6 +143,17 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
       },
     ],
   }));
+
+  // The statement maker is the one who has to answer, so they are the one told.
+  // The challenger just did this and does not need reminding.
+  await publishNotification({
+    type: 'manchester_created',
+    groupId,
+    audience: { kind: 'players', playerIds: [statementMakerId] },
+    debtId,
+    actorId: challengerId,
+    statement,
+  });
 
   return {
     __typename: 'SlapDebt',

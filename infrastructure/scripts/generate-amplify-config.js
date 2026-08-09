@@ -49,14 +49,9 @@ const amplifyConfig = {
       },
     },
   },
-  Notifications: {
-    PushNotification: {
-      AWSPinpoint: {
-        appId: flat.PinpointAppId,
-        region: flat.AppSyncRegion,
-      },
-    },
-  },
+  // No Notifications block. Push goes through Expo's push service, which needs
+  // no Amplify config — the app gets its token from expo-notifications and
+  // registers it with the REST API above.
 };
 
 fs.writeFileSync(amplifyConfigPath, JSON.stringify(amplifyConfig, null, 2));

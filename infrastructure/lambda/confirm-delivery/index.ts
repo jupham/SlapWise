@@ -6,6 +6,7 @@ import {
   TransactWriteItemsCommand,
 } from '@aws-sdk/client-dynamodb';
 import { randomUUID } from 'crypto';
+import { publishNotification } from '../shared/notifications';
 
 const dynamo = new DynamoDBClient({});
 const TABLE = process.env.TABLE_NAME!;
@@ -158,12 +159,36 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
       ],
     }));
 
+    // Settling is the group's entertainment, so it goes wide — minus the two
+    // people who were there for it and just confirmed it happened.
+    await publishNotification({
+      type: 'manchester_settled',
+      groupId,
+      audience: { kind: 'group', excludePlayerIds: [debtorId!, creditorId!] },
+      debtId,
+      debtorId: debtorId!,
+      creditorId: creditorId!,
+      punishment: updated.debtPunishment?.S as 'slap' | 'infinity_grog' | undefined,
+    });
+
     const final = await dynamo.send(new GetItemCommand({
       TableName: TABLE,
       Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: `DEBT#${debtId}` } },
     }));
     return marshalDebt(final.Item!);
   }
+
+  // Only one side has confirmed. Same reasoning as the resolution half: a lone
+  // confirmation is a state rather than an event, so nothing is written to the
+  // feed and this push is what tells the other party it is on them.
+  await publishNotification({
+    type: 'confirmation_awaiting_you',
+    groupId,
+    audience: { kind: 'players', playerIds: [isDebtor ? creditorId! : debtorId!] },
+    debtId,
+    actorId: callerId,
+    statement: updated.statement?.S,
+  });
 
   return marshalDebt(updated);
 };

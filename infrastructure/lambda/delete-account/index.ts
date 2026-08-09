@@ -67,6 +67,32 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     })
   );
 
+  // Push tokens live in the same partition but carry no GSI1 keys, so the query
+  // above cannot see them. They are hard-deleted rather than anonymised: a
+  // deleted account must stop reaching the device, and unlike a Member record
+  // nobody else's history depends on one surviving.
+  const tokens = await dynamo.send(
+    new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': { S: `PLAYER#${callerId}` },
+        ':sk': { S: 'PUSHTOKEN#' },
+      },
+    })
+  );
+
+  await Promise.all(
+    (tokens.Items ?? []).map((item) =>
+      dynamo.send(
+        new DeleteItemCommand({
+          TableName: TABLE,
+          Key: { PK: item.PK!, SK: item.SK! },
+        })
+      )
+    )
+  );
+
   const items = owned.Items ?? [];
   let anonymised = 0;
   let profileDeleted = false;

@@ -266,6 +266,70 @@ skull.
 All four use `useFocusEffect`; a new tab screen needs it too, with a
 `hasLoadedRef` guard so the spinner only blocks the first load.
 
+**Every Lambda ships the whole `dist/lambda` tree, and the directory name is in
+the handler path.** There is no bundler in this pipeline — just `tsc` — so an
+import of `../shared/cors` is emitted verbatim as `require('../shared/cors')`.
+When each function was its own `fromAsset` directory that path resolved above
+the asset root, so the file was simply *not in the package* and the function
+died at cold start on `MODULE_NOT_FOUND`. tsc never notices, because in the
+source tree the path is real. Rooting the asset at `dist/lambda` and using
+`handler: '<name>/index.handler'` makes the relative import true at runtime;
+CDK hashes the directory once, so it is one upload rather than twenty.
+
+`update-username` shipped broken this way and nobody saw it, because the rename
+UI lived in a drawer that had no button opening it until the Account entry point
+was added to Group home.
+
+## Notifications
+
+Push goes **Lambda → SNS → `notification-dispatcher` → Expo push service →
+device**. The dispatcher is *subscribed* to the topic; it previously held
+`grantPublish` instead, which is why every producer published happily into a
+topic with no subscribers and nothing was ever delivered.
+
+Expo's push service rather than SNS mobile push or Pinpoint. EAS already holds
+the FCM and APNs credentials, so there is no platform application to configure
+and no per-device SNS endpoint to keep in step with a rotating token. A Pinpoint
+app, IAM for it, and `pinpointEndpointId`/`pushEnabled` on every profile were
+deployed for a push implementation that was never written; they were removed
+rather than finished, since AWS has Pinpoint on a deprecation path. The
+`mobiletargeting:*` grants in `iam-deploy-policy.json` stay until the removal
+has actually been deployed — CloudFormation needs `DeleteApp` to tear the
+Pinpoint app down, and dropping the permission first strands it.
+
+`shared/notifications.ts` owns the event contract. **The publisher states the
+audience** — `{ kind: 'players' }` or `{ kind: 'group', excludePlayerIds }` —
+because only the mutation knows whether something is somebody's turn or the
+group's entertainment. Group events exclude whoever caused them; a push telling
+you what you just did is the fastest way to get notifications switched off.
+`publishNotification` swallows its own failures, so a notification can never
+fail the mutation that raised it.
+
+Six events push. Individually: `manchester_created`,
+`confirmation_awaiting_you`, `manchester_resolved` (debtor only — the creditor
+is owed something, which can wait). To the group: `manchester_settled`,
+`grog_shot_taken`, `member_joined`. `chug_event` and `player_read_in` still
+*publish* and are deliberately dropped by the dispatcher, so reinstating them is
+a change at one end rather than two.
+
+**`confirmation_awaiting_you` is load-bearing.** A first confirmation writes no
+feed entry — one party answering is a state, not an event — so this push is the
+only thing that tells the other player it is their move.
+
+**The dispatcher resolves display names; feed entries do not.** Both rules point
+the same way for different reasons: a stored name makes history lie after a
+rename, whereas a notification is rendered once and read once, so it cannot go
+stale — and the device has no member list to resolve ids against when a push
+lands. Its phrasing has to track `app/src/copy/punishment.ts` by hand, since
+nothing can be imported across the `app/` ↔ `infrastructure/` boundary.
+
+Push tokens are `PK=PLAYER#<id>`, `SK=PUSHTOKEN#<token>`, one per device, with a
+TTL. They carry **no GSI1 keys on purpose**: `GSI1PK = PLAYER#<id>` is the
+"everything this player owns" query, and both `update-username` and
+`delete-account` walk it writing a `username` onto every row they find. Staying
+out of that index is cheaper than teaching both to skip it — `delete-account`
+removes tokens with its own explicit query instead.
+
 ## Known rough edges
 
 - **The EAS iOS build has never actually been run.** It is the one unproven part
@@ -277,8 +341,15 @@ All four use `useFocusEffect`; a new tab screen needs it too, with a
   written correctly — the tab bar grows by `insets.bottom` — but a notched iPhone
   has very different insets, and the Grog screen's absolutely-positioned drawer
   tab is the kind of thing that lands wrong there.
-- **No test covers the display-name path or the seed script.** The 44 vitest tests
-  predate both and exercise domain logic only.
+- **No test covers the display-name path, the seed script, or notifications.**
+  The 44 vitest tests predate all three and exercise domain logic only.
+- **No push notification has been delivered to a real device yet.** The whole
+  path typechecks and synthesizes, but `Device.isDevice` is false on a simulator
+  and `getExpoPushTokenAsync` needs a development or EAS build — Expo Go will not
+  do. So this needs `npm run android` on a physical phone to prove out.
+- **No notification icon is configured.** `app.json` sets no `icon` at all, so
+  Android falls back to the app icon and may render it as a white square in the
+  status bar.
 - `infrastructure/bin/app.ts` is CDK **source**, not a build output. Ignore rules
   for `bin/`/`obj/` must stay path-scoped or they will swallow it.
 - `README.md` is an empty stub (UTF-16, one heading).

@@ -9,6 +9,9 @@ import type { RootStackParamList } from './navigation/types';
 import { stackScreenOptions } from './navigation/screenOptions';
 import { AuthService } from './services/AuthService';
 import { GroupService } from './services/GroupService';
+import * as Notifications from 'expo-notifications';
+import { configureNotificationHandler, registerForPush } from './services/PushService';
+import { navigationRef, routeToNotification, type PushPayload } from './navigation/pushRouting';
 import { useStore } from './store';
 
 
@@ -21,6 +24,10 @@ import { color } from './theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// Set once, outside the component: it configures a module-level singleton, and
+// re-running it on every render would be pointless work.
+configureNotificationHandler();
+
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
   // Held alongside bootstrap so the first paint is already in Oswald — showing
@@ -29,6 +36,7 @@ export default function App() {
   const setPlayer = useStore((s) => s.setPlayer);
   const setGroups = useStore((s) => s.setGroups);
   const setActiveGroup = useStore((s) => s.setActiveGroup);
+  const groups = useStore((s) => s.groups);
 
   useEffect(() => {
     async function bootstrap() {
@@ -49,6 +57,12 @@ export default function App() {
           setActiveGroup({ groupId: groups[0].groupId, groupName: groups[0].name });
           setInitialRoute('App');
         }
+
+        // After the session is known to be good, because registering is an
+        // authenticated call. Deliberately not awaited — a slow permission
+        // prompt must not hold up the first paint, and the result only affects
+        // whether pushes arrive later.
+        void registerForPush();
       } catch (err: unknown) {
         console.error('[App] bootstrap:', err);
         setInitialRoute('Auth');
@@ -56,6 +70,31 @@ export default function App() {
     }
     void bootstrap();
   }, [setPlayer, setGroups, setActiveGroup]);
+
+  /**
+   * A tapped notification, including the one that cold-started the app.
+   *
+   * `useLastNotificationResponse` holds the tap rather than firing it as an
+   * event, which is what makes the cold-start case work: bootstrap and the
+   * navigator take a moment to come up, and the response is still sitting here
+   * waiting when they do. The `initialRoute` guard is what defers it until
+   * then.
+   */
+  const lastResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (!lastResponse || initialRoute !== 'App') return;
+
+    const payload = lastResponse.notification.request.content.data as PushPayload;
+    const group = groups.find((g) => g.groupId === payload.groupId);
+    if (!group) return;
+
+    // The tap may be for a group other than the one showing. Switch first —
+    // every tab reads the active group from the store, so navigating without
+    // this would land on the right screen showing the wrong group's data.
+    setActiveGroup({ groupId: group.groupId, groupName: group.name });
+    routeToNotification(payload, group.name);
+  }, [lastResponse, initialRoute, groups, setActiveGroup]);
 
   if (!initialRoute || !fontsLoaded) {
     return (
@@ -72,7 +111,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: color.bg }}>
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor={color.bg} />
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <Stack.Navigator
             initialRouteName={initialRoute}
             screenOptions={{ ...stackScreenOptions, headerShown: false }}

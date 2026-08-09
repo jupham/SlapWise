@@ -3,8 +3,6 @@ export interface Player {
   username: string;
   email: string;
   createdAt: string;
-  pinpointEndpointId: string | null;
-  pushEnabled: boolean;
 }
 
 export interface Group {

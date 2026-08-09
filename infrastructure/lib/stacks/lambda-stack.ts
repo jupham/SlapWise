@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sns from 'aws-cdk-lib/aws-sns';
-import * as iam from 'aws-cdk-lib/aws-iam';
+import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
@@ -32,6 +32,7 @@ export class LambdaStack extends cdk.Stack {
   public readonly confirmReadInFn: lambda.Function;
   public readonly updateUsernameFn: lambda.Function;
   public readonly deleteAccountFn: lambda.Function;
+  public readonly registerPushTokenFn: lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -50,12 +51,30 @@ export class LambdaStack extends cdk.Stack {
       memorySize: 256,
     } satisfies Partial<lambda.FunctionProps>;
 
+    /**
+     * One asset for every function, rooted at dist/lambda, with the directory
+     * name moved into the handler path.
+     *
+     * It used to be an asset per function directory, which silently broke the
+     * moment a Lambda imported anything from `lambda/shared/`. tsc emits that
+     * import as `require('../shared/cors')`, which resolves above the asset
+     * root — so the file was simply absent from the package and the function
+     * died at cold start on MODULE_NOT_FOUND. Nothing caught it because tsc
+     * only ever sees the source tree, where the path is real.
+     *
+     * There is no bundler in this pipeline to inline the import, so the fix is
+     * to make the relative path true at runtime by shipping the tree rather
+     * than the leaf. CDK hashes the directory once, so this is a single upload
+     * shared by every function instead of twenty near-identical ones.
+     */
+    const lambdaCode = lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda'));
+
     // Pre-sign-up trigger (username uniqueness check)
     this.preSignUpFn = new lambda.Function(this, 'PreSignUpFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-pre-sign-up`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/pre-sign-up')),
+      handler: 'pre-sign-up/index.handler',
+      code: lambdaCode,
       environment: { TABLE_NAME: table.tableName },
     });
     table.grantReadData(this.preSignUpFn);
@@ -64,8 +83,8 @@ export class LambdaStack extends cdk.Stack {
     this.postConfirmationFn = new lambda.Function(this, 'PostConfirmationFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-post-confirmation`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/post-confirmation')),
+      handler: 'post-confirmation/index.handler',
+      code: lambdaCode,
       environment: { TABLE_NAME: table.tableName },
     });
     table.grantWriteData(this.postConfirmationFn);
@@ -74,8 +93,8 @@ export class LambdaStack extends cdk.Stack {
     this.createGroupFn = new lambda.Function(this, 'CreateGroupFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-create-group`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-group')),
+      handler: 'create-group/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.createGroupFn);
@@ -84,18 +103,19 @@ export class LambdaStack extends cdk.Stack {
     this.joinGroupFn = new lambda.Function(this, 'JoinGroupFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-join-group`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/join-group')),
+      handler: 'join-group/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.joinGroupFn);
+    snsTopic.grantPublish(this.joinGroupFn);
 
     // getGroup Lambda (invoked via API Gateway)
     this.getGroupFn = new lambda.Function(this, 'GetGroupFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-get-group`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/get-group')),
+      handler: 'get-group/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadData(this.getGroupFn);
@@ -104,8 +124,8 @@ export class LambdaStack extends cdk.Stack {
     this.getGroupsFn = new lambda.Function(this, 'GetGroupsFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-get-groups`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/get-groups')),
+      handler: 'get-groups/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadData(this.getGroupsFn);
@@ -114,8 +134,8 @@ export class LambdaStack extends cdk.Stack {
     this.deleteGroupFn = new lambda.Function(this, 'DeleteGroupFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-delete-group`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/delete-group')),
+      handler: 'delete-group/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.deleteGroupFn);
@@ -124,18 +144,19 @@ export class LambdaStack extends cdk.Stack {
     this.createChallengeFn = new lambda.Function(this, 'CreateChallengeFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-create-challenge`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/create-challenge')),
+      handler: 'create-challenge/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.createChallengeFn);
+    snsTopic.grantPublish(this.createChallengeFn);
 
     // submitResolutionConfirmation Lambda (AppSync resolver)
     this.submitResolutionConfirmationFn = new lambda.Function(this, 'SubmitResolutionConfirmationFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-submit-resolution-confirmation`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/submit-resolution-confirmation')),
+      handler: 'submit-resolution-confirmation/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.submitResolutionConfirmationFn);
@@ -145,8 +166,8 @@ export class LambdaStack extends cdk.Stack {
     this.confirmDeliveryFn = new lambda.Function(this, 'ConfirmDeliveryFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-confirm-delivery`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-delivery')),
+      handler: 'confirm-delivery/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.confirmDeliveryFn);
@@ -156,8 +177,8 @@ export class LambdaStack extends cdk.Stack {
     this.recordGameCallFn = new lambda.Function(this, 'RecordGameCallFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-record-game-call`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/record-game-call')),
+      handler: 'record-game-call/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.recordGameCallFn);
@@ -167,8 +188,8 @@ export class LambdaStack extends cdk.Stack {
     this.regenerateInviteCodeFn = new lambda.Function(this, 'RegenerateInviteCodeFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-regenerate-invite-code`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/regenerate-invite-code')),
+      handler: 'regenerate-invite-code/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.regenerateInviteCodeFn);
@@ -177,8 +198,8 @@ export class LambdaStack extends cdk.Stack {
     this.voidDebtFn = new lambda.Function(this, 'VoidDebtFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-void-debt`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/void-debt')),
+      handler: 'void-debt/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.voidDebtFn);
@@ -187,8 +208,8 @@ export class LambdaStack extends cdk.Stack {
     this.leaveGroupFn = new lambda.Function(this, 'LeaveGroupFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-leave-group`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/leave-group')),
+      handler: 'leave-group/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.leaveGroupFn);
@@ -199,8 +220,8 @@ export class LambdaStack extends cdk.Stack {
     this.updateUsernameFn = new lambda.Function(this, 'UpdateUsernameFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-update-username`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/update-username')),
+      handler: 'update-username/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.updateUsernameFn);
@@ -211,29 +232,43 @@ export class LambdaStack extends cdk.Stack {
     this.deleteAccountFn = new lambda.Function(this, 'DeleteAccountFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-delete-account`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/delete-account')),
+      handler: 'delete-account/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.deleteAccountFn);
+
+    // registerPushToken Lambda (REST) — one record per device, so a player
+    // signed in on a phone and a tablet gets both.
+    this.registerPushTokenFn = new lambda.Function(this, 'RegisterPushTokenFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slapwise-register-push-token`,
+      handler: 'register-push-token/index.handler',
+      code: lambdaCode,
+      environment: commonEnv,
+    });
+    table.grantReadWriteData(this.registerPushTokenFn);
 
     // notificationDispatcher Lambda
     this.notificationDispatcherFn = new lambda.Function(this, 'NotificationDispatcherFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-notification-dispatcher`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/notification-dispatcher')),
+      handler: 'notification-dispatcher/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.notificationDispatcherFn);
-    snsTopic.grantPublish(this.notificationDispatcherFn);
+    // Subscribed, not granted publish. It had the latter, which is the wrong
+    // direction — every producer published happily into a topic with no
+    // subscribers, so the dispatcher was never once invoked.
+    snsTopic.addSubscription(new subs.LambdaSubscription(this.notificationDispatcherFn));
 
     // grogResolver Lambda (AppSync resolver — all grog mutations)
     this.grogResolverFn = new lambda.Function(this, 'GrogResolverFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-grog-resolver`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/grog-resolver')),
+      handler: 'grog-resolver/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.grogResolverFn);
@@ -243,21 +278,11 @@ export class LambdaStack extends cdk.Stack {
     this.confirmReadInFn = new lambda.Function(this, 'ConfirmReadInFn', {
       ...lambdaDefaults,
       functionName: `${stage}-slapwise-confirm-read-in`,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist/lambda/confirm-read-in')),
+      handler: 'confirm-read-in/index.handler',
+      code: lambdaCode,
       environment: commonEnv,
     });
     table.grantReadWriteData(this.confirmReadInFn);
     snsTopic.grantPublish(this.confirmReadInFn);
-
-    // Grant Pinpoint publish rights to notification dispatcher
-    this.notificationDispatcherFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: [
-        'mobiletargeting:SendMessages',
-        'mobiletargeting:UpdateEndpoint',
-        'mobiletargeting:GetEndpoint',
-      ],
-      resources: ['*'],
-    }));
   }
 }

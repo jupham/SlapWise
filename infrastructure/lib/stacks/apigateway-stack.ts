@@ -15,6 +15,7 @@ export interface ApiGatewayStackProps extends cdk.StackProps {
   deleteGroupFn: lambda.Function;
   updateUsernameFn: lambda.Function;
   deleteAccountFn: lambda.Function;
+  registerPushTokenFn: lambda.Function;
 }
 
 export class ApiGatewayStack extends cdk.Stack {
@@ -33,6 +34,7 @@ export class ApiGatewayStack extends cdk.Stack {
       deleteGroupFn,
       updateUsernameFn,
       deleteAccountFn,
+      registerPushTokenFn,
     } = props;
 
     // Required account-level setting: CloudWatch Logs role for API Gateway
@@ -108,6 +110,17 @@ export class ApiGatewayStack extends cdk.Stack {
       new apigateway.LambdaIntegration(deleteAccountFn),
       authMethodOptions
     );
+
+    // POST/DELETE /players/me/push-token — one record per device. DELETE is
+    // logout: a signed-out device has to stop hearing about the group.
+    const pushTokenResource = meResource.addResource('push-token');
+    for (const method of ['POST', 'DELETE']) {
+      pushTokenResource.addMethod(
+        method,
+        new apigateway.LambdaIntegration(registerPushTokenFn),
+        authMethodOptions
+      );
+    }
 
     // POST /groups/join
     const joinResource = groupsResource.addResource('join');

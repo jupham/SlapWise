@@ -3,8 +3,6 @@ type Player {
   username: String!
   email: String!
   createdAt: AWSDateTime!
-  pinpointEndpointId: String
-  pushEnabled: Boolean!
 }
 
 type Group {

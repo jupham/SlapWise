@@ -7,7 +7,7 @@ import {
   TransactWriteItemsCommand,
   AttributeValue,
 } from '@aws-sdk/client-dynamodb';
-import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import { publishNotification } from '../shared/notifications';
 import { randomUUID } from 'crypto';
 import {
   SHOT_ML,
@@ -25,9 +25,7 @@ import {
 } from './logic';
 
 const dynamo = new DynamoDBClient({});
-const sns = new SNSClient({});
 const TABLE = process.env.TABLE_NAME!;
-const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -508,22 +506,15 @@ async function takeGrogShot(callerId: string, args: Args): Promise<GrogItem> {
     console.error('[grog-resolver] takeGrogShot: failed to write FEED entry:', feedErr);
   }
 
-  // Best-effort: send push notification via SNS
-  if (SNS_TOPIC_ARN) {
-    try {
-      await sns.send(new PublishCommand({
-        TopicArn: SNS_TOPIC_ARN,
-        Message: JSON.stringify({
-          type: 'slap_delivered',
-          groupId,
-          debtId,
-          actorId: callerId,
-        }),
-      }));
-    } catch (snsErr) {
-      console.error('[grog-resolver] takeGrogShot: failed to send SNS notification:', snsErr);
-    }
-  }
+  // The whole group hears about a shot — that is most of the point of the grog.
+  // The drinker is excluded; they were there.
+  await publishNotification({
+    type: 'grog_shot_taken',
+    groupId,
+    audience: { kind: 'group', excludePlayerIds: [callerId] },
+    debtId,
+    actorId: callerId,
+  });
 
   return {
     groupId,

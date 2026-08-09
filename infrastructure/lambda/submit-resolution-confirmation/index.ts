@@ -7,6 +7,7 @@ import {
   AttributeValue,
 } from '@aws-sdk/client-dynamodb';
 import { randomUUID } from 'crypto';
+import { publishNotification } from '../shared/notifications';
 
 const dynamo = new DynamoDBClient({});
 const TABLE = process.env.TABLE_NAME!;
@@ -107,6 +108,22 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
 
     // Update both GSI4 status fields
     await updateGsi4Status(groupId, debtId, createdAt, challengerId!, statementMakerId!, 'pending_confirmation', null);
+
+    // A first confirmation writes no feed entry — one party answering is a
+    // state, not an event — so this push is the only thing that tells the other
+    // player it is their move. Without it a Manchester can sit for days purely
+    // because nobody happened to open the app.
+    await publishNotification({
+      type: 'confirmation_awaiting_you',
+      groupId,
+      audience: {
+        kind: 'players',
+        playerIds: [isChallenger ? statementMakerId! : challengerId!],
+      },
+      debtId,
+      actorId: callerId,
+      statement: debt.statement?.S,
+    });
 
     const updated = await dynamo.send(new GetItemCommand({
       TableName: TABLE,
@@ -210,6 +227,20 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
         },
       }],
     }));
+
+    // Only the debtor hears about this. The creditor is owed something, which
+    // is pleasant news that can wait for them to open the app; the debtor has
+    // an obligation and is the one who has to act on it.
+    await publishNotification({
+      type: 'manchester_resolved',
+      groupId,
+      audience: { kind: 'players', playerIds: [debtorId] },
+      debtId,
+      debtorId,
+      creditorId,
+      punishment: debtorPunishment,
+      statement: debt.statement?.S,
+    });
 
     const updated = await dynamo.send(new GetItemCommand({
       TableName: TABLE,

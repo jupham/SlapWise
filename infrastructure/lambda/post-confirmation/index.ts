@@ -24,8 +24,6 @@ export const handler: PostConfirmationTriggerHandler = async (event: PostConfirm
         username: { S: username },
         email: { S: email },
         createdAt: { S: createdAt },
-        pushEnabled: { BOOL: true },
-        pinpointEndpointId: { NULL: true },
         GSI1PK: { S: `PLAYER#${playerId}` },
         GSI1SK: { S: 'PROFILE' },
       },
