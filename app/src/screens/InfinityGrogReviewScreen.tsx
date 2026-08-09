@@ -14,7 +14,7 @@ import { GrogService } from '../services/GrogService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import type { Grog, GrogEntry, GrogHistoryEvent, LiquorCategory, Member, PendingAddBack } from '../types';
-import GrogSkull from './components/GrogSkull';
+import GrogSkull, { type GrogSkullRef } from './components/GrogSkull';
 import AddLiquorSheet from './components/AddLiquorSheet';
 import InitializeGrogSheet from './components/InitializeGrogSheet';
 import { CATEGORY_COLORS } from '../constants/grog';
@@ -128,6 +128,8 @@ export default function InfinityGrogReviewScreen() {
   // Only the first fetch blocks on the spinner; refocus refreshes in place.
   const hasLoadedRef = useRef(false);
 
+  const skullRef = useRef<GrogSkullRef>(null);
+
   const load = useCallback(async () => {
     if (!groupId) {
       setLoading(false);
@@ -184,6 +186,12 @@ export default function InfinityGrogReviewScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
+      // The skull's own slosh runs on mount, and this tab never unmounts — so
+      // without this it only ever happens once, on the first visit of the
+      // session. Kick it on every focus instead. On that first visit the
+      // spinner is still up and the ref is empty, which is the case the
+      // mount-time slosh covers.
+      skullRef.current?.slosh(1);
     }, [load]),
   );
 
@@ -433,6 +441,7 @@ export default function InfinityGrogReviewScreen() {
 
           <View style={styles.skullContainer}>
             <GrogSkull
+              ref={skullRef}
               entries={grog?.entries ?? []}
               bottleSize={grog?.bottleSize ?? 750}
               animate={false}
