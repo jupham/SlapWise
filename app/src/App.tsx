@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StatusBar, View } from 'react-native';
+import { StatusBar } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -27,6 +28,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Set once, outside the component: it configures a module-level singleton, and
 // re-running it on every render would be pointless work.
 configureNotificationHandler();
+
+// Keep the native splash up through font loading and bootstrap, rather than
+// letting it auto-hide on first render into a spinner on a blank screen.
+void SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
@@ -96,16 +101,13 @@ export default function App() {
     routeToNotification(payload, group.name);
   }, [lastResponse, initialRoute, groups, setActiveGroup]);
 
-  if (!initialRoute || !fontsLoaded) {
-    return (
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: color.bg }}>
-        <StatusBar barStyle="light-content" backgroundColor={color.bg} />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={color.accent} />
-        </View>
-      </GestureHandlerRootView>
-    );
-  }
+  const ready = initialRoute !== null && fontsLoaded;
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync();
+  }, [ready]);
+
+  // The native splash is still covering the screen until `ready`.
+  if (!ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: color.bg }}>
