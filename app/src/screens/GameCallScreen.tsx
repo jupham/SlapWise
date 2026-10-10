@@ -27,7 +27,7 @@ type Props = NativeStackScreenProps<GroupStackParamList, 'GameCall'>;
  * for themselves.
  */
 export default function GameCallScreen({ route, navigation }: Props) {
-  const { groupId, callId } = route.params;
+  const { groupId, groupName, callId } = route.params;
   const me = useStore((s) => s.player?.playerId ?? '');
 
   const [call, setCall] = useState<GameCall | null>(null);
@@ -201,6 +201,10 @@ export default function GameCallScreen({ route, navigation }: Props) {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
+      <TouchableOpacity onPress={() => navigation.navigate('GameRules', { groupId, groupName })}>
+        <Text style={styles.rulesLink}>Rules →</Text>
+      </TouchableOpacity>
+
       {myTurn ? (
         <View style={styles.actions}>
           <Text style={styles.prompt}>Were you covered?</Text>
@@ -261,6 +265,7 @@ const styles = StyleSheet.create({
 
   waiting: { fontSize: size.caption, color: color.textMuted, marginTop: space.lg },
   error: { color: color.dangerText, fontSize: size.caption, marginTop: space.lg },
+  rulesLink: { ...label, color: color.regalia, marginTop: space.xl },
 
   actions: { marginTop: space.xl, gap: space.md },
   prompt: { fontFamily: font.condensed, fontSize: size.heading, color: color.text },

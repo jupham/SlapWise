@@ -10,14 +10,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ReadInService } from '../services/ReadInService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+
 import { color, radius } from '../theme';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ReadIn'>;
 
 export default function ReadInScreen({ route, navigation }: Props) {
-  const { groupId } = route.params;
+  const { groupId, groupName } = route.params;
   const player = useStore((s) => s.player);
 
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,9 @@ export default function ReadInScreen({ route, navigation }: Props) {
     setSubmitting(true);
     try {
       await ReadInService.confirmReadIn(groupId);
-      navigation.goBack();
+      // Straight to the rules — they agreed without knowing them, and this is
+      // the reveal. Replace, so Back does not land on a spent agreement.
+      navigation.replace('GameRules', { groupId, groupName, justReadIn: true });
     } catch (e) {
       console.error('[ReadInScreen] confirmReadIn failed:', e);
       const msg = e instanceof Error ? e.message : String(e);
@@ -72,8 +75,11 @@ export default function ReadInScreen({ route, navigation }: Props) {
     return (
       <View style={styles.container}>
         <Text style={styles.alreadyText}>You are already read in.</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.replace('GameRules', { groupId, groupName })}
+        >
+          <Text style={styles.backBtnText}>Read the rules</Text>
         </TouchableOpacity>
       </View>
     );
@@ -106,7 +112,7 @@ export default function ReadInScreen({ route, navigation }: Props) {
         disabled={!checked || submitting}
       >
         {submitting
-          ? <ActivityIndicator color="#fff" />
+          ? <ActivityIndicator color={color.accentInk} />
           : <Text style={styles.confirmBtnText}>Confirm Read In</Text>
         }
       </TouchableOpacity>

@@ -363,6 +363,20 @@ $util.toJson($ctx.result)
       `),
     });
 
+    // getReadInRules / setReadInRules: Lambda (read-in only; set is admin-only too)
+    gameCallDs.createResolver('GetReadInRulesResolver', {
+      typeName: 'Query',
+      fieldName: 'getReadInRules',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+    gameCallDs.createResolver('SetReadInRulesResolver', {
+      typeName: 'Mutation',
+      fieldName: 'setReadInRules',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
     // callGame / respondToGameCall: Lambda (read-in only)
     gameCallDs.createResolver('CallGameResolver', {
       typeName: 'Mutation',

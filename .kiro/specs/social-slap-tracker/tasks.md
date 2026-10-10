@@ -99,7 +99,9 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
   - [x] 7.3 Build the call and call-detail screens, and the feed's Call Manchester / Call Game bar
     - _Requirements: 9.1–9.4, 9.9_
 
-  - [ ] 7.4 Show the game's rules on read-in and keep them accessible (9.10–9.12)
+  - [x] 7.4 Show the game's rules on read-in and keep them accessible
+    - Built-in mechanics in `app/src/copy/gameRules.ts`; admin-written house rules in a `READIN#RULES` item served by `getReadInRules` / `setReadInRules`, read-in only
+    - _Requirements: 9.10, 9.11, 9.12_
 
 - [ ] 8. Implement group feed
   - [ ] 8.1 Implement feed entry writes in existing Lambda resolvers

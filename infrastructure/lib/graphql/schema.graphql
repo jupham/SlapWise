@@ -85,6 +85,16 @@ type GameCall {
   settledAt: AWSDateTime
 }
 
+# The group's own rules for the read-in game, written by its admins. The app
+# ships the mechanics; this is the part only the group knows. Read-in only.
+type ReadInRules {
+  groupId: ID!
+  # Empty until an admin writes some.
+  text: String!
+  updatedBy: ID
+  updatedAt: AWSDateTime
+}
+
 type GameCallResponse {
   playerId: ID!
   answer: GameCallAnswer!
@@ -229,6 +239,7 @@ type Query {
   getMyDebts(groupId: ID!): [PlayerDebtIndex!]!
   getReadInPlayers(groupId: ID!): [Member!]!
   getGameCalls(groupId: ID!): [GameCall!]!
+  getReadInRules(groupId: ID!): ReadInRules!
   getFeed(groupId: ID!): [FeedEntry!]!
   getGrog(groupId: ID!): Grog
 }
@@ -244,6 +255,7 @@ type Mutation {
   confirmReadIn(groupId: ID!): Member!
   setReadInGameName(groupId: ID!, name: String!): Group!
   callGame(groupId: ID!, calledPlayerIds: [ID!]!): GameCall!
+  setReadInRules(groupId: ID!, text: String!): ReadInRules!
   # playerId: whose answer. Omit to answer for yourself; the caller may answer
   # for anyone they called.
   respondToGameCall(groupId: ID!, callId: ID!, covered: Boolean!, playerId: ID): GameCall!

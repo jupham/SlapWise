@@ -174,6 +174,15 @@ and the people involved get a push.
 Game pushes go only to the players involved and never name the game — a lock
 screen is read by whoever is holding the phone.
 
+**Rules come in two halves.** The mechanics ship in the app
+(`copy/gameRules.ts`) and must say what `game-call/logic.ts` does — change them
+together. The group's house rules (what counts as the mark) are written by
+read-in admins and live in their own `GROUP#<id>` / `READIN#RULES` item, served
+by `getReadInRules` to read-in players only. They are deliberately **not** an
+attribute on METADATA: `get-group` returns METADATA to every member, so one
+careless field there would publish the secret. Reading in lands on the rules
+screen.
+
 ### Who a punishment happens to
 
 `src/copy/punishment.ts` owns this phrasing, and it is the only place that

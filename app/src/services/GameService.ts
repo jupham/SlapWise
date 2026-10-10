@@ -1,5 +1,5 @@
 import { getClient } from './amplifyClient';
-import { GameCall } from '../types';
+import { GameCall, ReadInRules } from '../types';
 
 const GAME_CALL_FIELDS = `
   callId groupId callerId calledPlayerIds
@@ -27,11 +27,34 @@ const RESPOND_TO_GAME_CALL = /* GraphQL */ `
   }
 `;
 
+const GET_READ_IN_RULES = /* GraphQL */ `
+  query GetReadInRules($groupId: ID!) {
+    getReadInRules(groupId: $groupId) { groupId text updatedBy updatedAt }
+  }
+`;
+
+const SET_READ_IN_RULES = /* GraphQL */ `
+  mutation SetReadInRules($groupId: ID!, $text: String!) {
+    setReadInRules(groupId: $groupId, text: $text) { groupId text updatedBy updatedAt }
+  }
+`;
+
 /**
  * The read-in game. Every call here is refused server-side for a player who is
  * not read in, so only call these when the viewer is.
  */
 export const GameService = {
+  async getReadInRules(groupId: string): Promise<ReadInRules> {
+    const result = await getClient().graphql({ query: GET_READ_IN_RULES, variables: { groupId } });
+    return (result as { data: { getReadInRules: ReadInRules } }).data.getReadInRules;
+  },
+
+  /** Admins only, server-side. */
+  async setReadInRules(groupId: string, text: string): Promise<ReadInRules> {
+    const result = await getClient().graphql({ query: SET_READ_IN_RULES, variables: { groupId, text } });
+    return (result as { data: { setReadInRules: ReadInRules } }).data.setReadInRules;
+  },
+
   async getGameCalls(groupId: string): Promise<GameCall[]> {
     const result = await getClient().graphql({ query: GET_GAME_CALLS, variables: { groupId } });
     return (result as { data: { getGameCalls: GameCall[] } }).data.getGameCalls;

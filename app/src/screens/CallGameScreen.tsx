@@ -92,6 +92,9 @@ export default function CallGameScreen({ route, navigation }: Props) {
       <Text style={styles.hint}>
         Anyone you call who wasn't covered drinks. If anyone you call was covered, you drink too.
       </Text>
+      <TouchableOpacity onPress={() => navigation.navigate('GameRules', { groupId, groupName })}>
+        <Text style={styles.rulesLink}>Rules →</Text>
+      </TouchableOpacity>
 
       <FlatList
         data={candidates}
@@ -140,7 +143,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg, padding: space.lg },
   center: { flex: 1, backgroundColor: color.bg },
   label: { ...label, marginBottom: space.xs },
-  hint: { fontSize: size.caption, color: color.textMuted, marginBottom: space.lg, lineHeight: 18 },
+  hint: { fontSize: size.caption, color: color.textMuted, marginBottom: space.sm, lineHeight: 18 },
+  rulesLink: { ...label, color: color.regalia, marginBottom: space.lg },
   list: { flexGrow: 0, marginBottom: space.lg },
   row: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

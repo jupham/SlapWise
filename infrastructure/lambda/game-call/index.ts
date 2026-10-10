@@ -2,6 +2,7 @@ import { AppSyncResolverHandler } from 'aws-lambda';
 import {
   DynamoDBClient,
   GetItemCommand,
+  PutItemCommand,
   QueryCommand,
   TransactWriteItemsCommand,
   UpdateItemCommand,
@@ -318,6 +319,73 @@ async function getGameCalls(playerId: string, args: { groupId: string }): Promis
   return calls;
 }
 
+// ── House rules ───────────────────────────────────────────────────────────────
+
+/**
+ * The group's own rules for the game — what counts as the mark, when a call is
+ * fair — written by its admins. The app ships the mechanics itself; this is
+ * the part only the group knows, so it is served to read-in players only.
+ *
+ * It is its own item rather than an attribute on METADATA because get-group
+ * returns METADATA to every member: one careless field there and the secret is
+ * out.
+ */
+const RULES_SK = 'READIN#RULES';
+const MAX_RULES_LENGTH = 4000;
+
+interface HouseRules {
+  groupId: string;
+  text: string;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
+async function getReadInRules(playerId: string, args: { groupId: string }): Promise<HouseRules> {
+  const { groupId } = args;
+  await requireReadIn(groupId, playerId);
+  const result = await dynamo.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: RULES_SK } },
+  }));
+  return {
+    groupId,
+    text: result.Item?.text?.S ?? '',
+    updatedBy: result.Item?.updatedBy?.S ?? null,
+    updatedAt: result.Item?.updatedAt?.S ?? null,
+  };
+}
+
+/** Admins only, and read-in admins at that — you cannot edit what you may not read. */
+async function setReadInRules(playerId: string, args: { groupId: string; text: string }): Promise<HouseRules> {
+  const { groupId } = args;
+  await requireReadIn(groupId, playerId);
+
+  const meta = await dynamo.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: 'METADATA' } },
+  }));
+  if (!meta.Item) err('GROUP_NOT_FOUND');
+  const isAdmin = meta.Item.creatorId?.S === playerId || (meta.Item.adminIds?.SS ?? []).includes(playerId);
+  if (!isAdmin) err('UNAUTHORIZED');
+
+  const text = (args.text ?? '').trim();
+  if (text.length > MAX_RULES_LENGTH) err('RULES_TOO_LONG');
+
+  const now = new Date().toISOString();
+  await dynamo.send(new PutItemCommand({
+    TableName: TABLE,
+    Item: {
+      PK: { S: `GROUP#${groupId}` },
+      SK: { S: RULES_SK },
+      groupId: { S: groupId },
+      text: { S: text },
+      updatedBy: { S: playerId },
+      updatedAt: { S: now },
+    },
+  }));
+  return { groupId, text, updatedBy: playerId, updatedAt: now };
+}
+
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 
 /**
@@ -338,6 +406,10 @@ export const handler: AppSyncResolverHandler<Record<string, unknown>, unknown> =
       return respondToGameCall(playerId, args);
     case 'getGameCalls':
       return getGameCalls(playerId, args);
+    case 'getReadInRules':
+      return getReadInRules(playerId, args);
+    case 'setReadInRules':
+      return setReadInRules(playerId, args);
     default:
       err(`UNKNOWN_FIELD: ${event.info.fieldName}`);
   }

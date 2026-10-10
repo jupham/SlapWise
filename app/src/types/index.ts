@@ -72,6 +72,15 @@ export interface PlayerDebtIndex {
   createdAt: string;
 }
 
+/** The group's own rules for the read-in game, written by admins. Read-in only. */
+export interface ReadInRules {
+  groupId: string;
+  /** Empty until an admin writes some. */
+  text: string;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
 /** The read-in game. See infrastructure/lambda/game-call/logic.ts for the rules. */
 export type GameCallAnswer = 'covered' | 'not_covered';
 

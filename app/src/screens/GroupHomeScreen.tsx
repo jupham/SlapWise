@@ -222,6 +222,15 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
               {currentMember?.isReadIn ? 'Read In ✓' : 'Read In'}
             </Text>
           </TouchableOpacity>
+          {/* Rules are read-in only; the server would refuse anyone else anyway. */}
+          {currentMember?.isReadIn && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('GameRules', { groupId, groupName })}
+            >
+              <Text style={styles.actionBtnText}>Rules</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => navigation.navigate('ReadInPlayers', { groupId, groupName })}

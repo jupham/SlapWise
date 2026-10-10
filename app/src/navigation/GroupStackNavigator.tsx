@@ -10,6 +10,7 @@ import ResolutionConfirmationScreen from '../screens/ResolutionConfirmationScree
 import LedgerScreen from '../screens/LedgerScreen';
 import CallGameScreen from '../screens/CallGameScreen';
 import GameCallScreen from '../screens/GameCallScreen';
+import GameRulesScreen from '../screens/GameRulesScreen';
 import ReadInScreen from '../screens/ReadInScreen';
 import ReadInPlayersScreen from '../screens/ReadInPlayersScreen';
 import ReadInGameNameScreen from '../screens/ReadInGameNameScreen';
@@ -60,6 +61,11 @@ export default function GroupStackNavigator() {
         name="GameCall"
         component={GameCallScreen}
         options={{ title: 'Game call' }}
+      />
+      <Stack.Screen
+        name="GameRules"
+        component={GameRulesScreen}
+        options={{ title: 'Rules' }}
       />
       <Stack.Screen
         name="ReadIn"
