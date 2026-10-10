@@ -8,7 +8,8 @@ import CreateChallengeScreen from '../screens/CreateChallengeScreen';
 import PendingDebtsScreen from '../screens/PendingDebtsScreen';
 import ResolutionConfirmationScreen from '../screens/ResolutionConfirmationScreen';
 import LedgerScreen from '../screens/LedgerScreen';
-import RecordGameCallScreen from '../screens/RecordGameCallScreen';
+import CallGameScreen from '../screens/CallGameScreen';
+import GameCallScreen from '../screens/GameCallScreen';
 import ReadInScreen from '../screens/ReadInScreen';
 import ReadInPlayersScreen from '../screens/ReadInPlayersScreen';
 import ReadInGameNameScreen from '../screens/ReadInGameNameScreen';
@@ -50,9 +51,15 @@ export default function GroupStackNavigator() {
         options={({ route }) => ({ title: `Ledger — ${route.params.groupName}` })}
       />
       <Stack.Screen
-        name="RecordGameCall"
-        component={RecordGameCallScreen}
-        options={{ title: 'Record Game Call' }}
+        name="CallGame"
+        component={CallGameScreen}
+        // Both retitle themselves with the group's name for the game.
+        options={{ title: 'Call Game' }}
+      />
+      <Stack.Screen
+        name="GameCall"
+        component={GameCallScreen}
+        options={{ title: 'Game call' }}
       />
       <Stack.Screen
         name="ReadIn"

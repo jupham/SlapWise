@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -13,10 +13,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FeedService } from '../services/FeedService';
 import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
+import { GameService } from '../services/GameService';
 import { useStore } from '../store';
-import { FeedEntry, SlapDebt } from '../types';
+import { FeedEntry, GameCall, SlapDebt } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import { punishmentPhrase } from '../copy/punishment';
+import { chugLine, gameName, joinNames } from '../copy/game';
 import { color, displayName, font, label, radius, size, space, title } from '../theme';
 import { quitterName } from '../copy/quitter';
 
@@ -36,6 +38,7 @@ interface Thread {
 }
 
 const DETAIL_TYPES = new Set(['manchester_created', 'manchester_resolved', 'slap_delivered']);
+const GAME_TYPES = new Set(['game_called', 'game_settled']);
 
 /**
  * Groups entries by the debt they belong to, then orders steps oldest-first
@@ -97,9 +100,13 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   // Keyed by debtId, joined to threads on refId.
   const [debts, setDebts] = useState<Record<string, SlapDebt>>({});
+  // Keyed by callId, joined to game threads on refId. Only fetched for a
+  // read-in viewer — the server refuses anyone else.
+  const [calls, setCalls] = useState<Record<string, GameCall>>({});
+  const [readIn, setReadIn] = useState(false);
+  const [game, setGame] = useState('Game');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const subRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   // Only the first fetch blocks on the spinner; refocus refreshes in place.
   const hasLoadedRef = useRef(false);
@@ -108,16 +115,23 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
     if (!hasLoadedRef.current) setLoading(true);
     setError(null);
     try {
-      const [entries, members, allDebts] = await Promise.all([
+      const [entries, members, allDebts, group] = await Promise.all([
         FeedService.getFeed(groupId),
         GroupService.getGroupMembers(groupId),
         ManchesterService.getAllDebts(groupId),
+        GroupService.getGroup(groupId),
       ]);
       const nameMap: Record<string, string> = {};
       for (const m of members) nameMap[m.playerId] = m.username ?? m.playerId;
+      const amReadIn = members.some((m) => m.playerId === currentPlayerId && m.isReadIn);
+      const allCalls = amReadIn ? await GameService.getGameCalls(groupId) : [];
+
       setMemberNames(nameMap);
       setFeed(entries);
       setDebts(Object.fromEntries(allDebts.map((d) => [d.debtId, d])));
+      setReadIn(amReadIn);
+      setCalls(Object.fromEntries(allCalls.map((c) => [c.callId, c])));
+      setGame(gameName(group.readInGameName));
     } catch (e) {
       console.error('[GroupFeedScreen] load failed:', e);
       setError('Failed to load feed');
@@ -125,13 +139,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
       hasLoadedRef.current = true;
       setLoading(false);
     }
-  }, [groupId]);
-
-  // The subscription lives for the screen's lifetime; the refetch is on focus.
-  useEffect(() => {
-    subRef.current = FeedService.subscribeToChugEvents(groupId, () => void load());
-    return () => { subRef.current?.unsubscribe(); };
-  }, [load, groupId]);
+  }, [groupId, currentPlayerId]);
 
   // Tabs stay mounted, so a mount-only effect never sees anything that happened
   // while you were on another tab — a Manchester ruled elsewhere would not
@@ -170,6 +178,14 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
         })}`;
       }
 
+      case 'game_called':
+        if (!entry.calledPlayerIds) return entry.summary;
+        return `${subjectFor(entry.actorId)} called ${joinNames(entry.calledPlayerIds.map(objectFor))}`;
+
+      case 'game_settled':
+        if (!entry.chuggerIds) return entry.summary;
+        return chugLine(entry.chuggerIds.map((id) => ({ name: nameFor(id), isYou: isYou(id) })));
+
       case 'slap_delivered':
         if (!entry.debtorId || !entry.punishment) return entry.summary;
         return punishmentPhrase({
@@ -187,8 +203,11 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   };
 
   /** Whose face belongs against a step — the person it happened to, not always the caller. */
-  const faceFor = (entry: FeedEntry): string | null | undefined =>
-    entry.type === 'manchester_created' ? entry.challengerId ?? entry.actorId : entry.debtorId ?? entry.actorId;
+  const faceFor = (entry: FeedEntry): string | null | undefined => {
+    if (entry.type === 'manchester_created') return entry.challengerId ?? entry.actorId;
+    if (GAME_TYPES.has(entry.type)) return entry.actorId;
+    return entry.debtorId ?? entry.actorId;
+  };
 
   /**
    * A first confirmation writes no feed entry — only the second one does, since
@@ -201,6 +220,18 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
    */
   const threadStatus = (thread: Thread): { text: string; urgent: boolean } => {
     const last = thread.steps[thread.steps.length - 1];
+
+    if (GAME_TYPES.has(last.type)) {
+      if (last.type === 'game_settled') return { text: `${game} · settled`, urgent: false };
+      const call = calls[thread.refId];
+      if (!call) return { text: `${game} · called`, urgent: false };
+      const answered = new Set(call.answers.map((a) => a.playerId));
+      if (call.calledPlayerIds.includes(currentPlayerId) && !answered.has(currentPlayerId)) {
+        return { text: `${game} · were you covered?`, urgent: true };
+      }
+      const waiting = call.calledPlayerIds.filter((id) => !answered.has(id));
+      return { text: `${game} · waiting on ${joinNames(waiting.map(objectFor))}`, urgent: false };
+    }
 
     if (last.type === 'slap_delivered') {
       return {
@@ -253,11 +284,20 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   /** A thread involves you if you are named anywhere in it. */
   const threadIsMine = (thread: Thread) =>
     thread.steps.some((s) =>
-      [s.actorId, s.challengerId, s.statementMakerId, s.debtorId, s.creditorId].some(isYou)
+      [
+        s.actorId, s.challengerId, s.statementMakerId, s.debtorId, s.creditorId,
+        ...(s.calledPlayerIds ?? []), ...(s.chuggerIds ?? []),
+      ].some(isYou)
     );
 
   const openThread = (thread: Thread) => {
-    if (DETAIL_TYPES.has(thread.steps[0].type)) {
+    const first = thread.steps[0];
+    if (first.redacted) {
+      // The tease: the only way to find out what happened is to get read in.
+      navigation.navigate('ReadIn', { groupId, groupName });
+    } else if (GAME_TYPES.has(first.type)) {
+      navigation.navigate('GameCall', { groupId, groupName, callId: thread.refId });
+    } else if (DETAIL_TYPES.has(first.type)) {
       navigation.navigate('ResolutionConfirmation', { debtId: thread.refId, groupId, groupName });
     }
   };
@@ -274,7 +314,34 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
         ListHeaderComponent={<Text style={styles.screenTitle}>Feed</Text>}
         ListEmptyComponent={<Text style={styles.empty}>No activity yet</Text>}
         renderItem={({ item: thread }) => {
-          const settled = thread.steps[thread.steps.length - 1].type === 'slap_delivered';
+          if (thread.steps[0].redacted) {
+            // One card however many steps it had: an outsider learns that
+            // something happened and when, and nothing else.
+            return (
+              <TouchableOpacity
+                style={[styles.thread, styles.threadSecret]}
+                onPress={() => openThread(thread)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.threadHeader}>
+                  <Text style={[styles.threadStatus, styles.threadStatusSecret]}>Classified</Text>
+                  <Text style={styles.threadTime}>{shortTime(thread.latestAt)}</Text>
+                </View>
+                <View style={styles.step}>
+                  <View style={[styles.avatar, styles.avatarSecret]}>
+                    <Text style={styles.avatarText}>?</Text>
+                  </View>
+                  <View style={styles.stepBody}>
+                    <Text style={styles.stepLine}>Something went down. Only those read in know what.</Text>
+                    <Text style={styles.secretLink}>Get read in →</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
+          const lastType = thread.steps[thread.steps.length - 1].type;
+          const settled = lastType === 'slap_delivered' || lastType === 'game_settled';
           const mine = threadIsMine(thread);
           const statement = thread.steps.find((s) => s.statement)?.statement;
           const status = threadStatus(thread);
@@ -336,6 +403,26 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
           );
         }}
       />
+
+      {/* The two things you come to the feed to do. The game button only
+          exists for read-in players — outsiders get the Classified cards,
+          which lead to Read In instead. */}
+      <View style={styles.actionBar}>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.actionManchester]}
+          onPress={() => navigation.navigate('CreateChallenge', { groupId, groupName })}
+        >
+          <Text style={styles.actionManchesterText}>Call Manchester</Text>
+        </TouchableOpacity>
+        {readIn ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionGame]}
+            onPress={() => navigation.navigate('CallGame', { groupId, groupName })}
+          >
+            <Text style={styles.actionGameText} numberOfLines={1}>Call {game}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -343,7 +430,8 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
   center: { flex: 1, backgroundColor: color.bg },
-  list: { paddingHorizontal: space.lg, paddingBottom: 40 },
+  // Clears the action bar pinned beneath the list.
+  list: { paddingHorizontal: space.lg, paddingBottom: 96 },
   screenTitle: { ...title, marginTop: space.md, marginBottom: space.lg },
   error: { color: color.dangerText, marginBottom: space.md, fontSize: size.caption },
   empty: { fontSize: size.body, color: color.textDim, textAlign: 'center', marginTop: 40 },
@@ -356,6 +444,10 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   threadSettled: { borderLeftColor: color.regalia },
+  threadSecret: { borderLeftColor: color.borderStrong },
+  threadStatusSecret: { color: color.textMuted },
+  avatarSecret: { borderWidth: 1, borderColor: color.borderStrong, backgroundColor: color.bg },
+  secretLink: { ...label, color: color.regalia, marginTop: space.sm },
   // A thread you are named in is lifted rather than recoloured, so "involves
   // me" and "what stage is it at" stay independent signals.
   threadMine: { backgroundColor: color.surfaceRaised, borderLeftWidth: 4 },
@@ -392,4 +484,25 @@ const styles = StyleSheet.create({
     paddingLeft: space.sm, lineHeight: 18,
   },
   stepTime: { fontSize: size.label, color: color.textDim, marginTop: space.xs },
+
+  actionBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    flexDirection: 'row', gap: space.sm,
+    paddingHorizontal: space.lg, paddingVertical: space.md,
+    backgroundColor: color.bg, borderTopWidth: 1, borderTopColor: color.border,
+  },
+  actionBtn: {
+    flex: 1, paddingVertical: space.md, borderRadius: radius.sm, alignItems: 'center',
+  },
+  actionManchester: { backgroundColor: color.accent },
+  actionManchesterText: {
+    color: color.accentInk, fontWeight: '700', fontSize: size.caption,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  // Regalia for the game everywhere it appears, so orange stays Manchester's.
+  actionGame: { backgroundColor: color.regalia },
+  actionGameText: {
+    color: color.text, fontWeight: '700', fontSize: size.caption,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
 });

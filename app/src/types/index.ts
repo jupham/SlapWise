@@ -72,20 +72,32 @@ export interface PlayerDebtIndex {
   createdAt: string;
 }
 
-export interface ChugEvent {
-  eventId: string;
+/** The read-in game. See infrastructure/lambda/game-call/logic.ts for the rules. */
+export type GameCallAnswer = 'covered' | 'not_covered';
+
+export interface GameCall {
+  callId: string;
   groupId: string;
   callerId: string;
-  chuggedPlayerIds: string[];
+  calledPlayerIds: string[];
+  answers: { playerId: string; answer: GameCallAnswer }[];
+  status: 'open' | 'settled';
+  /** Set once settled. Caller first when the call backfired. */
+  chuggerIds: string[] | null;
+  backfired: boolean | null;
   createdAt: string;
+  settledAt: string | null;
 }
 
 export type FeedEntryType =
   | 'manchester_created'
   | 'manchester_resolved'
   | 'slap_delivered'
+  /** Written by the retired recordGameCall; old rows only. */
   | 'chug_event'
-  | 'member_joined';
+  | 'member_joined'
+  | 'game_called'
+  | 'game_settled';
 
 export interface FeedEntry {
   entryId: string;
@@ -112,6 +124,12 @@ export interface FeedEntry {
   outcome?: ResolutionOutcome | null;
   punishment?: PunishmentType | null;
   amountMl?: number | null;
+
+  // Read-in game entries. The server nulls these and sets `redacted` for
+  // anyone who is not read in, so a redacted row only says something happened.
+  calledPlayerIds?: string[] | null;
+  chuggerIds?: string[] | null;
+  redacted?: boolean | null;
 }
 
 

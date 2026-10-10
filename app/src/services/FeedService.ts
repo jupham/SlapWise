@@ -1,5 +1,5 @@
 import { getClient } from './amplifyClient';
-import { ChugEvent, FeedEntry } from '../types';
+import { FeedEntry } from '../types';
 
 const GET_FEED = /* GraphQL */ `
   query GetFeed($groupId: ID!) {
@@ -7,41 +7,24 @@ const GET_FEED = /* GraphQL */ `
       entryId groupId type readInOnly refId actorId summary createdAt
       statement challengerId statementMakerId debtorId creditorId
       outcome punishment amountMl
-    }
-  }
-`;
-
-const ON_CHUG_EVENT_CREATED = /* GraphQL */ `
-  subscription OnChugEventCreated($groupId: ID!) {
-    onChugEventCreated(groupId: $groupId) {
-      eventId groupId callerId chuggedPlayerIds createdAt
+      calledPlayerIds chuggerIds redacted
     }
   }
 `;
 
 export const FeedService = {
+  /**
+   * Read-in game entries come back redacted for players who are not read in —
+   * the server decides, not the app. There is deliberately no live
+   * subscription: a subscription payload goes to every subscriber unfiltered,
+   * which is how the old onChugEventCreated handed game details to everyone.
+   * The feed refetches on focus instead, and the people involved get a push.
+   */
   async getFeed(groupId: string): Promise<FeedEntry[]> {
     const result = await getClient().graphql({
       query: GET_FEED,
       variables: { groupId },
     });
     return (result as { data: { getFeed: FeedEntry[] } }).data.getFeed;
-  },
-
-  subscribeToChugEvents(
-    groupId: string,
-    onUpdate: (event: ChugEvent) => void
-  ): { unsubscribe: () => void } {
-    const sub = (
-      getClient().graphql({ query: ON_CHUG_EVENT_CREATED, variables: { groupId } }) as unknown as {
-        subscribe: (handlers: { next: (v: unknown) => void }) => { unsubscribe: () => void };
-      }
-    ).subscribe({
-      next: (event: unknown) => {
-        const chug = (event as { data: { onChugEventCreated: ChugEvent } }).data?.onChugEventCreated;
-        if (chug) onUpdate(chug);
-      },
-    });
-    return sub;
   },
 };

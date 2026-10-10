@@ -72,9 +72,14 @@ export class AppSyncStack extends cdk.Stack {
       lambdaStack.regenerateInviteCodeFn
     );
 
-    const recordGameCallDs = this.api.addLambdaDataSource(
-      'RecordGameCallDs',
-      lambdaStack.recordGameCallFn
+    const gameCallDs = this.api.addLambdaDataSource(
+      'GameCallDs',
+      lambdaStack.gameCallFn
+    );
+
+    const getFeedDs = this.api.addLambdaDataSource(
+      'GetFeedDs',
+      lambdaStack.getFeedFn
     );
 
     const confirmReadInDs = this.api.addLambdaDataSource(
@@ -216,46 +221,20 @@ export class AppSyncStack extends cdk.Stack {
       responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
     });
 
-    // getChugEvents: query GROUP#<groupId> / CHUG#*
-    ddbDataSource.createResolver('GetChugEventsResolver', {
-      typeName: 'Query',
-      fieldName: 'getChugEvents',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-{
-  "version": "2017-02-28",
-  "operation": "Query",
-  "query": {
-    "expression": "PK = :pk AND begins_with(SK, :sk)",
-    "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-      ":sk": $util.dynamodb.toDynamoDBJson("CHUG#")
-    }
-  },
-  "scanIndexForward": false
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
-    });
-
-    // getFeed: query GROUP#<groupId> / FEED#* — newest first
-    ddbDataSource.createResolver('GetFeedResolver', {
+    // getFeed: Lambda — newest first, read-in entries redacted for outsiders
+    getFeedDs.createResolver('GetFeedResolver', {
       typeName: 'Query',
       fieldName: 'getFeed',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
-{
-  "version": "2017-02-28",
-  "operation": "Query",
-  "query": {
-    "expression": "PK = :pk AND begins_with(SK, :sk)",
-    "expressionValues": {
-      ":pk": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
-      ":sk": $util.dynamodb.toDynamoDBJson("FEED#")
-    }
-  },
-  "scanIndexForward": false
-}
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // getGameCalls: Lambda (read-in only)
+    gameCallDs.createResolver('GetGameCallsResolver', {
+      typeName: 'Query',
+      fieldName: 'getGameCalls',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
     // ── Mutation Resolvers ────────────────────────────────────────────────────
@@ -384,10 +363,16 @@ $util.toJson($ctx.result)
       `),
     });
 
-    // recordGameCall: Lambda (writes CHUG item + FEED entry)
-    recordGameCallDs.createResolver('RecordGameCallResolver', {
+    // callGame / respondToGameCall: Lambda (read-in only)
+    gameCallDs.createResolver('CallGameResolver', {
       typeName: 'Mutation',
-      fieldName: 'recordGameCall',
+      fieldName: 'callGame',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+    gameCallDs.createResolver('RespondToGameCallResolver', {
+      typeName: 'Mutation',
+      fieldName: 'respondToGameCall',
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });

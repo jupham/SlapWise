@@ -28,7 +28,7 @@ From the repo root:
 
 ```bash
 npm run build      # CDK tsc + app typecheck
-npm run test:app   # vitest, 47 tests
+npm run test:app   # vitest, 55 tests
 npm run install:all
 ```
 
@@ -143,8 +143,33 @@ the row falls back to `summary`, which is all that entries written before this
 carry.
 
 `member_joined` is in the `FeedEntryType` enum but **nothing writes it**, and
-`chug_event` is deliberately unstyled for now — it is one caller and a list of
-chugged players, so it does not fit the two-party thread shape.
+`chug_event` rows were written by the retired `recordGameCall` — old data only.
+
+The feed's bottom bar is where calls start: Call Manchester for everyone, Call
+<game> for read-in players only.
+
+### The read-in game
+
+A read-in player calls out other read-in players; each answers covered or not;
+when the last answer lands the call settles. **Everyone not covered chugs, and
+if anyone called was covered the caller chugs too.** The rule lives in
+`infrastructure/lambda/game-call/logic.ts` and is tested from the app suite.
+The game is named by the group's admins (`readInGameName`); `copy/game.ts` falls
+back to "Game".
+
+**Secrecy is enforced on the server.** `getFeed` is a Lambda, not a DynamoDB
+resolver, because it has to redact `readInOnly` entries for anyone not read in:
+type, time and refId survive (so the row still threads and says *something*
+happened), everything naming who or what is nulled and `redacted` is set.
+`getGameCalls` refuses non-read-in callers outright. The old API —
+`recordGameCall`, `getChugEvents`, `onChugEventCreated` — handed game details to
+any signed-in user and was removed rather than patched. **Do not add a
+subscription for game calls**: a subscription payload goes to every subscriber
+unfiltered, which is exactly how the old one leaked. The feed refetches on focus
+and the people involved get a push.
+
+Game pushes go only to the players involved and never name the game — a lock
+screen is read by whoever is holding the phone.
 
 ### Who a punishment happens to
 
@@ -337,10 +362,11 @@ you what you just did is the fastest way to get notifications switched off.
 `publishNotification` swallows its own failures, so a notification can never
 fail the mutation that raised it.
 
-Six events push. Individually: `manchester_created`,
+Eight events push. Individually: `manchester_created`,
 `confirmation_awaiting_you`, `manchester_resolved` (debtor only — the creditor
-is owed something, which can wait). To the group: `manchester_settled`,
-`grog_shot_taken`, `member_joined`. `chug_event` and `player_read_in` still
+is owed something, which can wait), `game_called` (the players called) and
+`game_settled` (the caller and everyone called). To the group:
+`manchester_settled`, `grog_shot_taken`, `member_joined`. `chug_event` and `player_read_in` still
 *publish* and are deliberately dropped by the dispatcher, so reinstating them is
 a change at one end rather than two.
 
@@ -382,6 +408,9 @@ removes tokens with its own explicit query instead.
 - **No notification icon is configured.** `app.json` sets no `icon` at all, so
   Android falls back to the app icon and may render it as a white square in the
   status bar.
+- **A game call can stall.** It settles only when every player called has
+  answered, and nothing times it out. Someone who never answers — or leaves the
+  group mid-call — leaves it open for good.
 - `infrastructure/bin/app.ts` is CDK **source**, not a build output. Ignore rules
   for `bin/`/`obj/` must stay path-scoped or they will swallow it.
 - `README.md` is an empty stub (UTF-16, one heading).

@@ -67,12 +67,37 @@ type PlayerDebtIndex {
   createdAt: AWSDateTime!
 }
 
-type ChugEvent {
-  eventId: ID!
+# The read-in game. A read-in player calls out other read-in players; each one
+# answers covered or not. Once all have answered it settles: everyone not
+# covered chugs, and if anyone was covered the caller chugs too. Every field
+# that returns one is read-in only, enforced in the game-call Lambda.
+type GameCall {
+  callId: ID!
   groupId: ID!
   callerId: ID!
-  chuggedPlayerIds: [ID!]!
+  calledPlayerIds: [ID!]!
+  answers: [GameCallResponse!]!
+  status: GameCallStatus!
+  # Set once settled. Caller first when the call backfired.
+  chuggerIds: [ID!]
+  backfired: Boolean
   createdAt: AWSDateTime!
+  settledAt: AWSDateTime
+}
+
+type GameCallResponse {
+  playerId: ID!
+  answer: GameCallAnswer!
+}
+
+enum GameCallStatus {
+  open
+  settled
+}
+
+enum GameCallAnswer {
+  covered
+  not_covered
 }
 
 type FeedEntry {
@@ -100,6 +125,12 @@ type FeedEntry {
   outcome: ResolutionOutcome
   punishment: PunishmentType
   amountMl: Float
+
+  # Read-in game entries. getFeed nulls these, and sets redacted, for anyone
+  # who is not read in.
+  calledPlayerIds: [ID!]
+  chuggerIds: [ID!]
+  redacted: Boolean
 }
 
 enum GameType {
@@ -128,8 +159,11 @@ enum FeedEntryType {
   manchester_created
   manchester_resolved
   slap_delivered
+  # Written by the retired recordGameCall; old rows only.
   chug_event
   member_joined
+  game_called
+  game_settled
 }
 
 enum LiquorCategory {
@@ -191,7 +225,7 @@ type Query {
   getDebts(groupId: ID!, status: DebtStatus): [SlapDebt!]!
   getMyDebts(groupId: ID!): [PlayerDebtIndex!]!
   getReadInPlayers(groupId: ID!): [Member!]!
-  getChugEvents(groupId: ID!): [ChugEvent!]!
+  getGameCalls(groupId: ID!): [GameCall!]!
   getFeed(groupId: ID!): [FeedEntry!]!
   getGrog(groupId: ID!): Grog
 }
@@ -206,7 +240,8 @@ type Mutation {
   leaveGroup(groupId: ID!): Boolean!
   confirmReadIn(groupId: ID!): Member!
   setReadInGameName(groupId: ID!, name: String!): Group!
-  recordGameCall(groupId: ID!, callerId: ID!, chuggedPlayerIds: [ID!]!): ChugEvent!
+  callGame(groupId: ID!, calledPlayerIds: [ID!]!): GameCall!
+  respondToGameCall(groupId: ID!, callId: ID!, covered: Boolean!): GameCall!
   initializeGrog(groupId: ID!, bottleSize: Float!, seedEntries: [AddLiquorInput!]): Grog!
   addLiquorToGrog(groupId: ID!, category: LiquorCategory!, brand: String!): Grog!
   removeLiquorFromGrog(groupId: ID!, entryId: ID!): Grog!
@@ -224,7 +259,4 @@ type Subscription {
 
   onDebtUpdated(groupId: ID!): SlapDebt
     @aws_subscribe(mutations: ["createChallenge", "submitResolutionConfirmation", "confirmDelivery"])
-
-  onChugEventCreated(groupId: ID!): ChugEvent
-    @aws_subscribe(mutations: ["recordGameCall"])
 }

@@ -15,6 +15,7 @@ export interface PushPayload {
   type?: string;
   groupId?: string;
   debtId?: string;
+  callId?: string;
 }
 
 /**
@@ -29,6 +30,8 @@ const DEBT_SCREEN_TYPES = new Set([
   'manchester_resolved',
 ]);
 
+const GAME_SCREEN_TYPES = new Set(['game_called', 'game_settled']);
+
 /**
  * Navigates to whatever the notification was about.
  *
@@ -39,8 +42,12 @@ const DEBT_SCREEN_TYPES = new Set([
 export function routeToNotification(payload: PushPayload, groupName: string): void {
   if (!navigationRef.isReady() || !payload.groupId) return;
 
+  // Game pushes only ever go to people involved in the call, so the call
+  // screen — which is read-in only — is safe to open directly.
   const target: NavigatorScreenParams<GroupStackParamList> =
-    payload.debtId && DEBT_SCREEN_TYPES.has(payload.type ?? '')
+    payload.callId && GAME_SCREEN_TYPES.has(payload.type ?? '')
+      ? { screen: 'GameCall', params: { callId: payload.callId, groupId: payload.groupId, groupName } }
+      : payload.debtId && DEBT_SCREEN_TYPES.has(payload.type ?? '')
       ? {
           screen: 'ResolutionConfirmation',
           params: {
