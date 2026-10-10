@@ -262,7 +262,6 @@ type Mutation {
   initializeGrog(groupId: ID!, bottleSize: Float!, seedEntries: [AddLiquorInput!]): Grog!
   addLiquorToGrog(groupId: ID!, category: LiquorCategory!, brand: String!): Grog!
   removeLiquorFromGrog(groupId: ID!, entryId: ID!): Grog!
-  confirmGrogDelivery(groupId: ID!, debtId: ID!, addBack: AddLiquorInput): Grog!
   adjustGrogEntry(groupId: ID!, entryId: ID!, amountMl: Float!): Grog!
   takeGrogShot(groupId: ID!, debtId: ID!): Grog!
   redeemAddBack(groupId: ID!, debtId: ID!, category: LiquorCategory!, brand: String!): Grog!

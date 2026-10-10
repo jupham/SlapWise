@@ -335,6 +335,17 @@ showed, so a week-old group displayed a code `join-group` rejected as
 issued before the change still carry that TTL until regenerated once, which is
 why `join-group` still checks it.
 
+**Every group read must check membership.** Signing in proves who you are, not
+which groups you are in, and a group id is not a secret — anyone who has left
+still has it. Direct DynamoDB resolvers that take a `groupId` go through
+`memberGated(...)` in `appsync-stack.ts`, a pipeline whose first step
+(`requireMember`) looks up the caller's Member row and returns Unauthorized if
+there is none; group subscriptions run the same check at subscribe time.
+Lambdas check for themselves. Fields that read only the caller's own rows, keyed
+on `$ctx.identity.sub` (`getGroups`, `getMyDebts`), need no gate. A new
+resolver that skips this reopens the hole that `getGroupMembers`, `getDebts`,
+`getGrog`, `get-group` and `createChallenge` all had.
+
 **Removing a Lambda that AppSync uses takes two deploys.** AppSync imports each
 function's ARN as a cross-stack export, and CDK deploys `LambdaStack` before
 `AppSyncStack`. Delete the function in one go and `LambdaStack` tries to drop an

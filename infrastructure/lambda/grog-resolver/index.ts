@@ -14,7 +14,6 @@ import {
   applyAddLiquor,
   applyRemoveLiquor,
   applyProportionalRemoval,
-  applyConfirmDelivery,
   validateSeedEntries,
   buildInitialGrog,
   makeAdditionEvent,
@@ -347,31 +346,6 @@ async function adjustGrogEntry(callerId: string, args: Args): Promise<GrogItem> 
   return { groupId, bottleSize: grog.bottleSize, entries, history: grog.history, pendingAddBacks: grog.pendingAddBacks };
 }
 
-async function confirmGrogDelivery(callerId: string, args: Args): Promise<GrogItem> {
-  const { groupId, debtId, addBack } = args;
-  if (!groupId) err('MISSING_GROUP_ID');
-  if (!debtId) err('MISSING_DEBT_ID');
-
-  const grog = await fetchGrog(groupId);
-  if (!grog) err('GROG_NOT_FOUND');
-
-  const now = new Date().toISOString();
-  const [entries, history] = applyConfirmDelivery(
-    grog.entries,
-    grog.history,
-    callerId,
-    debtId,
-    now,
-    randomUUID(),
-    addBack,
-    addBack ? randomUUID() : undefined,
-    addBack ? randomUUID() : undefined,
-  );
-
-  await writeGrog(groupId, entries, history);
-  return { groupId, bottleSize: grog.bottleSize, entries, history, pendingAddBacks: grog.pendingAddBacks };
-}
-
 async function takeGrogShot(callerId: string, args: Args): Promise<GrogItem> {
   const { groupId, debtId } = args;
   if (!groupId) err('MISSING_GROUP_ID');
@@ -634,8 +608,6 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
         return await removeLiquorFromGrog(callerId, args);
       case 'adjustGrogEntry':
         return await adjustGrogEntry(callerId, args);
-      case 'confirmGrogDelivery':
-        return await confirmGrogDelivery(callerId, args);
       case 'takeGrogShot':
         return await takeGrogShot(callerId, args);
       case 'redeemAddBack':

@@ -92,6 +92,80 @@ export class AppSyncStack extends cdk.Stack {
       lambdaStack.grogResolverFn
     );
 
+    // ── Membership gate ───────────────────────────────────────────────────────
+    //
+    // Every read of a group's data must come from a member of that group. These
+    // resolvers used to query on the groupId argument alone, so any signed-in
+    // user holding a group's id — including someone who had left — could read
+    // its members, debts and grog. Each now runs as a pipeline whose first step
+    // looks up the caller's Member row and refuses with Unauthorized if there
+    // is none. Fields that read only the caller's own rows (getGroups,
+    // getMyDebts) key on $ctx.identity.sub and need no gate.
+    const requireMemberFn = new appsync.AppsyncFunction(this, 'RequireMemberFn', {
+      api: this.api,
+      dataSource: ddbDataSource,
+      name: 'requireMember',
+      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+{
+  "version": "2018-05-29",
+  "operation": "GetItem",
+  "key": {
+    "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
+    "SK": $util.dynamodb.toDynamoDBJson("MEMBER#$ctx.identity.sub")
+  }
+}
+      `),
+      responseMappingTemplate: appsync.MappingTemplate.fromString(`
+#if($ctx.error) $util.error($ctx.error.message, $ctx.error.type) #end
+#if($util.isNull($ctx.result)) $util.unauthorized() #end
+$util.toJson($ctx.result)
+      `),
+    });
+
+    /**
+     * A query that runs only after requireMember passes. `request` and
+     * `response` are the field's own templates; a 2018-05-29 function does not
+     * raise data-source errors by itself, so the response is guarded here.
+     */
+    const memberGated = (id: string, typeName: string, fieldName: string, request: string, response: string) => {
+      const queryFn = new appsync.AppsyncFunction(this, `${id}Fn`, {
+        api: this.api,
+        dataSource: ddbDataSource,
+        name: fieldName,
+        requestMappingTemplate: appsync.MappingTemplate.fromString(request),
+        responseMappingTemplate: appsync.MappingTemplate.fromString(
+          `#if($ctx.error) $util.error($ctx.error.message, $ctx.error.type) #end\n${response}`
+        ),
+      });
+      // Scoped to the API with the old id, so CloudFormation updates the
+      // existing resolver in place rather than creating a second one.
+      new appsync.Resolver(this.api, id, {
+        api: this.api,
+        typeName,
+        fieldName,
+        pipelineConfig: [requireMemberFn, queryFn],
+        requestMappingTemplate: appsync.MappingTemplate.fromString('{}'),
+        responseMappingTemplate: appsync.MappingTemplate.fromString('$util.toJson($ctx.prev.result)'),
+      });
+    };
+
+    // Subscriptions are checked once, at subscribe time. Without this anyone
+    // could listen on a group's id — onGroupUpdated even carries a freshly
+    // regenerated invite code.
+    for (const [id, fieldName] of [
+      ['OnDebtUpdatedResolver', 'onDebtUpdated'],
+      ['OnGroupUpdatedResolver', 'onGroupUpdated'],
+    ]) {
+      new appsync.Resolver(this.api, id, {
+        api: this.api,
+        typeName: 'Subscription',
+        fieldName,
+        pipelineConfig: [requireMemberFn],
+        requestMappingTemplate: appsync.MappingTemplate.fromString('{}'),
+        responseMappingTemplate: appsync.MappingTemplate.fromString('$util.toJson(null)'),
+      });
+    }
+
     // ── Query Resolvers ───────────────────────────────────────────────────────
 
     // getGroups: query GSI1 — all groups the calling player is a member of
@@ -116,12 +190,9 @@ export class AppSyncStack extends cdk.Stack {
     });
 
     // getGroupMembers: query GROUP#<groupId> / MEMBER#*
-    ddbDataSource.createResolver('GetGroupMembersResolver', {
-      typeName: 'Query',
-      fieldName: 'getGroupMembers',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+    memberGated('GetGroupMembersResolver', 'Query', 'getGroupMembers', `
 {
-  "version": "2017-02-28",
+  "version": "2018-05-29",
   "operation": "Query",
   "query": {
     "expression": "PK = :pk AND begins_with(SK, :sk)",
@@ -131,35 +202,25 @@ export class AppSyncStack extends cdk.Stack {
     }
   }
 }
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
-    });
+      `, `$util.toJson($ctx.result.items)`);
 
     // getDebt: GetItem by PK/SK
-    ddbDataSource.createResolver('GetDebtResolver', {
-      typeName: 'Query',
-      fieldName: 'getDebt',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+    memberGated('GetDebtResolver', 'Query', 'getDebt', `
 {
-  "version": "2017-02-28",
+  "version": "2018-05-29",
   "operation": "GetItem",
   "key": {
     "PK": $util.dynamodb.toDynamoDBJson("GROUP#$ctx.args.groupId"),
     "SK": $util.dynamodb.toDynamoDBJson("DEBT#$ctx.args.debtId")
   }
 }
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result)`),
-    });
+      `, `$util.toJson($ctx.result)`);
 
     // getDebts: query GSI2 with optional status filter (defaults to pending)
-    ddbDataSource.createResolver('GetDebtsResolver', {
-      typeName: 'Query',
-      fieldName: 'getDebts',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+    memberGated('GetDebtsResolver', 'Query', 'getDebts', `
 #set($status = $util.defaultIfNullOrBlank($ctx.args.status, "pending"))
 {
-  "version": "2017-02-28",
+  "version": "2018-05-29",
   "operation": "Query",
   "index": "GSI2",
   "query": {
@@ -170,9 +231,7 @@ export class AppSyncStack extends cdk.Stack {
   },
   "scanIndexForward": false
 }
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
-    });
+      `, `$util.toJson($ctx.result.items)`);
 
     // getMyDebts: query GSI4 — all debts for the calling player in a group (single query, full card data)
     ddbDataSource.createResolver('GetMyDebtsResolver', {
@@ -196,12 +255,9 @@ export class AppSyncStack extends cdk.Stack {
     });
 
     // getReadInPlayers: query MEMBER#* filtered by isReadIn = true
-    ddbDataSource.createResolver('GetReadInPlayersResolver', {
-      typeName: 'Query',
-      fieldName: 'getReadInPlayers',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+    memberGated('GetReadInPlayersResolver', 'Query', 'getReadInPlayers', `
 {
-  "version": "2017-02-28",
+  "version": "2018-05-29",
   "operation": "Query",
   "query": {
     "expression": "PK = :pk AND begins_with(SK, :sk)",
@@ -217,9 +273,7 @@ export class AppSyncStack extends cdk.Stack {
     }
   }
 }
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`$util.toJson($ctx.result.items)`),
-    });
+      `, `$util.toJson($ctx.result.items)`);
 
     // getFeed: Lambda — newest first, read-in entries redacted for outsiders
     getFeedDs.createResolver('GetFeedResolver', {
@@ -393,20 +447,16 @@ $util.toJson($ctx.result)
 
     // getGrog: direct DynamoDB GetItem by PK = GROG#<groupId>, SK = METADATA
     // Returns { entries: [], history: [] } when item not found
-    ddbDataSource.createResolver('GetGrogResolver', {
-      typeName: 'Query',
-      fieldName: 'getGrog',
-      requestMappingTemplate: appsync.MappingTemplate.fromString(`
+    memberGated('GetGrogResolver', 'Query', 'getGrog', `
 {
-  "version": "2017-02-28",
+  "version": "2018-05-29",
   "operation": "GetItem",
   "key": {
     "PK": $util.dynamodb.toDynamoDBJson("GROG#$ctx.args.groupId"),
     "SK": $util.dynamodb.toDynamoDBJson("METADATA")
   }
 }
-      `),
-      responseMappingTemplate: appsync.MappingTemplate.fromString(`
+      `, `
 #if($util.isNull($ctx.result))
   $util.toJson({ "groupId": "$ctx.args.groupId", "bottleSize": 0, "entries": [], "history": [], "pendingAddBacks": [] })
 #else
@@ -416,8 +466,7 @@ $util.toJson($ctx.result)
   #end
   $util.toJson($result)
 #end
-      `),
-    });
+      `);
 
     // initializeGrog: Lambda
     grogResolverDs.createResolver('InitializeGrogResolver', {
@@ -451,13 +500,6 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
-    // confirmGrogDelivery: Lambda (legacy — retained for backwards compatibility)
-    grogResolverDs.createResolver('ConfirmGrogDeliveryResolver', {
-      typeName: 'Mutation',
-      fieldName: 'confirmGrogDelivery',
-      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
-      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
-    });
 
     // takeGrogShot: Lambda
     grogResolverDs.createResolver('TakeGrogShotResolver', {
