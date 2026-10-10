@@ -69,8 +69,19 @@ if (!fs.existsSync(outputsPath)) {
   process.exit(1);
 }
 
+const outputs = JSON.parse(fs.readFileSync(outputsPath, 'utf8'));
+
+// cdk-outputs.json holds whichever stage was deployed last, and --wipe-only
+// deletes every Cognito user in that pool. Refuse anything but dev rather than
+// trust that the last deploy was the one you meant.
+const stages = [...new Set(Object.keys(outputs).map((name) => name.split('-SlapWise')[0]))];
+if (stages.length !== 1 || stages[0] !== 'dev') {
+  console.error(`cdk-outputs.json is for stage "${stages.join(', ')}". Seed and wipe only run against dev — redeploy dev first.`);
+  process.exit(1);
+}
+
 const flat = {};
-for (const stackOutputs of Object.values(JSON.parse(fs.readFileSync(outputsPath, 'utf8')))) {
+for (const stackOutputs of Object.values(outputs)) {
   Object.assign(flat, stackOutputs);
 }
 

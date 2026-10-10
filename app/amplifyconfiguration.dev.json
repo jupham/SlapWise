@@ -1,0 +1,26 @@
+{
+  "Auth": {
+    "Cognito": {
+      "userPoolId": "us-east-1_BoqtJbuur",
+      "userPoolClientId": "51ieem094aaf1lnqf12maj7jgk",
+      "identityPoolId": "us-east-1:c0c9bfbe-2dee-49be-81f5-9f26c30f6a02",
+      "region": "us-east-1",
+      "loginWith": {
+        "email": true
+      }
+    }
+  },
+  "API": {
+    "GraphQL": {
+      "endpoint": "https://bxsriogn2bhzfb6kjj2isrh6ca.appsync-api.us-east-1.amazonaws.com/graphql",
+      "region": "us-east-1",
+      "defaultAuthMode": "userPool"
+    },
+    "REST": {
+      "SlapWiseRest": {
+        "endpoint": "https://y5gx9kwava.execute-api.us-east-1.amazonaws.com/prod/",
+        "region": "us-east-1"
+      }
+    }
+  }
+}

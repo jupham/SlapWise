@@ -9,6 +9,7 @@
     "seed": "node scripts/seed-dev-data.js",
     "wipe": "node scripts/seed-dev-data.js --wipe-only",
     "deploy": "tsc && cdk deploy --all --profile slapwise --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
+    "deploy:prod": "tsc && cdk deploy --all -c stage=prod --profile slapwise --outputs-file cdk-outputs.json && node scripts/generate-amplify-config.js",
     "synth": "cdk synth --profile slapwise"
   },
   "devDependencies": {
