@@ -65,6 +65,25 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     lastKey = result.LastEvaluatedKey as Record<string, AttributeValue> | undefined;
   } while (lastKey);
 
+  // Invite lookups live in their own INVITE#<code> partition, outside the
+  // group's, and no longer expire — so they have to be deleted by name or a
+  // dead group's code would resolve forever. The INVITE# twins under the group
+  // name every code create and regenerate wrote; the METADATA code covers one
+  // regenerated before regenerate wrote twins. A Set, because BatchWriteItem
+  // rejects a batch holding the same key twice.
+  const codes = new Set<string>();
+  const currentCode = groupResult.Item.inviteCode?.S;
+  if (currentCode) codes.add(currentCode);
+  for (const req of deleteRequests) {
+    const sk = req.DeleteRequest.Key.SK.S;
+    if (sk.startsWith('INVITE#')) codes.add(sk.slice('INVITE#'.length));
+  }
+  for (const code of codes) {
+    deleteRequests.push({
+      DeleteRequest: { Key: { PK: { S: `INVITE#${code}` }, SK: { S: 'LOOKUP' } } },
+    });
+  }
+
   // BatchWriteItem supports max 25 items per call
   for (let i = 0; i < deleteRequests.length; i += 25) {
     const batch = deleteRequests.slice(i, i + 25);

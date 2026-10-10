@@ -14,6 +14,7 @@ import { useStore } from '../store';
 import { SlapDebt } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import { color, size, space } from '../theme';
+import { quitterName } from '../copy/quitter';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'PendingDebts'>;
@@ -93,7 +94,7 @@ export default function PendingDebtsScreen({ route, navigation }: Props) {
 
           const nameFor = (id: string | null | undefined) => {
             if (!id) return 'Unknown';
-            const name = memberNames[id] ?? id;
+            const name = memberNames[id] ?? quitterName(id);
             return id === currentPlayerId ? `${name} (you)` : name;
           };
 

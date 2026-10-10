@@ -28,7 +28,7 @@ From the repo root:
 
 ```bash
 npm run build      # CDK tsc + app typecheck
-npm run test:app   # vitest, 44 tests
+npm run test:app   # vitest, 47 tests
 npm run install:all
 ```
 
@@ -151,6 +151,21 @@ physically happens — "Marcus gets slapped by Jordan", "Kyle takes a shot from
 the grog". Slaps name both people; the grog is impersonal because the thread
 already shows who the dispute was with.
 
+### Players who leave
+
+Leaving is a **hard delete**: `leave-group` removes the Member row and every
+debt the leaver is party to that is not yet `delivered`. Delivered debts, feed
+entries and grog history keep their id, so the member list no longer has a name
+for it. Every screen's name lookup therefore falls back to
+`quitterName(id)` in `src/copy/quitter.ts` — a fixed pick, hashed from the id,
+from a short list of insults — rather than to the raw id. A new screen that
+resolves ids against the member list should do the same.
+
+The creator cannot leave: they are the one admin a group is guaranteed to have,
+and every grog mutation is admin-gated. They get Delete Group instead. A
+departing admin is removed from METADATA `adminIds` so rejoining does not hand
+the role back.
+
 ## Display names
 
 Players choose a display name at signup. It lives in the Cognito
@@ -266,6 +281,17 @@ skull.
 All four use `useFocusEffect`; a new tab screen needs it too, with a
 `hasLoadedRef` guard so the spinner only blocks the first load.
 
+**Invite codes do not expire; New Code is how you revoke one.** A code is two
+items: the `INVITE#<code>` / `LOOKUP` row `join-group` reads, and an
+`INVITE#<code>` twin under the group so `delete-group` can find it — the lookup
+sits outside the group's partition, so it has to be deleted by name.
+`regenerate-invite-code` deletes the old pair in the same transaction that
+writes the new one. Codes used to carry a 7-day TTL that Group home never
+showed, so a week-old group displayed a code `join-group` rejected as
+`INVALID_INVITE_CODE`, and regenerating left the old code live anyway. Codes
+issued before the change still carry that TTL until regenerated once, which is
+why `join-group` still checks it.
+
 **Every Lambda ships the whole `dist/lambda` tree, and the directory name is in
 the handler path.** There is no bundler in this pipeline — just `tsc` — so an
 import of `../shared/cors` is emitted verbatim as `require('../shared/cors')`.
@@ -342,7 +368,7 @@ removes tokens with its own explicit query instead.
   has very different insets, and the Grog screen's absolutely-positioned drawer
   tab is the kind of thing that lands wrong there.
 - **No test covers the display-name path, the seed script, or notifications.**
-  The 44 vitest tests predate all three and exercise domain logic only.
+  The vitest tests predate all three and exercise domain logic only.
 - **No push notification has been delivered to a real device yet.** The whole
   path typechecks and synthesizes, but `Device.isDevice` is false on a simulator
   and `getExpoPushTokenAsync` needs a development or EAS build — Expo Go will not

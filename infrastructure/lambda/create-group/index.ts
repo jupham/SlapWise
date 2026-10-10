@@ -35,7 +35,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   const inviteCode = generateInviteCode();
   const now = new Date().toISOString();
   // Invite codes expire in 7 days
-  const ttl = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
 
   const params: TransactWriteItemsCommandInput = {
     TransactItems: [
@@ -93,7 +92,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             groupId: { S: groupId },
             createdAt: { S: now },
             active: { BOOL: true },
-            TTL: { N: String(ttl) },
           },
         },
       },
@@ -108,7 +106,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             groupId: { S: groupId },
             createdAt: { S: now },
             active: { BOOL: true },
-            TTL: { N: String(ttl) },
           },
         },
       },

@@ -13,6 +13,7 @@ import { DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
+import { enterGroups } from '../navigation/enterGroups';
 import { useStore } from '../store';
 import { Group, Member } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
@@ -23,9 +24,6 @@ type Props = NativeStackScreenProps<GroupStackParamList, never>;
 export default function GroupHomeScreen({ navigation }: { navigation: Props['navigation'] }) {
   const activeGroup = useStore((s) => s.activeGroup);
   const player = useStore((s) => s.player);
-  const groups = useStore((s) => s.groups);
-  const setGroups = useStore((s) => s.setGroups);
-  const setActiveGroup = useStore((s) => s.setActiveGroup);
 
   const groupId = activeGroup?.groupId ?? '';
   const groupName = activeGroup?.groupName ?? '';
@@ -36,6 +34,7 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!groupId) return;
@@ -93,16 +92,41 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
             setDeleting(true);
             try {
               await GroupService.deleteGroup(groupId);
-              const updated = groups.filter((g) => g.groupId !== groupId);
-              setGroups(updated);
-              const next = updated[0] ?? null;
-              setActiveGroup(next ? { groupId: next.groupId, groupName: next.name } : null);
+              // Lands on the next group, or Welcome if that was the last one.
+              await enterGroups({ drop: groupId });
             } catch (err: unknown) {
               console.error('[GroupHomeScreen] delete:', err);
               const msg = err instanceof Error ? err.message : 'Failed to delete group';
               Alert.alert('Error', msg);
             } finally {
               setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLeave = () => {
+    Alert.alert(
+      'Leave Group',
+      `Leave "${groupName}"? Any Manchester you haven't settled is wiped, and the group will remember you as a quitter.`,
+      [
+        { text: 'Stay', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            setLeaving(true);
+            try {
+              await GroupService.leaveGroup(groupId);
+              // Lands on the next group, or Welcome if that was the last one.
+              await enterGroups({ drop: groupId });
+            } catch (err: unknown) {
+              console.error('[GroupHomeScreen] leave:', err);
+              Alert.alert('Error', 'Failed to leave group');
+            } finally {
+              setLeaving(false);
             }
           },
         },
@@ -231,7 +255,17 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
           >
             <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete Group'}</Text>
           </TouchableOpacity>
-        ) : null
+        ) : (
+          // The creator cannot leave — they are the one admin the grog is
+          // guaranteed to have — so they get Delete Group instead.
+          <TouchableOpacity
+            style={[styles.deleteBtn, leaving && styles.btnDisabled]}
+            onPress={handleLeave}
+            disabled={leaving}
+          >
+            <Text style={styles.deleteBtnText}>{leaving ? 'Leaving…' : 'Leave Group'}</Text>
+          </TouchableOpacity>
+        )
       }
       contentContainerStyle={styles.content}
     />

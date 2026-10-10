@@ -23,7 +23,6 @@ export const handler: AppSyncResolverHandler<RegenerateArgs, { groupId: string; 
 
   const { groupId } = event.arguments;
   const now = new Date().toISOString();
-  const ttl = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
 
   // Fetch current group to verify caller is creator/admin
   const groupResult = await dynamo.send(new GetItemCommand({
@@ -39,19 +38,35 @@ export const handler: AppSyncResolverHandler<RegenerateArgs, { groupId: string; 
   if (!isCreator && !isAdmin) throw new Error('PERMISSION_DENIED');
 
   const newCode = generateInviteCode();
+  const oldCode = g.inviteCode?.S;
 
+  // Codes do not expire, so regenerating is the only way to revoke one: the
+  // old code's lookup goes in the same transaction that publishes the new one.
+  // It used to stay live until a 7-day TTL ran out, so "New Code" revoked
+  // nothing. The condition on METADATA stops two concurrent regenerations from
+  // each deleting the other's old code and leaving two live ones.
   await dynamo.send(new TransactWriteItemsCommand({
     TransactItems: [
-      // Update group metadata with new invite code
       {
         Update: {
           TableName: TABLE,
           Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: 'METADATA' } },
           UpdateExpression: 'SET inviteCode = :code',
-          ExpressionAttributeValues: { ':code': { S: newCode } },
+          ConditionExpression: oldCode ? 'inviteCode = :old' : 'attribute_not_exists(inviteCode)',
+          ExpressionAttributeValues: {
+            ':code': { S: newCode },
+            ...(oldCode ? { ':old': { S: oldCode } } : {}),
+          },
         },
       },
-      // Write top-level lookup item for join-by-code
+      ...(oldCode
+        ? [
+            { Delete: { TableName: TABLE, Key: { PK: { S: `INVITE#${oldCode}` }, SK: { S: 'LOOKUP' } } } },
+            { Delete: { TableName: TABLE, Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: `INVITE#${oldCode}` } } } },
+          ]
+        : []),
+      // Top-level lookup for join-by-code, and its twin under the group, as
+      // create-group writes them. delete-group finds codes through the twins.
       {
         Put: {
           TableName: TABLE,
@@ -62,7 +77,19 @@ export const handler: AppSyncResolverHandler<RegenerateArgs, { groupId: string; 
             groupId: { S: groupId },
             createdAt: { S: now },
             active: { BOOL: true },
-            TTL: { N: String(ttl) },
+          },
+        },
+      },
+      {
+        Put: {
+          TableName: TABLE,
+          Item: {
+            PK: { S: `GROUP#${groupId}` },
+            SK: { S: `INVITE#${newCode}` },
+            code: { S: newCode },
+            groupId: { S: groupId },
+            createdAt: { S: now },
+            active: { BOOL: true },
           },
         },
       },

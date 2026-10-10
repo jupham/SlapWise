@@ -35,6 +35,12 @@ const REGENERATE_INVITE = /* GraphQL */ `
   }
 `;
 
+const LEAVE_GROUP = /* GraphQL */ `
+  mutation LeaveGroup($groupId: ID!) {
+    leaveGroup(groupId: $groupId)
+  }
+`;
+
 export interface CreateGroupResponse {
   groupId: string;
   name: string;
@@ -127,6 +133,15 @@ export const GroupService = {
       throw new Error(err.message ?? 'Failed to fetch group');
     }
     return res.json() as Promise<Group>;
+  },
+
+  /**
+   * Leaves a group. Server-side this deletes the Member row and every debt the
+   * player is party to that has not been delivered; the creator is refused
+   * with CREATOR_CANNOT_LEAVE.
+   */
+  async leaveGroup(groupId: string): Promise<void> {
+    await getClient().graphql({ query: LEAVE_GROUP, variables: { groupId } });
   },
 
   async deleteGroup(groupId: string): Promise<void> {

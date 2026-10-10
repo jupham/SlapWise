@@ -139,14 +139,14 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
     - Also dispatches read-in notifications to existing read-in players when a new player is read in (task 6.1)
     - _Requirements: 6.1, 6.2, 8.12_
 
-- [ ] 10. Implement leave group and debt voiding
-  - [ ] 10.1 Implement `leaveGroup` Lambda function
-    - Delete `MEMBER#<playerId>` item; query all debts for player in group (GSI4); for each debt with `status: "pending"` or `"resolved"` (not `"delivered"`), hard-delete the DEBT item and both PLAYERDEBT items via TransactWrite
-    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+- [x] 10. Implement leave group
+  - [x] 10.1 Implement `leaveGroup` Lambda function
+    - Refuse the creator; query the caller's `PLAYERDEBT#<playerId>#GROUP#<groupId>` partition; for each debt not `"delivered"`, hard-delete the DEBT item and both PLAYERDEBT items via TransactWrite; drop the caller from METADATA `adminIds`; delete `MEMBER#<playerId>` last
+    - _Requirements: 11.1, 11.2, 11.3, 11.5_
 
-  - [ ] 10.2 Build leave group UI
-    - Leave group button in group settings with confirmation dialog
-    - _Requirements: 11.1_
+  - [x] 10.2 Build leave group UI
+    - Leave Group outline button on Group home for non-creators, with confirmation dialog; ids missing from the member list render via `quitterName`
+    - _Requirements: 11.1, 11.4_
 
 - [ ] 11. Final checkpoint — ensure all tests pass, ask the user if questions arise.
 

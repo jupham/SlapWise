@@ -62,6 +62,11 @@ export class AppSyncStack extends cdk.Stack {
       lambdaStack.voidDebtFn
     );
 
+    const leaveGroupDs = this.api.addLambdaDataSource(
+      'LeaveGroupDs',
+      lambdaStack.leaveGroupFn
+    );
+
     const regenerateInviteCodeDs = this.api.addLambdaDataSource(
       'RegenerateInviteCodeDs',
       lambdaStack.regenerateInviteCodeFn
@@ -325,6 +330,14 @@ $util.toJson($ctx.result)
     voidDebtDs.createResolver('VoidDebtResolver', {
       typeName: 'Mutation',
       fieldName: 'voidDebt',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
+    // leaveGroup: Lambda (deletes the Member row and the leaver's undelivered debts)
+    leaveGroupDs.createResolver('LeaveGroupResolver', {
+      typeName: 'Mutation',
+      fieldName: 'leaveGroup',
       requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
