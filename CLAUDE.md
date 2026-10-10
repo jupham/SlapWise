@@ -75,6 +75,12 @@ Two things worth knowing before editing it. Resolution and delivery each need
 one side and everything sits in Needs Action. And every grog mutation is
 admin-gated, so liquor has to be added as the group creator.
 
+`npm --prefix infrastructure run wipe` empties the stack and seeds nothing, for
+walking through onboarding by hand. It deletes **every** Cognito user, not just
+the seed ones — emptying the table removes each player's PROFILE row, and
+post-confirmation only writes that at signup, so a surviving account would sign
+in as a player with no profile.
+
 After a wipe, run `adb shell pm clear com.slapwise`. JWTs are stateless, so
 deleting the Cognito user does not invalidate the token already on the device:
 the app bootstraps happily as a player who no longer exists, finds no groups,
