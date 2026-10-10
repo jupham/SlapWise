@@ -186,6 +186,24 @@ export class LambdaStack extends cdk.Stack {
     table.grantReadWriteData(this.gameCallFn);
     snsTopic.grantPublish(this.gameCallFn);
 
+    // TEMPORARY — remove after one successful deploy.
+    //
+    // The AppSync stack imports this function's ARN through a cross-stack
+    // export. CDK deploys this stack first, and CloudFormation refuses to
+    // delete an export another stack still uses, so removing the function and
+    // its export in one go fails. Keeping both alive for one deploy lets
+    // AppSync move to GameCallFn first; the next deploy can then drop them.
+    // exportValue pins the export, which CDK would otherwise drop as soon as
+    // nothing in this app references the function.
+    const retiredRecordGameCallFn = new lambda.Function(this, 'RecordGameCallFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slapwise-record-game-call`,
+      handler: 'record-game-call/index.handler',
+      code: lambdaCode,
+      environment: commonEnv,
+    });
+    this.exportValue(retiredRecordGameCallFn.functionArn);
+
     // getFeed Lambda (AppSync resolver) — redacts read-in entries for players
     // who are not read in, which a direct DynamoDB resolver could not do.
     this.getFeedFn = new lambda.Function(this, 'GetFeedFn', {
