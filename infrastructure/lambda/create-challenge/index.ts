@@ -1,6 +1,7 @@
 import { AppSyncResolverHandler } from 'aws-lambda';
 import {
   DynamoDBClient,
+  GetItemCommand,
   TransactWriteItemsCommand,
 } from '@aws-sdk/client-dynamodb';
 import { randomUUID } from 'crypto';
@@ -34,6 +35,19 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
 
   if (callerId === statementMakerId) err('SELF_CHALLENGE_ERROR');
   if (!statement || statement.trim() === '') err('VALIDATION_ERROR');
+
+  // Both people have to be in the group. Without this any signed-in user could
+  // open a Manchester in any group they knew the id of, against anyone at all.
+  const memberKey = (playerId: string) => ({
+    PK: { S: `GROUP#${groupId}` },
+    SK: { S: `MEMBER#${playerId}` },
+  });
+  const [caller, maker] = await Promise.all([
+    dynamo.send(new GetItemCommand({ TableName: TABLE, Key: memberKey(callerId!) })),
+    dynamo.send(new GetItemCommand({ TableName: TABLE, Key: memberKey(statementMakerId) })),
+  ]);
+  if (!caller.Item) err('UNAUTHORIZED');
+  if (!maker.Item) err('NOT_A_MEMBER');
 
   const debtId = randomUUID();
   const entryId = randomUUID();

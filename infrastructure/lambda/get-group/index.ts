@@ -16,6 +16,19 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     return { headers: CORS_HEADERS, statusCode: 400, body: JSON.stringify({ message: 'Missing groupId' }) };
   }
 
+  // Members only. This returns the invite code, so a non-member holding the
+  // group id — someone who left, say — could otherwise read it and walk back
+  // in. Consistent, because enterGroups calls this straight after a create or
+  // join, when the Member row has only just been written.
+  const member = await dynamo.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: { PK: { S: `GROUP#${groupId}` }, SK: { S: `MEMBER#${callerId}` } },
+    ConsistentRead: true,
+  }));
+  if (!member.Item) {
+    return { headers: CORS_HEADERS, statusCode: 403, body: JSON.stringify({ message: 'Not a member of this group' }) };
+  }
+
   const result = await dynamo.send(new GetItemCommand({
     TableName: TABLE,
     Key: {

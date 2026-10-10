@@ -51,14 +51,6 @@ const ADJUST_GROG_ENTRY = /* GraphQL */ `
   }
 `;
 
-const CONFIRM_GROG_DELIVERY = /* GraphQL */ `
-  mutation ConfirmGrogDelivery($groupId: ID!, $debtId: ID!, $addBack: AddLiquorInput) {
-    confirmGrogDelivery(groupId: $groupId, debtId: $debtId, addBack: $addBack) {
-      ${GROG_FIELDS}
-    }
-  }
-`;
-
 const TAKE_GROG_SHOT = /* GraphQL */ `
   mutation TakeGrogShot($groupId: ID!, $debtId: ID!) {
     takeGrogShot(groupId: $groupId, debtId: $debtId) {
@@ -134,18 +126,6 @@ export const GrogService = {
       variables: { groupId, entryId, amountMl },
     });
     return (result as { data: { adjustGrogEntry: Grog } }).data.adjustGrogEntry;
-  },
-
-  async confirmGrogDelivery(
-    groupId: string,
-    debtId: string,
-    addBack?: { category: LiquorCategory; brand: string }
-  ): Promise<Grog> {
-    const result = await getClient().graphql({
-      query: CONFIRM_GROG_DELIVERY,
-      variables: { groupId, debtId, addBack },
-    });
-    return (result as { data: { confirmGrogDelivery: Grog } }).data.confirmGrogDelivery;
   },
 
   async takeGrogShot(groupId: string, debtId: string): Promise<Grog> {
