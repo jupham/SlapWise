@@ -13,6 +13,7 @@ import { DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
+import { enterGroups } from '../navigation/enterGroups';
 import { useStore } from '../store';
 import { Group, Member } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
@@ -23,9 +24,6 @@ type Props = NativeStackScreenProps<GroupStackParamList, never>;
 export default function GroupHomeScreen({ navigation }: { navigation: Props['navigation'] }) {
   const activeGroup = useStore((s) => s.activeGroup);
   const player = useStore((s) => s.player);
-  const groups = useStore((s) => s.groups);
-  const setGroups = useStore((s) => s.setGroups);
-  const setActiveGroup = useStore((s) => s.setActiveGroup);
 
   const groupId = activeGroup?.groupId ?? '';
   const groupName = activeGroup?.groupName ?? '';
@@ -94,10 +92,8 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
             setDeleting(true);
             try {
               await GroupService.deleteGroup(groupId);
-              const updated = groups.filter((g) => g.groupId !== groupId);
-              setGroups(updated);
-              const next = updated[0] ?? null;
-              setActiveGroup(next ? { groupId: next.groupId, groupName: next.name } : null);
+              // Lands on the next group, or Welcome if that was the last one.
+              await enterGroups({ drop: groupId });
             } catch (err: unknown) {
               console.error('[GroupHomeScreen] delete:', err);
               const msg = err instanceof Error ? err.message : 'Failed to delete group';
@@ -124,10 +120,8 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
             setLeaving(true);
             try {
               await GroupService.leaveGroup(groupId);
-              const updated = groups.filter((g) => g.groupId !== groupId);
-              setGroups(updated);
-              const next = updated[0] ?? null;
-              setActiveGroup(next ? { groupId: next.groupId, groupName: next.name } : null);
+              // Lands on the next group, or Welcome if that was the last one.
+              await enterGroups({ drop: groupId });
             } catch (err: unknown) {
               console.error('[GroupHomeScreen] leave:', err);
               Alert.alert('Error', 'Failed to leave group');
