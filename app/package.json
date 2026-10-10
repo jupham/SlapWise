@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@react-native-community/cli": "latest",
-    "@react-native/metro-config": "^0.85.2",
+    "@react-native/metro-config": "^0.86.3",
     "@tsconfig/react-native": "^3.0.9",
     "@types/react": "^19.2.14",
     "@vitest/coverage-v8": "^4.1.0",

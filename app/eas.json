@@ -6,18 +6,31 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_STAGE": "dev"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_STAGE": "dev"
+      }
     },
     "simulator": {
+      "node": "24.14.0",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_STAGE": "dev"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_STAGE": "prod"
+      }
     }
   },
   "submit": {
