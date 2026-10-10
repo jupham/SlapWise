@@ -42,19 +42,28 @@ npm test
 npm run build:ios:preview  # EAS cloud build
 ```
 
-Deploys are `npm --prefix infrastructure run deploy`, which runs `cdk deploy`
-and then `scripts/generate-amplify-config.js` to write
-`app/amplifyconfiguration.json`. That file is **generated, not committed** —
-it's gitignored, so a fresh clone has to deploy (or obtain it) before the app
-can authenticate.
+Deploys are `npm --prefix infrastructure run deploy` (dev) or `deploy:prod`,
+which run `cdk deploy` and then `scripts/generate-amplify-config.js` to write
+`app/amplifyconfiguration.<stage>.json`. The stage is read from the stack names
+in `cdk-outputs.json`, so the file written always matches what was deployed.
+**These files are committed** — nothing in them is secret, since every value
+ships inside the binary — so commit the one a deploy rewrites.
 
-`app/.easignore` exists solely because of that. EAS Build uploads via git, so a
-gitignored config would be absent from the build — which compiles fine and then
-fails on device with no Amplify config. When `.easignore` is present EAS uses it
-*instead of* `.gitignore`, so it has to restate every other exclusion; if you add
-something to `.gitignore` that must not ship, add it there too.
+`src/config/amplify.ts` picks one by `EXPO_PUBLIC_STAGE`, which each EAS build
+profile sets in `eas.json` (`production` → `prod`, the rest → `dev`); local runs
+default to dev. It was a single gitignored `amplifyconfiguration.json` until
+there were two stacks: whichever deployed last silently won, and keeping it out
+of git needed an `.easignore` that turned out never to have worked (EAS reads
+`.easignore` only at the repo root, and it lived in `app/`). There is no
+`.easignore` now; EAS falls back to `.gitignore`.
 
-Node version is pinned in `.node-version` (24.14.0).
+`cdk-outputs.json` is still a single file holding whichever stage deployed last.
+The seed and wipe scripts read it and **refuse to run unless it is dev**, since
+`wipe` deletes every Cognito user in the pool.
+
+Node version is pinned in `.node-version` (24.14.0). EAS does not see that file
+— it builds from `app/` — so the `simulator` profile pins `node` itself; the
+other profiles still get EAS's default.
 
 ### Seeding dev data
 
@@ -421,15 +430,19 @@ removes tokens with its own explicit query instead.
 
 ## Known rough edges
 
-- **The EAS iOS build has never actually been run.** It is the one unproven part
-  of the Expo migration and the migration's whole purpose. `npm run build:ios:preview`.
-  It also needs a paid Apple Developer account: `eas.json`'s `preview` profile is
-  `distribution: "internal"`, and there is no way to get an ad-hoc iOS build onto
-  a device without one.
-- **The design has only ever run on an Android emulator.** The safe-area work is
+- **iOS has only run as an EAS simulator build, and only as far as Sign In.**
+  `npx eas-cli build --profile simulator --platform ios` builds on EAS and the
+  `.app` runs in the local iOS Simulator — it ships `x86_64` slices, so an Intel
+  Mac can run it. SDK 57 cannot be built locally on an Intel Mac at all:
+  `expo-modules-jsi` needs Xcode 27, which needs macOS 26.6 and Apple silicon.
+  The `simulator` profile is a release build with no dev client, so there is no
+  hot reload. A device build (`npm run build:ios:preview`) has never been run and
+  needs a paid Apple Developer account.
+- **No screen past Sign In has been seen on iOS.** The safe-area work is
   written correctly — the tab bar grows by `insets.bottom` — but a notched iPhone
   has very different insets, and the Grog screen's absolutely-positioned drawer
-  tab is the kind of thing that lands wrong there.
+  tab is the kind of thing that lands wrong there. Launch also flashes white for
+  about a second before Sign In: `app.json` sets no splash background.
 - **No test covers the display-name path, the seed script, or notifications.**
   The vitest tests predate all three and exercise domain logic only.
 - **No push notification has been delivered to a real device yet.** The whole

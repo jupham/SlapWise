@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
  * Reads cdk-outputs.json (produced by `cdk deploy --outputs-file cdk-outputs.json`)
- * and writes amplifyconfiguration.json to the app/ directory so the React Native
- * app can call Amplify.configure() with the deployed resource values.
+ * and writes app/amplifyconfiguration.<stage>.json so the React Native app can
+ * call Amplify.configure() with the deployed resource values.
+ *
+ * The stage comes from the stack names themselves (`<stage>-SlapWise*Stack`),
+ * not from an argument, so the file written always matches the stack that was
+ * just deployed. Commit the result: the app picks a stage per EAS profile.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const cdkOutputsPath = path.join(__dirname, '..', 'cdk-outputs.json');
-const amplifyConfigPath = path.join(__dirname, '..', '..', 'app', 'amplifyconfiguration.json'); // app/ is sibling of infrastructure/
 
 if (!fs.existsSync(cdkOutputsPath)) {
   console.error('cdk-outputs.json not found. Run `cdk deploy --outputs-file cdk-outputs.json` first.');
@@ -17,6 +20,14 @@ if (!fs.existsSync(cdkOutputsPath)) {
 }
 
 const outputs = JSON.parse(fs.readFileSync(cdkOutputsPath, 'utf8'));
+
+const stages = new Set(Object.keys(outputs).map((name) => name.split('-SlapWise')[0]));
+if (stages.size !== 1) {
+  console.error(`cdk-outputs.json should hold exactly one stage's stacks, found: ${[...stages].join(', ') || 'none'}`);
+  process.exit(1);
+}
+const [stage] = stages;
+const amplifyConfigPath = path.join(__dirname, '..', '..', 'app', `amplifyconfiguration.${stage}.json`); // app/ is sibling of infrastructure/
 
 // Flatten all stack outputs into a single map
 const flat = {};
@@ -54,5 +65,5 @@ const amplifyConfig = {
   // registers it with the REST API above.
 };
 
-fs.writeFileSync(amplifyConfigPath, JSON.stringify(amplifyConfig, null, 2));
-console.log(`amplifyconfiguration.json written to ${amplifyConfigPath}`);
+fs.writeFileSync(amplifyConfigPath, JSON.stringify(amplifyConfig, null, 2) + '\n');
+console.log(`${path.basename(amplifyConfigPath)} written to ${amplifyConfigPath} — commit it.`);

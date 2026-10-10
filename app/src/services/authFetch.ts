@@ -1,4 +1,5 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { amplifyConfig } from '../config/amplify';
 
 /**
  * Authenticated call against SlapWiseRest.
@@ -12,12 +13,7 @@ export async function authFetch(path: string, options: RequestInit): Promise<Res
   const token = tokens?.idToken?.toString();
   if (!token) throw new Error('Not authenticated');
 
-  // Import the REST endpoint from amplifyconfiguration at runtime
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const config = require('../../amplifyconfiguration.json') as {
-    API: { REST: { SlapWiseRest: { endpoint: string } } };
-  };
-  const base = config.API.REST.SlapWiseRest.endpoint.replace(/\/$/, '');
+  const base = amplifyConfig.API.REST.SlapWiseRest.endpoint.replace(/\/$/, '');
 
   return fetch(`${base}${path}`, {
     ...options,
