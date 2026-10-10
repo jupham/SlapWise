@@ -281,6 +281,17 @@ skull.
 All four use `useFocusEffect`; a new tab screen needs it too, with a
 `hasLoadedRef` guard so the spinner only blocks the first load.
 
+**Invite codes do not expire; New Code is how you revoke one.** A code is two
+items: the `INVITE#<code>` / `LOOKUP` row `join-group` reads, and an
+`INVITE#<code>` twin under the group so `delete-group` can find it — the lookup
+sits outside the group's partition, so it has to be deleted by name.
+`regenerate-invite-code` deletes the old pair in the same transaction that
+writes the new one. Codes used to carry a 7-day TTL that Group home never
+showed, so a week-old group displayed a code `join-group` rejected as
+`INVALID_INVITE_CODE`, and regenerating left the old code live anyway. Codes
+issued before the change still carry that TTL until regenerated once, which is
+why `join-group` still checks it.
+
 **Every Lambda ships the whole `dist/lambda` tree, and the directory name is in
 the handler path.** There is no bundler in this pipeline — just `tsc` — so an
 import of `../shared/cors` is emitted verbatim as `require('../shared/cors')`.
