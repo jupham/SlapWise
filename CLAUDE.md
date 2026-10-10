@@ -28,7 +28,7 @@ From the repo root:
 
 ```bash
 npm run build      # CDK tsc + app typecheck
-npm run test:app   # vitest, 55 tests
+npm run test:app   # vitest, 59 tests
 npm run install:all
 ```
 
@@ -334,6 +334,14 @@ showed, so a week-old group displayed a code `join-group` rejected as
 `INVALID_INVITE_CODE`, and regenerating left the old code live anyway. Codes
 issued before the change still carry that TTL until regenerated once, which is
 why `join-group` still checks it.
+
+**Removing a Lambda that AppSync uses takes two deploys.** AppSync imports each
+function's ARN as a cross-stack export, and CDK deploys `LambdaStack` before
+`AppSyncStack`. Delete the function in one go and `LambdaStack` tries to drop an
+export AppSync still imports; CloudFormation refuses ("Cannot delete export …
+as it is in use") and rolls back. Instead: keep the function for one deploy and
+pin its export with `this.exportValue(fn.functionArn)` while AppSync moves off
+it, then delete both in the next. Retiring `recordGameCall` hit exactly this.
 
 **Every Lambda ships the whole `dist/lambda` tree, and the directory name is in
 the handler path.** There is no bundler in this pipeline — just `tsc` — so an
