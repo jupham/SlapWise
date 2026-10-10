@@ -1,5 +1,5 @@
 import { getClient } from './amplifyClient';
-import { ChugEvent, SlapDebt, ResolutionOutcome, PunishmentType, PlayerDebtIndex } from '../types';
+import { SlapDebt, ResolutionOutcome, PunishmentType, PlayerDebtIndex } from '../types';
 
 const DEBT_FIELDS = /* GraphQL */ `
   debtId groupId gameType status
@@ -79,14 +79,6 @@ const CONFIRM_DELIVERY = /* GraphQL */ `
 const VOID_DEBT = /* GraphQL */ `
   mutation VoidDebt($debtId: String!, $groupId: ID!) {
     voidDebt(debtId: $debtId, groupId: $groupId)
-  }
-`;
-
-const RECORD_GAME_CALL = /* GraphQL */ `
-  mutation RecordGameCall($groupId: ID!, $callerId: ID!, $chuggedPlayerIds: [ID!]!) {
-    recordGameCall(groupId: $groupId, callerId: $callerId, chuggedPlayerIds: $chuggedPlayerIds) {
-      eventId groupId callerId chuggedPlayerIds createdAt
-    }
   }
 `;
 
@@ -170,18 +162,6 @@ export const ManchesterService = {
       query: VOID_DEBT,
       variables: { debtId, groupId },
     });
-  },
-
-  async recordGameCall(
-    groupId: string,
-    callerId: string,
-    chuggedPlayerIds: string[]
-  ): Promise<ChugEvent> {
-    const result = await getClient().graphql({
-      query: RECORD_GAME_CALL,
-      variables: { groupId, callerId, chuggedPlayerIds },
-    });
-    return (result as { data: { recordGameCall: ChugEvent } }).data.recordGameCall;
   },
 
   subscribeToDebtUpdates(

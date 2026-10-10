@@ -32,7 +32,9 @@ export type GroupStackParamList = {
   PendingDebts: { groupId: string; groupName: string };
   ResolutionConfirmation: { debtId: string; groupId: string; groupName: string };
   Ledger: { groupId: string; groupName: string };
-  RecordGameCall: { groupId: string; groupName: string };
+  CallGame: { groupId: string; groupName: string };
+  GameCall: { groupId: string; groupName: string; callId: string };
+  GameRules: { groupId: string; groupName: string; justReadIn?: boolean };
   ReadIn: { groupId: string; groupName: string };
   ReadInPlayers: { groupId: string; groupName: string };
   ReadInGameName: { groupId: string; groupName: string };

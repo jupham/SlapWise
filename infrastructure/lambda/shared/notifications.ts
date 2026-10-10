@@ -25,7 +25,14 @@ export type NotificationType =
   /** Someone drank from the Infinity Grog. */
   | 'grog_shot_taken'
   /** A new member joined via invite code. */
-  | 'member_joined';
+  | 'member_joined'
+  /** Someone called the read-in game on you. Goes to the players called. */
+  | 'game_called'
+  /**
+   * Everyone called has answered. Goes to the caller and the players called —
+   * never the group, since a group push would tell outsiders the game exists.
+   */
+  | 'game_settled';
 
 /**
  * Who hears about it, stated by the publisher rather than inferred by the
@@ -57,6 +64,8 @@ export interface NotificationEvent {
   debtorId?: string;
   creditorId?: string;
   joinedPlayerId?: string;
+  callId?: string;
+  chuggerIds?: string[];
 
   statement?: string;
   punishment?: 'slap' | 'infinity_grog';

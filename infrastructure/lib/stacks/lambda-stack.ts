@@ -23,7 +23,8 @@ export class LambdaStack extends cdk.Stack {
   public readonly createChallengeFn: lambda.Function;
   public readonly submitResolutionConfirmationFn: lambda.Function;
   public readonly confirmDeliveryFn: lambda.Function;
-  public readonly recordGameCallFn: lambda.Function;
+  public readonly gameCallFn: lambda.Function;
+  public readonly getFeedFn: lambda.Function;
   public readonly regenerateInviteCodeFn: lambda.Function;
   public readonly voidDebtFn: lambda.Function;
   public readonly leaveGroupFn: lambda.Function;
@@ -173,16 +174,28 @@ export class LambdaStack extends cdk.Stack {
     table.grantReadWriteData(this.confirmDeliveryFn);
     snsTopic.grantPublish(this.confirmDeliveryFn);
 
-    // recordGameCall Lambda (AppSync resolver)
-    this.recordGameCallFn = new lambda.Function(this, 'RecordGameCallFn', {
+    // gameCall Lambda (AppSync resolver) — callGame, respondToGameCall and
+    // getGameCalls, all read-in only.
+    this.gameCallFn = new lambda.Function(this, 'GameCallFn', {
       ...lambdaDefaults,
-      functionName: `${stage}-slapwise-record-game-call`,
-      handler: 'record-game-call/index.handler',
+      functionName: `${stage}-slapwise-game-call`,
+      handler: 'game-call/index.handler',
       code: lambdaCode,
       environment: commonEnv,
     });
-    table.grantReadWriteData(this.recordGameCallFn);
-    snsTopic.grantPublish(this.recordGameCallFn);
+    table.grantReadWriteData(this.gameCallFn);
+    snsTopic.grantPublish(this.gameCallFn);
+
+    // getFeed Lambda (AppSync resolver) — redacts read-in entries for players
+    // who are not read in, which a direct DynamoDB resolver could not do.
+    this.getFeedFn = new lambda.Function(this, 'GetFeedFn', {
+      ...lambdaDefaults,
+      functionName: `${stage}-slapwise-get-feed`,
+      handler: 'get-feed/index.handler',
+      code: lambdaCode,
+      environment: commonEnv,
+    });
+    table.grantReadData(this.getFeedFn);
 
     // regenerateInviteCode Lambda (AppSync resolver)
     this.regenerateInviteCodeFn = new lambda.Function(this, 'RegenerateInviteCodeFn', {

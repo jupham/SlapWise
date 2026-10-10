@@ -180,21 +180,22 @@ A mobile app for tracking silly social games among friends. The primary game is 
 
 ### Requirement 9: Read In Game Mechanics
 
-**User Story:** As a Read_In Player, I want to record Game_Calls and see their outcomes in the group feed, so that the Read In game is tracked in the moment without creating ongoing slap debts.
+**User Story:** As a Read_In Player, I want to call out other Read_In Players and have each of them answer whether they were covered, so that the Read In game is settled in the app and recorded in the group feed.
 
 #### Acceptance Criteria
 
-1. WHILE a Player's Read_In status is active for a Group, THE App SHALL allow that Player to record a Game_Call within that Group.
-2. WHEN a Game_Call is recorded, THE App SHALL prompt the caller to select which Read_In Players present did not have a Permanent_Mark on their drink and therefore received the chug punishment.
-3. WHEN a Game_Call is recorded and the singled-out Player does have a Permanent_Mark on their drink, THE App SHALL record the caller as the Player who received the chug punishment instead.
-4. WHEN a Game_Call is recorded, THE App SHALL create a Chug_Event capturing the caller, the Players who received the chug punishment, and the timestamp.
-5. THE App SHALL NOT create a Slap_Debt when a Chug_Event is recorded.
-6. WHEN a Chug_Event is created, THE App SHALL publish an entry to the Group_Feed.
-7. WHILE a Player's Read_In status is active for a Group, THE App SHALL display the full Chug_Event details in the Group_Feed for that Player, including the caller and all Players who received the chug punishment.
-8. IF a Player who is not Read_In views the Group_Feed, THEN THE App SHALL display only a non-specific indicator that a Game_Call was made, with no caller, no outcome, and no Player details.
-9. WHEN a Player confirms the Read_In_Prompt, THE App SHALL immediately display the rules of the Read_In_Game to that Player.
-10. WHILE a Player's Read_In status is active for a Group, THE App SHALL make the Read_In_Game rules accessible to that Player at any time within the Group.
-11. IF a Player who is not Read_In attempts to view the Read_In_Game rules, THEN THE App SHALL deny access and display no rule details.
+1. WHILE a Player's Read_In status is active for a Group, THE App SHALL allow that Player to make a Game_Call within that Group from the Group_Feed.
+2. WHEN making a Game_Call, THE App SHALL let the caller select one or more other Read_In Players to call out, and SHALL NOT allow the caller to call themselves or any Player who is not Read_In.
+3. WHEN a Game_Call is made, THE App SHALL publish an entry to the Group_Feed naming the caller and the Players called, and SHALL notify each Player called.
+4. WHEN a Player has been called in an open Game_Call, THE App SHALL let that Player — or the caller, on their behalf — answer whether they were covered (their drink carried the group's mark) or not. The first answer recorded for a Player stands, and THE App SHALL show when the caller gave it.
+5. WHEN every Player called has answered, THE App SHALL settle the Game_Call: every called Player who was not covered chugs, and IF any called Player was covered, THEN the caller also chugs.
+6. WHEN a Game_Call settles, THE App SHALL publish the outcome to the Group_Feed and notify the caller and every Player called.
+7. THE App SHALL NOT create a Slap_Debt for a Game_Call.
+8. WHILE a Player's Read_In status is active for a Group, THE App SHALL display full Game_Call details in the Group_Feed.
+9. IF a Player who is not Read_In views the Group_Feed, THEN THE App SHALL display only that something happened and when — no caller, no Players, no outcome — and SHALL offer a way to the Read_In flow. This SHALL be enforced by the server, not only by the App.
+10. WHEN a Player confirms the Read_In_Prompt, THE App SHALL immediately display the rules of the Read_In_Game to that Player.
+11. WHILE a Player's Read_In status is active for a Group, THE App SHALL make the Read_In_Game rules accessible to that Player at any time within the Group.
+12. IF a Player who is not Read_In attempts to view the Read_In_Game rules, THEN THE App SHALL deny access and display no rule details.
 
 ---
 

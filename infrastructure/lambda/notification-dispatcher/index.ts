@@ -86,7 +86,7 @@ async function dispatch(event: NotificationEvent): Promise<void> {
     // Matches the channel the app creates on launch. Without it Android files
     // the notification under a default channel with no heads-up display.
     channelId: 'default',
-    data: { type: event.type, groupId: event.groupId, debtId: event.debtId },
+    data: { type: event.type, groupId: event.groupId, debtId: event.debtId, callId: event.callId },
   }));
 
   await send(messages, tokens);
@@ -265,6 +265,25 @@ function render(
         title: 'New member',
         body: `${nameOf(event.joinedPlayerId)} joined the group.`,
       };
+
+    // Neither push names the game or says what was called: a lock screen is
+    // read by whoever is holding the phone, read in or not.
+    case 'game_called':
+      return {
+        title: 'You got called',
+        body: `${nameOf(event.actorId)} called you out. Were you covered?`,
+      };
+
+    case 'game_settled': {
+      const chuggers = event.chuggerIds ?? [];
+      return {
+        title: 'Call settled',
+        body:
+          chuggers.length === 0
+            ? 'Nobody drinks.'
+            : `${chuggers.map((id) => nameOf(id)).join(', ')} ${chuggers.length === 1 ? 'chugs' : 'chug'}.`,
+      };
+    }
 
     default:
       return null;

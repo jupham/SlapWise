@@ -14,8 +14,9 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { GroupService } from '../services/GroupService';
 import { ManchesterService } from '../services/ManchesterService';
 import { Member } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
-import { color } from '../theme';
+import type { GroupStackParamList } from '../navigation/types';
+
+import { color, label, radius, size, space, title } from '../theme';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'CreateChallenge'>;
@@ -76,7 +77,7 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
     }
   };
 
-  if (loading) return <ActivityIndicator style={styles.center} />;
+  if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
 
   return (
     <View style={styles.container}>
@@ -109,6 +110,7 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
       <TextInput
         style={[styles.input, errors.statement ? styles.inputError : null]}
         placeholder="What did they say?"
+        placeholderTextColor={color.textDim}
         value={statement}
         onChangeText={(t) => {
           setStatement(t);
@@ -131,23 +133,30 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: 16 },
-  center: { flex: 1 },
-  heading: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '600', color: color.text, marginBottom: 4 },
-  error: { color: color.dangerText, fontSize: 13, marginBottom: 4 },
-  memberList: { maxHeight: 200, borderWidth: 1, borderColor: color.border, borderRadius: 8, marginBottom: 16 },
-  memberRow: { padding: 12, borderBottomWidth: 1, borderColor: color.border },
+  container: { flex: 1, backgroundColor: color.bg, padding: space.lg },
+  center: { flex: 1, backgroundColor: color.bg },
+  heading: { ...title, fontSize: size.title, marginBottom: space.xl },
+  label: { ...label, marginBottom: space.xs },
+  error: { color: color.dangerText, fontSize: size.caption, marginBottom: space.xs },
+  memberList: {
+    maxHeight: 200, borderWidth: 1, borderColor: color.border,
+    borderRadius: radius.md, marginBottom: space.lg,
+  },
+  memberRow: { padding: space.md, borderBottomWidth: 1, borderColor: color.border },
   memberRowSelected: { backgroundColor: color.accent },
-  memberName: { fontSize: 15 },
+  memberName: { fontSize: size.body, color: color.text },
   memberNameSelected: { color: color.accentInk, fontWeight: '600' },
-  empty: { padding: 16, color: color.textDim, textAlign: 'center' },
+  empty: { padding: space.lg, color: color.textDim, textAlign: 'center' },
   input: {
-    borderWidth: 1, borderColor: color.border, borderRadius: 8,
-    padding: 12, fontSize: 15, marginBottom: 20, minHeight: 80,
+    borderWidth: 1, borderColor: color.borderStrong, borderRadius: radius.md,
+    backgroundColor: color.surface, color: color.text,
+    padding: space.md, fontSize: size.body, marginBottom: space.xl, minHeight: 80,
   },
   inputError: { borderColor: color.dangerText },
-  btn: { backgroundColor: color.accent, padding: 16, borderRadius: 8, alignItems: 'center' },
+  btn: { backgroundColor: color.accent, paddingVertical: space.md + 2, borderRadius: radius.sm, alignItems: 'center' },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: color.accentInk, fontWeight: '700', fontSize: 16 },
+  btnText: {
+    color: color.accentInk, fontWeight: '700', fontSize: size.caption,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
 });

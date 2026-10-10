@@ -16,6 +16,14 @@
  * Usage:
  *   node infrastructure/scripts/seed-dev-data.js
  *   node infrastructure/scripts/seed-dev-data.js --wipe-first
+ *   node infrastructure/scripts/seed-dev-data.js --wipe-only
+ *
+ * --wipe-first deletes the three seed users and empties the table, then seeds.
+ * --wipe-only deletes EVERY user in the pool and empties the table, then stops —
+ * a blank stack for walking through onboarding by hand. It has to take every
+ * user, not just the seed ones: emptying the table also deletes each player's
+ * PROFILE row, and post-confirmation only writes that once, at signup. A real
+ * account left in Cognito would still sign in, as a player with no profile.
  *
  * Requires: a completed deploy (reads cdk-outputs.json) and AWS credentials
  * with Cognito admin permissions — e.g. AWS_PROFILE=slapwise.
@@ -34,6 +42,7 @@ const {
   AdminConfirmSignUpCommand,
   AdminInitiateAuthCommand,
   AdminDeleteUserCommand,
+  ListUsersCommand,
 } = require('@aws-sdk/client-cognito-identity-provider');
 const {
   DynamoDBClient,
@@ -210,6 +219,23 @@ async function deleteUser(email) {
   }
 }
 
+/** Every user in the pool, seed or not. Only --wipe-only calls this. */
+async function deleteAllUsers() {
+  let deleted = 0;
+  let token;
+  do {
+    const page = await cognito.send(
+      new ListUsersCommand({ UserPoolId: USER_POOL_ID, PaginationToken: token })
+    );
+    for (const u of page.Users ?? []) {
+      await cognito.send(new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: u.Username }));
+      deleted++;
+    }
+    token = page.PaginationToken;
+  } while (token);
+  console.log(`  deleted ${deleted} users from ${USER_POOL_ID}`);
+}
+
 // ── GraphQL operations (mirrors of the app's own documents) ──────────────────
 
 const CREATE_CHALLENGE = `
@@ -297,6 +323,14 @@ async function manchester({ challenger, statementMaker, groupId, statement, stop
 
 async function main() {
   const wipeFirst = process.argv.includes('--wipe-first');
+
+  if (process.argv.includes('--wipe-only')) {
+    console.log('Wiping everything…');
+    await deleteAllUsers();
+    await wipeTable();
+    console.log('\nDone. Nothing seeded. Run `adb shell pm clear com.slapwise` before opening the app.');
+    return;
+  }
 
   if (wipeFirst) {
     console.log('Wiping…');

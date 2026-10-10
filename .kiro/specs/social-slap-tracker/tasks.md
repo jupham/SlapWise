@@ -86,29 +86,22 @@ Incremental implementation of the Social Slap Tracker React Native app. Infrastr
     - **Validates: Requirements 8.5, 8.6**
     - `// Feature: social-slap-tracker, Property 23: Non-admin attempt to set read-in game name must fail`
 
-- [ ] 7. Implement Read In game mechanics (chug events)
-  - [ ] 7.1 Implement `recordGameCall` Lambda function
-    - Validate caller is read-in; write `CHUG#<eventId>` item with `callerId`, `chuggedPlayerIds`, `createdAt`; write `FEED#<timestamp>#<entryId>` item with `type: "chug_event"`, `readInOnly: true`; dispatch push notification to group
-    - No `SlapDebt` item created
-    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
+- [x] 7. Implement Read In game mechanics (game calls)
+  - [x] 7.1 Implement the `game-call` Lambda: `callGame`, `respondToGameCall`, `getGameCalls`
+    - `GAMECALL#<callId>` item with `callerId`, `calledPlayerIds`, `answers`, `status`; `game_called` and `game_settled` feed entries with `readInOnly: true`; the last answer settles the call under a status condition so exactly one writer does
+    - Rules in `game-call/logic.ts`, tested from the app suite
+    - _Requirements: 9.1–9.7_
 
-  - [ ] 7.2 Implement `getChugEvents` AppSync query
-    - Query `GROUP#<groupId> / CHUG#*` items; resolver filters details based on caller's `isReadIn` status
-    - _Requirements: 9.7, 9.8_
+  - [x] 7.2 Move `getFeed` to a Lambda that redacts read-in entries for players who are not read in
+    - Retire `recordGameCall`, `getChugEvents` and `onChugEventCreated`, all of which returned game details to anyone
+    - _Requirements: 9.8, 9.9, 10.6_
 
-  - [ ] 7.3 Build game call screen
-    - Read-in player picker for chug recipients; permanent mark toggle; submit button
-    - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - [x] 7.3 Build the call and call-detail screens, and the feed's Call Manchester / Call Game bar
+    - _Requirements: 9.1–9.4, 9.9_
 
-  - [ ]* 7.4 Write property test for chug event correctness (Property 24)
-    - **Property 24: Chug event correctness**
-    - **Validates: Requirements 9.3, 9.4, 9.5**
-    - `// Feature: social-slap-tracker, Property 24: Permanent-mark caller in chuggedPlayerIds; no debt created`
-
-  - [ ]* 7.5 Write property test for chug event visibility gating (Property 25)
-    - **Property 25: Chug event visibility gating**
-    - **Validates: Requirements 9.6, 9.7, 9.8, 10.6**
-    - `// Feature: social-slap-tracker, Property 25: Read-in player sees full details; non-read-in sees only indicator`
+  - [x] 7.4 Show the game's rules on read-in and keep them accessible
+    - Built-in mechanics in `app/src/copy/gameRules.ts`; admin-written house rules in a `READIN#RULES` item served by `getReadInRules` / `setReadInRules`, read-in only
+    - _Requirements: 9.10, 9.11, 9.12_
 
 - [ ] 8. Implement group feed
   - [ ] 8.1 Implement feed entry writes in existing Lambda resolvers

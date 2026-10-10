@@ -28,7 +28,7 @@ From the repo root:
 
 ```bash
 npm run build      # CDK tsc + app typecheck
-npm run test:app   # vitest, 47 tests
+npm run test:app   # vitest, 59 tests
 npm run install:all
 ```
 
@@ -60,7 +60,7 @@ Node version is pinned in `.node-version` (24.14.0).
 
 `npm --prefix infrastructure run seed` repopulates a deployed stack with three
 users, a group, and Manchesters covering every state the UI renders. Add
-`-- --wipe-first` to clear the Cognito users *and* the DynamoDB table first;
+`-- --wipe-first` to delete the three seed users *and* empty the DynamoDB table first;
 without the wipe it is still safe to re-run, since it reuses a same-named group
 and tolerates repeat joins and read-ins.
 
@@ -74,6 +74,12 @@ Two things worth knowing before editing it. Resolution and delivery each need
 **two** confirmations, one per party, and only the second flips the debt — seed
 one side and everything sits in Needs Action. And every grog mutation is
 admin-gated, so liquor has to be added as the group creator.
+
+`npm --prefix infrastructure run wipe` empties the stack and seeds nothing, for
+walking through onboarding by hand. It deletes **every** Cognito user, not just
+the seed ones — emptying the table removes each player's PROFILE row, and
+post-confirmation only writes that at signup, so a surviving account would sign
+in as a player with no profile.
 
 After a wipe, run `adb shell pm clear com.slapwise`. JWTs are stateless, so
 deleting the Cognito user does not invalidate the token already on the device:
@@ -137,8 +143,45 @@ the row falls back to `summary`, which is all that entries written before this
 carry.
 
 `member_joined` is in the `FeedEntryType` enum but **nothing writes it**, and
-`chug_event` is deliberately unstyled for now — it is one caller and a list of
-chugged players, so it does not fit the two-party thread shape.
+`chug_event` rows were written by the retired `recordGameCall` — old data only.
+
+The feed's bottom bar is where calls start: Call Manchester for everyone, Call
+<game> for read-in players only.
+
+### The read-in game
+
+A read-in player calls out other read-in players; each answers covered or not —
+or the caller answers for them, since the game is ad hoc and the caller is
+usually looking at the cup. The first answer recorded for a player sticks,
+whoever gave it, and carries `answeredBy`. When the last answer lands the call
+settles. **Everyone not covered chugs, and
+if anyone called was covered the caller chugs too.** The rule lives in
+`infrastructure/lambda/game-call/logic.ts` and is tested from the app suite.
+The game is named by the group's admins (`readInGameName`); `copy/game.ts` falls
+back to "Game".
+
+**Secrecy is enforced on the server.** `getFeed` is a Lambda, not a DynamoDB
+resolver, because it has to redact `readInOnly` entries for anyone not read in:
+type, time and refId survive (so the row still threads and says *something*
+happened), everything naming who or what is nulled and `redacted` is set.
+`getGameCalls` refuses non-read-in callers outright. The old API —
+`recordGameCall`, `getChugEvents`, `onChugEventCreated` — handed game details to
+any signed-in user and was removed rather than patched. **Do not add a
+subscription for game calls**: a subscription payload goes to every subscriber
+unfiltered, which is exactly how the old one leaked. The feed refetches on focus
+and the people involved get a push.
+
+Game pushes go only to the players involved and never name the game — a lock
+screen is read by whoever is holding the phone.
+
+**Rules come in two halves.** The mechanics ship in the app
+(`copy/gameRules.ts`) and must say what `game-call/logic.ts` does — change them
+together. The group's house rules (what counts as the mark) are written by
+read-in admins and live in their own `GROUP#<id>` / `READIN#RULES` item, served
+by `getReadInRules` to read-in players only. They are deliberately **not** an
+attribute on METADATA: `get-group` returns METADATA to every member, so one
+careless field there would publish the secret. Reading in lands on the rules
+screen.
 
 ### Who a punishment happens to
 
@@ -292,6 +335,14 @@ showed, so a week-old group displayed a code `join-group` rejected as
 issued before the change still carry that TTL until regenerated once, which is
 why `join-group` still checks it.
 
+**Removing a Lambda that AppSync uses takes two deploys.** AppSync imports each
+function's ARN as a cross-stack export, and CDK deploys `LambdaStack` before
+`AppSyncStack`. Delete the function in one go and `LambdaStack` tries to drop an
+export AppSync still imports; CloudFormation refuses ("Cannot delete export …
+as it is in use") and rolls back. Instead: keep the function for one deploy and
+pin its export with `this.exportValue(fn.functionArn)` while AppSync moves off
+it, then delete both in the next. Retiring `recordGameCall` hit exactly this.
+
 **Every Lambda ships the whole `dist/lambda` tree, and the directory name is in
 the handler path.** There is no bundler in this pipeline — just `tsc` — so an
 import of `../shared/cors` is emitted verbatim as `require('../shared/cors')`.
@@ -331,10 +382,11 @@ you what you just did is the fastest way to get notifications switched off.
 `publishNotification` swallows its own failures, so a notification can never
 fail the mutation that raised it.
 
-Six events push. Individually: `manchester_created`,
+Eight events push. Individually: `manchester_created`,
 `confirmation_awaiting_you`, `manchester_resolved` (debtor only — the creditor
-is owed something, which can wait). To the group: `manchester_settled`,
-`grog_shot_taken`, `member_joined`. `chug_event` and `player_read_in` still
+is owed something, which can wait), `game_called` (the players called) and
+`game_settled` (the caller and everyone called). To the group:
+`manchester_settled`, `grog_shot_taken`, `member_joined`. `chug_event` and `player_read_in` still
 *publish* and are deliberately dropped by the dispatcher, so reinstating them is
 a change at one end rather than two.
 
@@ -376,6 +428,9 @@ removes tokens with its own explicit query instead.
 - **No notification icon is configured.** `app.json` sets no `icon` at all, so
   Android falls back to the app icon and may render it as a white square in the
   status bar.
+- **A game call can stall** if neither the players called nor the caller ever
+  answer. The caller can settle anyone's answer, so in practice it stalls only
+  if the caller leaves or forgets; nothing times it out.
 - `infrastructure/bin/app.ts` is CDK **source**, not a build output. Ignore rules
   for `bin/`/`obj/` must stay path-scoped or they will swallow it.
 - `README.md` is an empty stub (UTF-16, one heading).
