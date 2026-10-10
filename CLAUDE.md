@@ -256,6 +256,16 @@ remotely. That constraint is the entire reason the app was migrated to Expo.
 correct. It differs by one letter from the GitHub account (`jupham`) and looks
 like a typo. It is not. Do not "fix" it.
 
+**Icons.** iOS uses the Icon Composer bundle `assets/slapwise.icon` directly
+(`ios.icon`), so iOS 26 gets the Liquid Glass icon and Xcode derives the
+fallback for older releases. Android, the splash and the notification icon
+cannot read `.icon`, so they use PNGs in `assets/` rendered from its
+`slapwise-hand.svg` with the same purple-to-orange gradient. Change the art in
+the `.icon` and those PNGs go stale — re-render them from the new SVG.
+
+The splash is held by `SplashScreen.preventAutoHideAsync()` in `App.tsx` until
+fonts and bootstrap are done, so the app never paints a blank or spinner frame.
+
 ### `app/scripts/patch-native-modules.js` — do not delete
 
 React Native sets `ANDROID_STL=c++_shared`, so native modules link against
@@ -441,17 +451,13 @@ removes tokens with its own explicit query instead.
 - **No screen past Sign In has been seen on iOS.** The safe-area work is
   written correctly — the tab bar grows by `insets.bottom` — but a notched iPhone
   has very different insets, and the Grog screen's absolutely-positioned drawer
-  tab is the kind of thing that lands wrong there. Launch also flashes white for
-  about a second before Sign In: `app.json` sets no splash background.
+  tab is the kind of thing that lands wrong there.
 - **No test covers the display-name path, the seed script, or notifications.**
   The vitest tests predate all three and exercise domain logic only.
 - **No push notification has been delivered to a real device yet.** The whole
   path typechecks and synthesizes, but `Device.isDevice` is false on a simulator
   and `getExpoPushTokenAsync` needs a development or EAS build — Expo Go will not
   do. So this needs `npm run android` on a physical phone to prove out.
-- **No notification icon is configured.** `app.json` sets no `icon` at all, so
-  Android falls back to the app icon and may render it as a white square in the
-  status bar.
 - **A game call can stall** if neither the players called nor the caller ever
   answer. The caller can settle anyone's answer, so in practice it stalls only
   if the caller leaves or forgets; nothing times it out.
