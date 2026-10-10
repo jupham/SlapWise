@@ -151,7 +151,7 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
 
   return (
     <FlatList
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={styles.container}
       data={members}
       keyExtractor={(m) => m.playerId}
       ListHeaderComponent={
@@ -276,7 +276,11 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
           </TouchableOpacity>
         )
       }
-      contentContainerStyle={styles.content}
+      // The inset goes on the content, not the list. Padding on a scroll view's
+      // own style shifts its content down without making it any taller, so
+      // the bottom of the list — Delete Group — could never scroll clear of
+      // the tab bar.
+      contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
     />
   );
 }
