@@ -186,8 +186,10 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
         )}
 
         {/* Slide-in drawer */}
-        <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
-          <ScrollView contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + 16 }]} showsVerticalScrollIndicator={false}>
+        {/* Inset on the drawer, not its scroll content, so a long list clips
+            below the status bar rather than scrolling under the clock. */}
+        <Animated.View style={[styles.drawer, { paddingTop: insets.top, transform: [{ translateX: drawerAnim }] }]}>
+          <ScrollView contentContainerStyle={[styles.drawerContent, { paddingTop: 16 }]} showsVerticalScrollIndicator={false}>
             <Text style={styles.drawerTitle}>Contents</Text>
             {entries.map((entry) => {
               const color = CATEGORY_COLORS[entry.category];

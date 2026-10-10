@@ -149,139 +149,143 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
 
   if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
 
+  // The top inset goes on a wrapper, not the list content, so the list starts
+  // below the status bar and rows clip there instead of scrolling under it.
   return (
-    <FlatList
-      style={styles.container}
-      data={members}
-      keyExtractor={(m) => m.playerId}
-      ListHeaderComponent={
-        <View>
-          <View style={styles.headingRow}>
-            <Text style={styles.heading}>{groupName}</Text>
-            {/* The only way into the drawer. It has no header and nothing else
-                calls openDrawer, so the edge-swipe gesture was the sole entry —
-                and the tab navigator's own horizontal swipe wins over it, which
-                left Logout, the name editor and Delete Account unreachable. */}
-            <TouchableOpacity
-              style={styles.accountBtn}
-              // Dispatched rather than called on a getParent() chain: the action
-              // bubbles up until a navigator handles it, so this does not care
-              // how many navigators sit between this screen and the drawer.
-              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-              accessibilityRole="button"
-              accessibilityLabel="Account"
-            >
-              <Text style={styles.accountBtnText}>Account</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Invite card */}
-          {inviteCode && (
-            <View style={styles.inviteBox}>
-              <Text style={styles.inviteLabel}>Invite Code</Text>
-              <Text style={styles.inviteCode}>{inviteCode}</Text>
-              <View style={styles.inviteActions}>
-                <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-                  <Text style={styles.shareBtnText}>Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.regenBtn} onPress={handleRegenerate} disabled={regenerating}>
-                  <Text style={styles.regenBtnText}>{regenerating ? 'Regenerating…' : 'New Code'}</Text>
-                </TouchableOpacity>
-              </View>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <FlatList
+        style={styles.container}
+        data={members}
+        keyExtractor={(m) => m.playerId}
+        ListHeaderComponent={
+          <View>
+            <View style={styles.headingRow}>
+              <Text style={styles.heading}>{groupName}</Text>
+              {/* The only way into the drawer. It has no header and nothing else
+                  calls openDrawer, so the edge-swipe gesture was the sole entry —
+                  and the tab navigator's own horizontal swipe wins over it, which
+                  left Logout, the name editor and Delete Account unreachable. */}
+              <TouchableOpacity
+                style={styles.accountBtn}
+                // Dispatched rather than called on a getParent() chain: the action
+                // bubbles up until a navigator handles it, so this does not care
+                // how many navigators sit between this screen and the drawer.
+                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                accessibilityRole="button"
+                accessibilityLabel="Account"
+              >
+                <Text style={styles.accountBtnText}>Account</Text>
+              </TouchableOpacity>
             </View>
-          )}
 
-          {/* Quick actions */}
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('CreateChallenge', { groupId, groupName })}
-          >
-            <Text style={styles.actionBtnText}>Call Manchester</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('PendingDebts', { groupId, groupName })}
-          >
-            <Text style={styles.actionBtnText}>Pending Challenges</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('Ledger', { groupId, groupName })}
-          >
-            <Text style={styles.actionBtnText}>Ledger</Text>
-          </TouchableOpacity>
+            {/* Invite card */}
+            {inviteCode && (
+              <View style={styles.inviteBox}>
+                <Text style={styles.inviteLabel}>Invite Code</Text>
+                <Text style={styles.inviteCode}>{inviteCode}</Text>
+                <View style={styles.inviteActions}>
+                  <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+                    <Text style={styles.shareBtnText}>Share</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.regenBtn} onPress={handleRegenerate} disabled={regenerating}>
+                    <Text style={styles.regenBtnText}>{regenerating ? 'Regenerating…' : 'New Code'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
-          {/* Read In */}
-          <Text style={styles.sectionTitle}>Read In</Text>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('ReadIn', { groupId, groupName })}
-          >
-            <Text style={[styles.actionBtnText, currentMember?.isReadIn && styles.readInDone]}>
-              {currentMember?.isReadIn ? 'Read In ✓' : 'Read In'}
-            </Text>
-          </TouchableOpacity>
-          {/* Rules are read-in only; the server would refuse anyone else anyway. */}
-          {currentMember?.isReadIn && (
+            {/* Quick actions */}
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => navigation.navigate('GameRules', { groupId, groupName })}
+              onPress={() => navigation.navigate('CreateChallenge', { groupId, groupName })}
             >
-              <Text style={styles.actionBtnText}>Rules</Text>
+              <Text style={styles.actionBtnText}>Call Manchester</Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('ReadInPlayers', { groupId, groupName })}
-          >
-            <Text style={styles.actionBtnText}>Read In Players</Text>
-          </TouchableOpacity>
-          {isAdmin && (
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => navigation.navigate('ReadInGameName', { groupId, groupName })}
+              onPress={() => navigation.navigate('PendingDebts', { groupId, groupName })}
             >
-              <Text style={styles.actionBtnText}>Set Game Name</Text>
+              <Text style={styles.actionBtnText}>Pending Challenges</Text>
             </TouchableOpacity>
-          )}
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('Ledger', { groupId, groupName })}
+            >
+              <Text style={styles.actionBtnText}>Ledger</Text>
+            </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Members ({members.length})</Text>
-        </View>
-      }
-      renderItem={({ item }) => (
-        <View style={styles.memberRow}>
-          <Text style={styles.memberName}>{displayName(item.username ?? item.playerId)}</Text>
-          {item.isReadIn && <Text style={styles.badge}>Read In</Text>}
-        </View>
-      )}
-      ListFooterComponent={
-        isCreator ? (
-          <TouchableOpacity
-            style={[styles.deleteBtn, deleting && styles.btnDisabled]}
-            onPress={handleDelete}
-            disabled={deleting}
-          >
-            <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete Group'}</Text>
-          </TouchableOpacity>
-        ) : (
-          // The creator cannot leave — they are the one admin the grog is
-          // guaranteed to have — so they get Delete Group instead.
-          <TouchableOpacity
-            style={[styles.deleteBtn, leaving && styles.btnDisabled]}
-            onPress={handleLeave}
-            disabled={leaving}
-          >
-            <Text style={styles.deleteBtnText}>{leaving ? 'Leaving…' : 'Leave Group'}</Text>
-          </TouchableOpacity>
-        )
-      }
-      // The inset goes on the content, not the list. Padding on a scroll view's
-      // own style shifts its content down without making it any taller, so
-      // the bottom of the list — Delete Group — could never scroll clear of
-      // the tab bar.
-      contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
-    />
+            {/* Read In */}
+            <Text style={styles.sectionTitle}>Read In</Text>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('ReadIn', { groupId, groupName })}
+            >
+              <Text style={[styles.actionBtnText, currentMember?.isReadIn && styles.readInDone]}>
+                {currentMember?.isReadIn ? 'Read In ✓' : 'Read In'}
+              </Text>
+            </TouchableOpacity>
+            {/* Rules are read-in only; the server would refuse anyone else anyway. */}
+            {currentMember?.isReadIn && (
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('GameRules', { groupId, groupName })}
+              >
+                <Text style={styles.actionBtnText}>Rules</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('ReadInPlayers', { groupId, groupName })}
+            >
+              <Text style={styles.actionBtnText}>Read In Players</Text>
+            </TouchableOpacity>
+            {isAdmin && (
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('ReadInGameName', { groupId, groupName })}
+              >
+                <Text style={styles.actionBtnText}>Set Game Name</Text>
+              </TouchableOpacity>
+            )}
+
+            <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.memberRow}>
+            <Text style={styles.memberName}>{displayName(item.username ?? item.playerId)}</Text>
+            {item.isReadIn && <Text style={styles.badge}>Read In</Text>}
+          </View>
+        )}
+        ListFooterComponent={
+          isCreator ? (
+            <TouchableOpacity
+              style={[styles.deleteBtn, deleting && styles.btnDisabled]}
+              onPress={handleDelete}
+              disabled={deleting}
+            >
+              <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete Group'}</Text>
+            </TouchableOpacity>
+          ) : (
+            // The creator cannot leave — they are the one admin the grog is
+            // guaranteed to have — so they get Delete Group instead.
+            <TouchableOpacity
+              style={[styles.deleteBtn, leaving && styles.btnDisabled]}
+              onPress={handleLeave}
+              disabled={leaving}
+            >
+              <Text style={styles.deleteBtnText}>{leaving ? 'Leaving…' : 'Leave Group'}</Text>
+            </TouchableOpacity>
+          )
+        }
+        // Padding on a scroll view's own style shifts its content down without
+        // making it any taller, so the bottom of the list — Delete Group — could
+        // never scroll clear of the tab bar. Hence the wrapper above for the top
+        // inset, and content padding for the rest.
+        contentContainerStyle={styles.content}
+      />
+    </View>
   );
 }
 

@@ -433,10 +433,13 @@ export default function InfinityGrogReviewScreen() {
 
   return (
     <>
-      <View style={styles.root}>
+      {/* The top inset goes on the root, not the scroll content, so the scroll
+          view starts below the status bar and its content clips there instead
+          of sliding up underneath the clock. */}
+      <View style={[styles.root, { paddingTop: insets.top }]}>
         <ScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+          contentContainerStyle={[styles.content, { paddingTop: 12 }]}
         >
           <Text style={styles.heading}>{manageMode ? 'Managing Grog' : 'The Grog'}</Text>
 
