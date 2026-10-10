@@ -12,9 +12,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ManchesterService } from '../services/ManchesterService';
 import { useStore } from '../store';
 import { SlapDebt, DebtStatus, GameType } from '../types';
-import type { GroupStackParamList } from '../navigation/types';
+import type { GroupStackParamList } from '../navigation/types';
+
 import { debtStatusLabel } from '../copy/punishment';
 import { color, radius } from '../theme';
+import { quitterName } from '../copy/quitter';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'Ledger'>;
@@ -53,7 +55,7 @@ export default function LedgerScreen({ route }: Props) {
   const usernameFor = useCallback(
     (playerId: string | null): string => {
       if (!playerId) return 'Unknown';
-      return members.find((m) => m.playerId === playerId)?.username ?? playerId;
+      return members.find((m) => m.playerId === playerId)?.username ?? quitterName(playerId);
     },
     [members]
   );

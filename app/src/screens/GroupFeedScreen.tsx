@@ -18,6 +18,7 @@ import { FeedEntry, SlapDebt } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import { punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space, title } from '../theme';
+import { quitterName } from '../copy/quitter';
 
 type Props = NativeStackScreenProps<GroupStackParamList, never>;
 
@@ -144,7 +145,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
   /** Plain name, without a "(you)" suffix — the sentences read better with "you" inline. */
   const nameFor = (id: string | null | undefined) => {
     if (!id) return 'Someone';
-    return displayName(memberNames[id] ?? id);
+    return displayName(memberNames[id] ?? quitterName(id));
   };
 
   const subjectFor = (id: string | null | undefined) => (isYou(id) ? 'You' : nameFor(id));

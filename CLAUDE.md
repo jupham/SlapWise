@@ -28,7 +28,7 @@ From the repo root:
 
 ```bash
 npm run build      # CDK tsc + app typecheck
-npm run test:app   # vitest, 44 tests
+npm run test:app   # vitest, 47 tests
 npm run install:all
 ```
 
@@ -150,6 +150,21 @@ Marcus having to go and slap Jordan: exactly backwards. It now says what
 physically happens — "Marcus gets slapped by Jordan", "Kyle takes a shot from
 the grog". Slaps name both people; the grog is impersonal because the thread
 already shows who the dispute was with.
+
+### Players who leave
+
+Leaving is a **hard delete**: `leave-group` removes the Member row and every
+debt the leaver is party to that is not yet `delivered`. Delivered debts, feed
+entries and grog history keep their id, so the member list no longer has a name
+for it. Every screen's name lookup therefore falls back to
+`quitterName(id)` in `src/copy/quitter.ts` — a fixed pick, hashed from the id,
+from a short list of insults — rather than to the raw id. A new screen that
+resolves ids against the member list should do the same.
+
+The creator cannot leave: they are the one admin a group is guaranteed to have,
+and every grog mutation is admin-gated. They get Delete Group instead. A
+departing admin is removed from METADATA `adminIds` so rejoining does not hand
+the role back.
 
 ## Display names
 
@@ -342,7 +357,7 @@ removes tokens with its own explicit query instead.
   has very different insets, and the Grog screen's absolutely-positioned drawer
   tab is the kind of thing that lands wrong there.
 - **No test covers the display-name path, the seed script, or notifications.**
-  The 44 vitest tests predate all three and exercise domain logic only.
+  The vitest tests predate all three and exercise domain logic only.
 - **No push notification has been delivered to a real device yet.** The whole
   path typechecks and synthesizes, but `Device.isDevice` is false on a simulator
   and `getExpoPushTokenAsync` needs a development or EAS build — Expo Go will not

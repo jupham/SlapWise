@@ -36,6 +36,7 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!groupId) return;
@@ -103,6 +104,35 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
               Alert.alert('Error', msg);
             } finally {
               setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLeave = () => {
+    Alert.alert(
+      'Leave Group',
+      `Leave "${groupName}"? Any Manchester you haven't settled is wiped, and the group will remember you as a quitter.`,
+      [
+        { text: 'Stay', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            setLeaving(true);
+            try {
+              await GroupService.leaveGroup(groupId);
+              const updated = groups.filter((g) => g.groupId !== groupId);
+              setGroups(updated);
+              const next = updated[0] ?? null;
+              setActiveGroup(next ? { groupId: next.groupId, groupName: next.name } : null);
+            } catch (err: unknown) {
+              console.error('[GroupHomeScreen] leave:', err);
+              Alert.alert('Error', 'Failed to leave group');
+            } finally {
+              setLeaving(false);
             }
           },
         },
@@ -231,7 +261,17 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
           >
             <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete Group'}</Text>
           </TouchableOpacity>
-        ) : null
+        ) : (
+          // The creator cannot leave — they are the one admin the grog is
+          // guaranteed to have — so they get Delete Group instead.
+          <TouchableOpacity
+            style={[styles.deleteBtn, leaving && styles.btnDisabled]}
+            onPress={handleLeave}
+            disabled={leaving}
+          >
+            <Text style={styles.deleteBtnText}>{leaving ? 'Leaving…' : 'Leave Group'}</Text>
+          </TouchableOpacity>
+        )
       }
       contentContainerStyle={styles.content}
     />

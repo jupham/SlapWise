@@ -219,11 +219,11 @@ A mobile app for tracking silly social games among friends. The primary game is 
 
 #### Acceptance Criteria
 
-1. THE App SHALL allow a Player to leave a Group they are a member of.
-2. WHEN a Player leaves a Group, THE App SHALL void all of that Player's outstanding Slap_Debts (those with status "pending" or "resolved" but not yet "delivered") within that Group.
-3. WHEN a Slap_Debt is voided due to a Player leaving a Group, THE App SHALL mark that Slap_Debt as a Voided_Debt with a "shame" status.
-4. THE App SHALL retain all Voided_Debts in the Group ledger as a historical record, visible to remaining Group members.
-5. WHEN a Slap_Debt is voided, THE App SHALL record the reason as the departure of the Player from the Group.
+1. THE App SHALL allow a Player to leave a Group they are a member of, unless that Player is the Group's creator.
+2. WHEN a Player leaves a Group, THE App SHALL delete all of that Player's outstanding Slap_Debts (those with status "pending", "pending_confirmation" or "resolved" but not yet "delivered") within that Group.
+3. WHEN a Player leaves a Group, THE App SHALL retain delivered Slap_Debts, feed entries and grog history that involve them.
+4. WHERE a retained record refers to a Player who has left, THE App SHALL show a fixed, playful quitter name for that Player in place of their display name.
+5. IF the Group's creator attempts to leave, THEN THE App SHALL refuse; the creator may delete the Group instead.
 
 ---
 

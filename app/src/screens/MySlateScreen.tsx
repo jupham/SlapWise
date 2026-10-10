@@ -19,6 +19,7 @@ import type { GroupStackParamList } from '../navigation/types';
 import AddLiquorSheet from './components/AddLiquorSheet';
 import { punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space, title } from '../theme';
+import { quitterName } from '../copy/quitter';
 
 type Props = NativeStackScreenProps<GroupStackParamList, never>;
 
@@ -80,13 +81,13 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
 
   const nameFor = (id: string | null | undefined) => {
     if (!id) return 'Unknown';
-    const name = displayName(memberNames[id] ?? id);
+    const name = displayName(memberNames[id] ?? quitterName(id));
     return id === currentPlayerId ? `${name} (you)` : name;
   };
 
   /** No "(you)" suffix — punishmentPhrase puts "you" inline in the sentence. */
   const plainNameFor = (id: string | null | undefined) =>
-    id ? displayName(memberNames[id] ?? id) : 'Someone';
+    id ? displayName(memberNames[id] ?? quitterName(id)) : 'Someone';
 
   // Needs Action: it's your turn to do something
 

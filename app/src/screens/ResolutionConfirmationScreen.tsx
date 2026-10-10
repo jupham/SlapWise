@@ -16,6 +16,7 @@ import { SlapDebt, ResolutionOutcome, PunishmentType } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 import { debtStatusLabel, punishmentPhrase } from '../copy/punishment';
 import { color, displayName, font, label, radius, size, space } from '../theme';
+import { quitterName } from '../copy/quitter';
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'ResolutionConfirmation'>;
 
@@ -34,7 +35,7 @@ export default function ResolutionConfirmationScreen({ route, navigation }: Prop
   const usernameFor = useCallback(
     (playerId: string | null): string => {
       if (!playerId) return 'Unknown';
-      return memberNames[playerId] ?? playerId;
+      return memberNames[playerId] ?? quitterName(playerId);
     },
     [memberNames]
   );

@@ -19,6 +19,7 @@ import AddLiquorSheet from './components/AddLiquorSheet';
 import InitializeGrogSheet from './components/InitializeGrogSheet';
 import { CATEGORY_COLORS } from '../constants/grog';
 import { color, displayName, label, radius, space, title } from '../theme';
+import { quitterName } from '../copy/quitter';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -276,7 +277,7 @@ export default function InfinityGrogReviewScreen() {
   // ── Render helpers ───────────────────────────────────────────────────────────
 
   const renderHistoryEvent = (event: GrogHistoryEvent) => {
-    const actor = memberMap.get(event.actorPlayerId) ?? event.actorPlayerId;
+    const actor = memberMap.get(event.actorPlayerId) ?? quitterName(event.actorPlayerId);
     const when = formatDate(event.occurredAt);
 
     let description: string;
@@ -361,7 +362,7 @@ export default function InfinityGrogReviewScreen() {
   };
 
   const renderPendingAddBack = (entry: PendingAddBack) => {
-    const username = memberMap.get(entry.debtorId) ?? entry.debtorId;
+    const username = memberMap.get(entry.debtorId) ?? quitterName(entry.debtorId);
     const date = formatDate(entry.createdAt);
     const isClearing = clearingDebtId === entry.debtId;
     const rowError = pendingErrors[entry.debtId];
