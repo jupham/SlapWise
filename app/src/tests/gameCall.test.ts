@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';
 import {
+  answerPermission,
   awaitingAnswers,
   settleGameCall,
   validateCalledPlayers,
@@ -71,5 +72,27 @@ describe('validateCalledPlayers', () => {
     expect(validateCalledPlayers('caller', [], readIn)).toEqual({ ok: false, code: 'NO_PLAYERS_CALLED' });
     expect(validateCalledPlayers('caller', ['caller'], readIn)).toEqual({ ok: false, code: 'CANNOT_CALL_YOURSELF' });
     expect(validateCalledPlayers('caller', ['a', 'z'], readIn)).toEqual({ ok: false, code: 'PLAYER_NOT_READ_IN' });
+  });
+});
+
+describe('answerPermission', () => {
+  const called = ['a', 'b'];
+
+  it('lets a called player answer for themselves', () => {
+    expect(answerPermission('a', 'caller', called, 'a')).toBeNull();
+  });
+
+  it('lets the caller answer for anyone called', () => {
+    expect(answerPermission('caller', 'caller', called, 'a')).toBeNull();
+    expect(answerPermission('caller', 'caller', called, 'b')).toBeNull();
+  });
+
+  it('stops one called player answering for another', () => {
+    expect(answerPermission('a', 'caller', called, 'b')).toBe('NOT_YOUR_ANSWER');
+  });
+
+  it('refuses an answer for someone who was not called', () => {
+    expect(answerPermission('caller', 'caller', called, 'caller')).toBe('NOT_CALLED');
+    expect(answerPermission('z', 'caller', called, 'z')).toBe('NOT_CALLED');
   });
 });

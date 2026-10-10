@@ -150,8 +150,11 @@ The feed's bottom bar is where calls start: Call Manchester for everyone, Call
 
 ### The read-in game
 
-A read-in player calls out other read-in players; each answers covered or not;
-when the last answer lands the call settles. **Everyone not covered chugs, and
+A read-in player calls out other read-in players; each answers covered or not —
+or the caller answers for them, since the game is ad hoc and the caller is
+usually looking at the cup. The first answer recorded for a player sticks,
+whoever gave it, and carries `answeredBy`. When the last answer lands the call
+settles. **Everyone not covered chugs, and
 if anyone called was covered the caller chugs too.** The rule lives in
 `infrastructure/lambda/game-call/logic.ts` and is tested from the app suite.
 The game is named by the group's admins (`readInGameName`); `copy/game.ts` falls
@@ -408,9 +411,9 @@ removes tokens with its own explicit query instead.
 - **No notification icon is configured.** `app.json` sets no `icon` at all, so
   Android falls back to the app icon and may render it as a white square in the
   status bar.
-- **A game call can stall.** It settles only when every player called has
-  answered, and nothing times it out. Someone who never answers — or leaves the
-  group mid-call — leaves it open for good.
+- **A game call can stall** if neither the players called nor the caller ever
+  answer. The caller can settle anyone's answer, so in practice it stalls only
+  if the caller leaves or forgets; nothing times it out.
 - `infrastructure/bin/app.ts` is CDK **source**, not a build output. Ignore rules
   for `bin/`/`obj/` must stay path-scoped or they will swallow it.
 - `README.md` is an empty stub (UTF-16, one heading).

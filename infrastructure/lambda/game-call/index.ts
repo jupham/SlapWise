@@ -10,6 +10,7 @@ import type { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { randomUUID } from 'crypto';
 import { publishNotification } from '../shared/notifications';
 import {
+  answerPermission,
   awaitingAnswers,
   settleGameCall,
   validateCalledPlayers,
@@ -31,7 +32,7 @@ interface GameCall {
   groupId: string;
   callerId: string;
   calledPlayerIds: string[];
-  answers: { playerId: string; answer: GameCallAnswer }[];
+  answers: { playerId: string; answer: GameCallAnswer; answeredBy: string | null }[];
   status: 'open' | 'settled';
   chuggerIds: string[] | null;
   backfired: boolean | null;
@@ -46,14 +47,27 @@ function err(code: string): never {
 const strings = (v: AttributeValue | undefined): string[] => (v?.L ?? []).map((x) => x.S!).filter(Boolean);
 const stringList = (ids: string[]): AttributeValue => ({ L: ids.map((S) => ({ S })) });
 
-function answersOf(item: Item): Record<string, GameCallAnswer> {
-  const out: Record<string, GameCallAnswer> = {};
-  for (const [id, v] of Object.entries(item.answers?.M ?? {})) out[id] = v.S as GameCallAnswer;
+/**
+ * Each answer is `{ answer, by }`, where `by` is whoever recorded it — the
+ * player themselves, or the caller answering for them. A bare string is an
+ * answer recorded before `by` existed.
+ */
+function answerEntries(item: Item): Record<string, { answer: GameCallAnswer; by: string | null }> {
+  const out: Record<string, { answer: GameCallAnswer; by: string | null }> = {};
+  for (const [id, v] of Object.entries(item.answers?.M ?? {})) {
+    out[id] = v.M
+      ? { answer: v.M.answer.S as GameCallAnswer, by: v.M.by?.S ?? null }
+      : { answer: v.S as GameCallAnswer, by: null };
+  }
   return out;
 }
 
+function answersOf(item: Item): Record<string, GameCallAnswer> {
+  return Object.fromEntries(Object.entries(answerEntries(item)).map(([id, e]) => [id, e.answer]));
+}
+
 function toGameCall(item: Item): GameCall {
-  const answers = answersOf(item);
+  const answers = answerEntries(item);
   const called = strings(item.calledPlayerIds);
   return {
     callId: item.callId.S!,
@@ -61,7 +75,9 @@ function toGameCall(item: Item): GameCall {
     callerId: item.callerId.S!,
     calledPlayerIds: called,
     // In call order rather than map order, so the screen lists people stably.
-    answers: called.filter((id) => id in answers).map((playerId) => ({ playerId, answer: answers[playerId] })),
+    answers: called
+      .filter((id) => id in answers)
+      .map((playerId) => ({ playerId, answer: answers[playerId].answer, answeredBy: answers[playerId].by })),
     status: item.status.S as 'open' | 'settled',
     chuggerIds: item.chuggerIds ? strings(item.chuggerIds) : null,
     backfired: item.backfired?.BOOL ?? null,
@@ -177,14 +193,17 @@ async function callGame(callerId: string, args: { groupId: string; calledPlayerI
 // ── respondToGameCall ─────────────────────────────────────────────────────────
 
 async function respondToGameCall(
-  playerId: string,
-  args: { groupId: string; callId: string; covered: boolean }
+  actorId: string,
+  args: { groupId: string; callId: string; covered: boolean; playerId?: string | null }
 ): Promise<GameCall> {
   const { groupId, callId } = args;
+  // Whose answer this is. Omitted means your own; the caller may name anyone called.
+  const playerId = args.playerId ?? actorId;
   const before = await getCallItem(groupId, callId);
 
   if (before.status.S !== 'open') err('GAME_CALL_SETTLED');
-  if (!strings(before.calledPlayerIds).includes(playerId)) err('NOT_CALLED');
+  const denied = answerPermission(actorId, before.callerId.S!, strings(before.calledPlayerIds), playerId);
+  if (denied) err(denied);
   if (playerId in answersOf(before)) err('ALREADY_ANSWERED');
 
   const answer: GameCallAnswer = args.covered ? 'covered' : 'not_covered';
@@ -199,7 +218,10 @@ async function respondToGameCall(
       UpdateExpression: 'SET answers.#me = :answer',
       ConditionExpression: '#status = :open AND attribute_not_exists(answers.#me)',
       ExpressionAttributeNames: { '#me': playerId, '#status': 'status' },
-      ExpressionAttributeValues: { ':answer': { S: answer }, ':open': { S: 'open' } },
+      ExpressionAttributeValues: {
+        ':answer': { M: { answer: { S: answer }, by: { S: actorId } } },
+        ':open': { S: 'open' },
+      },
       ReturnValues: 'ALL_NEW',
     }));
     after = result.Attributes!;

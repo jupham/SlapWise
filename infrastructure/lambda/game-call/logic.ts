@@ -12,6 +12,10 @@
  *
  * So calling three people when one was covered and two were not puts four
  * drinks down: the two caught, plus the caller for the one they missed.
+ *
+ * The caller may also answer for anyone still waiting. The game is ad hoc —
+ * the caller is usually looking straight at the cup — and it means a call can
+ * always be finished even if someone never opens the app.
  */
 
 export type GameCallAnswer = 'covered' | 'not_covered';
@@ -65,4 +69,21 @@ export function validateCalledPlayers(
   if (unique.includes(callerId)) return { ok: false, code: 'CANNOT_CALL_YOURSELF' };
   if (unique.some((id) => !readInIds.has(id))) return { ok: false, code: 'PLAYER_NOT_READ_IN' };
   return { ok: true, calledPlayerIds: unique };
+}
+
+/**
+ * Whether `actorId` may record an answer for `targetId`. Players answer for
+ * themselves; the caller may answer for any player called. Returns an error
+ * code, or null when allowed. Whether the target has already answered is
+ * checked separately — the first answer in sticks, whoever gave it.
+ */
+export function answerPermission(
+  actorId: string,
+  callerId: string,
+  calledPlayerIds: string[],
+  targetId: string
+): string | null {
+  if (!calledPlayerIds.includes(targetId)) return 'NOT_CALLED';
+  if (actorId === targetId || actorId === callerId) return null;
+  return 'NOT_YOUR_ANSWER';
 }

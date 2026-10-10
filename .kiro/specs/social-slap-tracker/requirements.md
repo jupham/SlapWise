@@ -187,7 +187,7 @@ A mobile app for tracking silly social games among friends. The primary game is 
 1. WHILE a Player's Read_In status is active for a Group, THE App SHALL allow that Player to make a Game_Call within that Group from the Group_Feed.
 2. WHEN making a Game_Call, THE App SHALL let the caller select one or more other Read_In Players to call out, and SHALL NOT allow the caller to call themselves or any Player who is not Read_In.
 3. WHEN a Game_Call is made, THE App SHALL publish an entry to the Group_Feed naming the caller and the Players called, and SHALL notify each Player called.
-4. WHEN a Player has been called in an open Game_Call, THE App SHALL let that Player, and only that Player, answer once whether they were covered (their drink carried the group's mark) or not.
+4. WHEN a Player has been called in an open Game_Call, THE App SHALL let that Player — or the caller, on their behalf — answer whether they were covered (their drink carried the group's mark) or not. The first answer recorded for a Player stands, and THE App SHALL show when the caller gave it.
 5. WHEN every Player called has answered, THE App SHALL settle the Game_Call: every called Player who was not covered chugs, and IF any called Player was covered, THEN the caller also chugs.
 6. WHEN a Game_Call settles, THE App SHALL publish the outcome to the Group_Feed and notify the caller and every Player called.
 7. THE App SHALL NOT create a Slap_Debt for a Game_Call.

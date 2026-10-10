@@ -80,7 +80,8 @@ export interface GameCall {
   groupId: string;
   callerId: string;
   calledPlayerIds: string[];
-  answers: { playerId: string; answer: GameCallAnswer }[];
+  /** `answeredBy` is the player themselves, or the caller answering for them. */
+  answers: { playerId: string; answer: GameCallAnswer; answeredBy: string | null }[];
   status: 'open' | 'settled';
   /** Set once settled. Caller first when the call backfired. */
   chuggerIds: string[] | null;

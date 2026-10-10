@@ -68,31 +68,40 @@ export default function GameCallScreen({ route, navigation }: Props) {
   const subject = (id: string) => (isYou(id) ? 'You' : nameFor(id));
   const object = (id: string) => (isYou(id) ? 'you' : nameFor(id));
 
-  const answer = (covered: boolean) => {
-    Alert.alert(
-      covered ? 'You were covered?' : 'You weren’t covered?',
-      covered
-        ? 'If you were, the caller drinks. You can’t change this answer.'
-        : 'You drink. You can’t change this answer.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: covered ? 'I was covered' : 'I wasn’t',
-          onPress: async () => {
-            setAnswering(true);
-            try {
-              setCall(await GameService.respondToGameCall(groupId, callId, covered));
-            } catch (e) {
-              console.error('[GameCallScreen] respond failed:', e);
-              setError('Failed to send your answer');
-              void load();
-            } finally {
-              setAnswering(false);
-            }
-          },
+  /**
+   * Records an answer — your own, or, as the caller, anyone's still waiting.
+   * Confirmed first either way: the first answer in sticks.
+   */
+  const answer = (covered: boolean, forId: string = me) => {
+    const self = forId === me;
+    const who = nameFor(forId);
+    const heading = self
+      ? covered ? 'You were covered?' : 'You weren\u2019t covered?'
+      : covered ? `Mark ${who} covered?` : `Mark ${who} not covered?`;
+    const body = self
+      ? covered
+        ? 'If you were, the caller drinks. You can\u2019t change this answer.'
+        : 'You drink. You can\u2019t change this answer.'
+      : `${who} won\u2019t be able to change it.`;
+
+    Alert.alert(heading, body, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: self ? (covered ? 'I was covered' : 'I wasn\u2019t') : 'Mark it',
+        onPress: async () => {
+          setAnswering(true);
+          try {
+            setCall(await GameService.respondToGameCall(groupId, callId, covered, forId));
+          } catch (e) {
+            console.error('[GameCallScreen] respond failed:', e);
+            setError('Failed to record the answer — someone may have beaten you to it');
+            void load();
+          } finally {
+            setAnswering(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
@@ -106,6 +115,8 @@ export default function GameCallScreen({ route, navigation }: Props) {
   }
 
   const answers = new Map<string, GameCallAnswer>(call.answers.map((a) => [a.playerId, a.answer]));
+  const answeredBy = new Map(call.answers.map((a) => [a.playerId, a.answeredBy]));
+  const iAmCaller = isYou(call.callerId);
   const waitingOn = call.calledPlayerIds.filter((id) => !answers.has(id));
   const myTurn = call.status === 'open' && call.calledPlayerIds.includes(me) && !answers.has(me);
   const settled = call.status === 'settled';
@@ -135,27 +146,57 @@ export default function GameCallScreen({ route, navigation }: Props) {
       <Text style={styles.sectionLabel}>Called</Text>
       {call.calledPlayerIds.map((id) => {
         const a = answers.get(id);
+        const by = answeredBy.get(id);
+        // The caller can settle anyone still waiting, right from the row.
+        const callerCanSet = iAmCaller && !settled && !a;
         return (
           <View key={id} style={styles.row}>
-            <Text style={styles.rowName}>
-              {nameFor(id)}
-              {isYou(id) ? ' (you)' : ''}
-            </Text>
-            <Text
-              style={[
-                styles.answer,
-                a === 'covered' && styles.answerCovered,
-                a === 'not_covered' && styles.answerCaught,
-              ]}
-            >
-              {a === 'covered' ? 'Covered' : a === 'not_covered' ? 'Not covered' : 'Waiting'}
-            </Text>
+            <View style={styles.rowText}>
+              <Text style={styles.rowName}>
+                {nameFor(id)}
+                {isYou(id) ? ' (you)' : ''}
+              </Text>
+              {a && by && by !== id ? (
+                <Text style={styles.setBy}>set by {isYou(by) ? 'you' : nameFor(by)}</Text>
+              ) : null}
+            </View>
+            {callerCanSet ? (
+              <View style={styles.setRow}>
+                <TouchableOpacity
+                  style={[styles.setBtn, answering && styles.btnDisabled]}
+                  onPress={() => answer(true, id)}
+                  disabled={answering}
+                >
+                  <Text style={styles.setBtnText}>Covered</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.setBtn, answering && styles.btnDisabled]}
+                  onPress={() => answer(false, id)}
+                  disabled={answering}
+                >
+                  <Text style={styles.setBtnText}>Not covered</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text
+                style={[
+                  styles.answer,
+                  a === 'covered' && styles.answerCovered,
+                  a === 'not_covered' && styles.answerCaught,
+                ]}
+              >
+                {a === 'covered' ? 'Covered' : a === 'not_covered' ? 'Not covered' : 'Waiting'}
+              </Text>
+            )}
           </View>
         );
       })}
 
       {!settled && !myTurn && waitingOn.length > 0 ? (
-        <Text style={styles.waiting}>Waiting on {joinNames(waitingOn.map(object))}</Text>
+        <Text style={styles.waiting}>
+          Waiting on {joinNames(waitingOn.map(object))}
+          {iAmCaller ? '. You called it, so you can answer for them.' : ''}
+        </Text>
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -205,7 +246,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border,
   },
+  rowText: { flex: 1, minWidth: 0 },
   rowName: { fontSize: size.body, color: color.text },
+  setBy: { fontSize: size.label, color: color.textDim, marginTop: 2 },
+  setRow: { flexDirection: 'row', gap: space.sm },
+  setBtn: {
+    borderWidth: 1, borderColor: color.regalia, borderRadius: radius.sm,
+    paddingHorizontal: space.sm, paddingVertical: space.xs + 2,
+  },
+  setBtnText: { ...label, color: color.text, letterSpacing: 0.8 },
   answer: { ...label, color: color.textDim },
   answerCovered: { color: color.success },
   answerCaught: { color: color.accent },

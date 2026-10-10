@@ -3,7 +3,7 @@ import { GameCall } from '../types';
 
 const GAME_CALL_FIELDS = `
   callId groupId callerId calledPlayerIds
-  answers { playerId answer }
+  answers { playerId answer answeredBy }
   status chuggerIds backfired createdAt settledAt
 `;
 
@@ -20,8 +20,10 @@ const CALL_GAME = /* GraphQL */ `
 `;
 
 const RESPOND_TO_GAME_CALL = /* GraphQL */ `
-  mutation RespondToGameCall($groupId: ID!, $callId: ID!, $covered: Boolean!) {
-    respondToGameCall(groupId: $groupId, callId: $callId, covered: $covered) { ${GAME_CALL_FIELDS} }
+  mutation RespondToGameCall($groupId: ID!, $callId: ID!, $covered: Boolean!, $playerId: ID) {
+    respondToGameCall(groupId: $groupId, callId: $callId, covered: $covered, playerId: $playerId) {
+      ${GAME_CALL_FIELDS}
+    }
   }
 `;
 
@@ -40,10 +42,19 @@ export const GameService = {
     return (result as { data: { callGame: GameCall } }).data.callGame;
   },
 
-  async respondToGameCall(groupId: string, callId: string, covered: boolean): Promise<GameCall> {
+  /**
+   * Records an answer. `playerId` defaults to your own; the caller may pass any
+   * player they called, to settle it for them. The first answer in sticks.
+   */
+  async respondToGameCall(
+    groupId: string,
+    callId: string,
+    covered: boolean,
+    playerId?: string
+  ): Promise<GameCall> {
     const result = await getClient().graphql({
       query: RESPOND_TO_GAME_CALL,
-      variables: { groupId, callId, covered },
+      variables: { groupId, callId, covered, playerId: playerId ?? null },
     });
     return (result as { data: { respondToGameCall: GameCall } }).data.respondToGameCall;
   },

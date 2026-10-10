@@ -88,6 +88,9 @@ type GameCall {
 type GameCallResponse {
   playerId: ID!
   answer: GameCallAnswer!
+  # Who recorded it: the player, or the caller answering for them. Null on
+  # answers recorded before this existed.
+  answeredBy: ID
 }
 
 enum GameCallStatus {
@@ -241,7 +244,9 @@ type Mutation {
   confirmReadIn(groupId: ID!): Member!
   setReadInGameName(groupId: ID!, name: String!): Group!
   callGame(groupId: ID!, calledPlayerIds: [ID!]!): GameCall!
-  respondToGameCall(groupId: ID!, callId: ID!, covered: Boolean!): GameCall!
+  # playerId: whose answer. Omit to answer for yourself; the caller may answer
+  # for anyone they called.
+  respondToGameCall(groupId: ID!, callId: ID!, covered: Boolean!, playerId: ID): GameCall!
   initializeGrog(groupId: ID!, bottleSize: Float!, seedEntries: [AddLiquorInput!]): Grog!
   addLiquorToGrog(groupId: ID!, category: LiquorCategory!, brand: String!): Grog!
   removeLiquorFromGrog(groupId: ID!, entryId: ID!): Grog!
