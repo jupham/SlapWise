@@ -60,7 +60,7 @@ Node version is pinned in `.node-version` (24.14.0).
 
 `npm --prefix infrastructure run seed` repopulates a deployed stack with three
 users, a group, and Manchesters covering every state the UI renders. Add
-`-- --wipe-first` to clear the Cognito users *and* the DynamoDB table first;
+`-- --wipe-first` to delete the three seed users *and* empty the DynamoDB table first;
 without the wipe it is still safe to re-run, since it reuses a same-named group
 and tolerates repeat joins and read-ins.
 
