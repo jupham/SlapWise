@@ -2,12 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getCurrentUser } from 'aws-amplify/auth';
@@ -17,6 +16,7 @@ import { Member } from '../types';
 import type { GroupStackParamList } from '../navigation/types';
 
 import { color, label, radius, size, space, title } from '../theme';
+import FormScroll from './components/FormScroll';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'CreateChallenge'>;
@@ -80,30 +80,34 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
   if (loading) return <ActivityIndicator style={styles.center} color={color.accent} />;
 
   return (
-    <View style={styles.container}>
+    <FormScroll contentContainerStyle={styles.container}>
       <Text style={styles.heading}>Manchester — {groupName}</Text>
 
       <Text style={styles.label}>Statement Maker</Text>
       {errors.member && <Text style={styles.error}>{errors.member}</Text>}
-      <FlatList
-        data={members}
-        keyExtractor={(m) => m.playerId}
-        style={styles.memberList}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.memberRow, selectedMemberId === item.playerId && styles.memberRowSelected]}
-            onPress={() => {
-              setSelectedMemberId(item.playerId);
-              setErrors((e) => ({ ...e, member: undefined }));
-            }}
-          >
-            <Text style={[styles.memberName, selectedMemberId === item.playerId && styles.memberNameSelected]}>
-              {item.username ?? item.playerId}
-            </Text>
-          </TouchableOpacity>
+      {/* A plain map rather than a FlatList: the screen is now a ScrollView, and
+          a virtualized list nested inside one breaks windowing. A group's
+          member list is short enough not to need it. */}
+      <ScrollView style={styles.memberList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+        {members.length === 0 ? (
+          <Text style={styles.empty}>No other members in this group</Text>
+        ) : (
+          members.map((item) => (
+            <TouchableOpacity
+              key={item.playerId}
+              style={[styles.memberRow, selectedMemberId === item.playerId && styles.memberRowSelected]}
+              onPress={() => {
+                setSelectedMemberId(item.playerId);
+                setErrors((e) => ({ ...e, member: undefined }));
+              }}
+            >
+              <Text style={[styles.memberName, selectedMemberId === item.playerId && styles.memberNameSelected]}>
+                {item.username ?? item.playerId}
+              </Text>
+            </TouchableOpacity>
+          ))
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No other members in this group</Text>}
-      />
+      </ScrollView>
 
       <Text style={styles.label}>Statement</Text>
       {errors.statement && <Text style={styles.error}>{errors.statement}</Text>}
@@ -128,12 +132,12 @@ export default function CreateChallengeScreen({ route, navigation }: Props) {
       >
         <Text style={styles.btnText}>{submitting ? 'Submitting…' : 'Call Manchester!'}</Text>
       </TouchableOpacity>
-    </View>
+    </FormScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: space.lg },
+  container: { flexGrow: 1, backgroundColor: color.bg, padding: space.lg },
   center: { flex: 1, backgroundColor: color.bg },
   heading: { ...title, fontSize: size.title, marginBottom: space.xl },
   label: { ...label, marginBottom: space.xs },

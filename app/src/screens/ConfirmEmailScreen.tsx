@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 import type { AuthStackParamList } from '../navigation/types';
 import { color, radius, size, space, title } from '../theme';
+import FormScroll from './components/FormScroll';
 
 
 type ConfirmEmailRouteProp = RouteProp<AuthStackParamList, 'ConfirmEmail'>;
@@ -56,7 +57,7 @@ export default function ConfirmEmailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <FormScroll contentContainerStyle={styles.container}>
       <Text style={styles.title}>Verify your email</Text>
       <Text style={styles.subtitle}>We sent a code to {email}</Text>
 
@@ -79,12 +80,12 @@ export default function ConfirmEmailScreen() {
       <TouchableOpacity style={styles.resend} onPress={handleResend}>
         <Text style={styles.resendText}>Resend code</Text>
       </TouchableOpacity>
-    </View>
+    </FormScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
+  container: { flexGrow: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
   title: { ...title, marginBottom: space.xl },
   subtitle: { fontSize: size.body, color: color.textMuted, marginTop: -space.md, marginBottom: space.xl },
   input: {

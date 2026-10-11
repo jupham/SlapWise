@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -440,6 +441,9 @@ export default function InfinityGrogReviewScreen() {
         <ScrollView
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingTop: 12 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets
         >
           <Text style={styles.heading}>{manageMode ? 'Managing Grog' : 'The Grog'}</Text>
 

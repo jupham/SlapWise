@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import { AuthService } from '../services/AuthService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
 import { color, radius, size, space, title } from '../theme';
+import FormScroll from './components/FormScroll';
 
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList>;
@@ -23,6 +23,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   async function handleSubmit() {
     setError(null);
@@ -64,7 +65,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <FormScroll contentContainerStyle={styles.container}>
       <Text style={styles.title}>Sign In</Text>
 
       <TextInput
@@ -75,6 +76,9 @@ export default function LoginScreen() {
         autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
       <TextInput
         style={styles.input}
@@ -83,6 +87,9 @@ export default function LoginScreen() {
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        ref={passwordRef}
+        returnKeyType="go"
+        onSubmitEditing={() => { if (!loading) void handleSubmit(); }}
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -103,12 +110,12 @@ export default function LoginScreen() {
       >
         <Text style={styles.linkText}>Don't have an account? Register</Text>
       </TouchableOpacity>
-    </View>
+    </FormScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
+  container: { flexGrow: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
   title: { ...title, marginBottom: space.xl },
   subtitle: { fontSize: size.body, color: color.textMuted, marginTop: -space.md, marginBottom: space.xl },
   input: {

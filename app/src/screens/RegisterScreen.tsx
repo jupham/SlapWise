@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../navigation/types';
 import { AuthService } from '../services/AuthService';
 import { color, radius, size, space, title } from '../theme';
+import FormScroll from './components/FormScroll';
 
 
 type NavProp = NativeStackNavigationProp<AuthStackParamList>;
@@ -22,6 +22,8 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   async function handleSubmit() {
     setError(null);
@@ -57,7 +59,7 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <FormScroll contentContainerStyle={styles.container}>
       <Text style={styles.title}>Create Account</Text>
 
       <TextInput
@@ -69,6 +71,9 @@ export default function RegisterScreen() {
         maxLength={24}
         value={username}
         onChangeText={setUsername}
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => emailRef.current?.focus()}
       />
       <TextInput
         style={styles.input}
@@ -78,6 +83,10 @@ export default function RegisterScreen() {
         autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
+        ref={emailRef}
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
       <TextInput
         style={styles.input}
@@ -86,6 +95,9 @@ export default function RegisterScreen() {
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        ref={passwordRef}
+        returnKeyType="go"
+        onSubmitEditing={() => { if (!loading) void handleSubmit(); }}
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -99,12 +111,12 @@ export default function RegisterScreen() {
           {loading ? 'Creating...' : 'Create Account'}
         </Text>
       </TouchableOpacity>
-    </View>
+    </FormScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
+  container: { flexGrow: 1, backgroundColor: color.bg, padding: space.xl, justifyContent: 'center' },
   title: { ...title, marginBottom: space.xl },
   subtitle: { fontSize: size.body, color: color.textMuted, marginTop: -space.md, marginBottom: space.xl },
   input: {
