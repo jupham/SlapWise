@@ -5,13 +5,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GroupService } from '../services/GroupService';
 import { enterGroups } from '../navigation/enterGroups';
 import type { GroupStackParamList } from '../navigation/types';
 import { color, label, radius, size, space } from '../theme';
+import FormScroll from './components/FormScroll';
 
 
 type Props = NativeStackScreenProps<GroupStackParamList, 'CreateGroup'>;
@@ -42,7 +42,7 @@ export default function CreateGroupScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <FormScroll contentContainerStyle={styles.container}>
       <Text style={styles.label}>Group Name</Text>
       <TextInput
         style={styles.input}
@@ -58,12 +58,12 @@ export default function CreateGroupScreen({ navigation }: Props) {
       <TouchableOpacity style={styles.btn} onPress={handleCreate} disabled={loading}>
         {loading ? <ActivityIndicator color={color.accentInk} /> : <Text style={styles.btnText}>Create</Text>}
       </TouchableOpacity>
-    </View>
+    </FormScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: space.xl },
+  container: { flexGrow: 1, backgroundColor: color.bg, padding: space.xl },
   label: { ...label, marginBottom: space.sm },
   input: {
     borderWidth: 1, borderColor: color.borderStrong, borderRadius: radius.md,

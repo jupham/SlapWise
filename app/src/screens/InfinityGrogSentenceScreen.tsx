@@ -210,45 +210,50 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
         </Animated.View>
       </View>
 
-      {/* Post-shot dialog */}
+      {/* Post-shot dialog. The add-liquor sheet is nested inside this Modal,
+          which stays up underneath it: iOS will not present a Modal while
+          another is up or still animating away, so closing the dialog and
+          opening the sheet as a sibling in the same render showed nothing. */}
       <Modal
-        visible={showPostShotDialog}
+        visible={showPostShotDialog || showAddLiquor}
         transparent
         animationType="fade"
-        onRequestClose={handleAddBackLater}
+        onRequestClose={showAddLiquor ? handleAddLiquorClose : handleAddBackLater}
       >
-        <View style={styles.dialogBackdrop}>
-          <View style={styles.dialogBox}>
-            <Text style={styles.dialogTitle}>Shot Taken!</Text>
-            <Text style={styles.dialogBody}>
-              You're entitled to add one liquor back to the Grog. Do you want to add it now?
-            </Text>
-            {error != null && <Text style={styles.inlineError}>{error}</Text>}
-            <TouchableOpacity
-              style={styles.dialogPrimaryBtn}
-              onPress={handleAddBackNow}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.dialogPrimaryBtnText}>Add Back Now</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.dialogSecondaryBtn}
-              onPress={handleAddBackLater}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.dialogSecondaryBtnText}>Add Back Later</Text>
-            </TouchableOpacity>
+        {showPostShotDialog && (
+          <View style={styles.dialogBackdrop}>
+            <View style={styles.dialogBox}>
+              <Text style={styles.dialogTitle}>Shot Taken!</Text>
+              <Text style={styles.dialogBody}>
+                You're entitled to add one liquor back to the Grog. Do you want to add it now?
+              </Text>
+              {error != null && <Text style={styles.inlineError}>{error}</Text>}
+              <TouchableOpacity
+                style={styles.dialogPrimaryBtn}
+                onPress={handleAddBackNow}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dialogPrimaryBtnText}>Add Back Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dialogSecondaryBtn}
+                onPress={handleAddBackLater}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dialogSecondaryBtnText}>Add Back Later</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        )}
 
-      {/* Add liquor sheet — shown after "Add Back Now" */}
-      {showAddLiquor && (
-        <AddLiquorSheet
-          onSubmit={(category, brand) => void handleAddLiquorSubmit(category, brand)}
-          onClose={handleAddLiquorClose}
-        />
-      )}
+        {/* Add liquor sheet — shown after "Add Back Now" */}
+        {showAddLiquor && (
+          <AddLiquorSheet
+            onSubmit={(category, brand) => void handleAddLiquorSubmit(category, brand)}
+            onClose={handleAddLiquorClose}
+          />
+        )}
+      </Modal>
 
       {/* Redeeming overlay */}
       {redeeming && (

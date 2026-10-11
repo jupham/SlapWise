@@ -165,111 +165,117 @@ export default function InitializeGrogSheet({ groupId, onSuccess, onClose }: Pro
   };
 
   return (
-    <>
-      <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.sheetWrapper}
-        >
-          <View style={styles.sheet}>
-            <View style={styles.handle} />
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={styles.title}>Initialize Grog</Text>
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.sheetWrapper}
+      >
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          >
+            <Text style={styles.title}>Initialize Grog</Text>
 
-              {/* Bottle size */}
-              <Text style={styles.label}>Bottle Size</Text>
-              {sizeError && <Text style={styles.error}>{sizeError}</Text>}
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.inputFlex, sizeError ? styles.inputError : null]}
-                  placeholder={unit === 'ml' ? 'e.g. 750' : 'e.g. 25.4'}
-                  placeholderTextColor="#aaa"
-                  value={sizeInput}
-                  onChangeText={(t) => { setSizeInput(t); setSizeError(null); setError(null); }}
-                  keyboardType="decimal-pad"
-                />
-                <TouchableOpacity style={styles.unitToggle} onPress={handleUnitToggle}>
-                  <Text style={styles.unitToggleText}>{unit.toUpperCase()}</Text>
-                </TouchableOpacity>
-              </View>
+            {/* Bottle size */}
+            <Text style={styles.label}>Bottle Size</Text>
+            {sizeError && <Text style={styles.error}>{sizeError}</Text>}
+            <View style={styles.row}>
+              <TextInput
+                style={[styles.input, styles.inputFlex, sizeError ? styles.inputError : null]}
+                placeholder={unit === 'ml' ? 'e.g. 750' : 'e.g. 25.4'}
+                placeholderTextColor="#aaa"
+                value={sizeInput}
+                onChangeText={(t) => { setSizeInput(t); setSizeError(null); setError(null); }}
+                keyboardType="decimal-pad"
+              />
+              <TouchableOpacity style={styles.unitToggle} onPress={handleUnitToggle}>
+                <Text style={styles.unitToggleText}>{unit.toUpperCase()}</Text>
+              </TouchableOpacity>
+            </View>
 
-              {/* Presets */}
-              <View style={styles.presetRow}>
-                {BOTTLE_SIZE_PRESETS.map((ml) => (
-                  <TouchableOpacity
-                    key={ml}
-                    style={[styles.presetBtn, unit === 'ml' && sizeInput === String(ml) && styles.presetBtnActive]}
-                    onPress={() => handlePreset(ml)}
-                  >
-                    <Text style={styles.presetBtnText}>{ml} mL</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Seed liquors */}
-              <View style={styles.seedHeader}>
-                <Text style={styles.label}>Seed Liquors (optional)</Text>
-                <TouchableOpacity onPress={() => setShowAddLiquor(true)}>
-                  <Text style={styles.addSeedBtn}>+ Add</Text>
-                </TouchableOpacity>
-              </View>
-
-              {seedEntries.length === 0 ? (
-                <Text style={styles.emptySeeds}>No seed liquors added yet.</Text>
-              ) : (
-                seedEntries.map((entry) => (
-                  <View key={entry.id} style={styles.seedRow}>
-                    <View style={styles.seedMeta}>
-                      <Text style={styles.seedBrand}>{entry.brand}</Text>
-                      <Text style={styles.seedCategory}>{entry.category.replace(/_/g, ' ')}</Text>
-                    </View>
-                    <View style={styles.row}>
-                      <TextInput
-                        style={[styles.input, styles.amountInput]}
-                        placeholder={entry.unit === 'ml' ? 'mL' : 'oz'}
-                        placeholderTextColor="#666"
-                        value={entry.amountInput}
-                        onChangeText={(v) => handleSeedAmountChange(entry.id, v)}
-                        keyboardType="decimal-pad"
-                      />
-                      <TouchableOpacity style={styles.unitToggleSmall} onPress={() => handleSeedUnitToggle(entry.id)}>
-                        <Text style={styles.unitToggleText}>{entry.unit.toUpperCase()}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemoveSeed(entry.id)}>
-                        <Text style={styles.removeBtnText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
-              )}
-
-              {error && <Text style={[styles.error, styles.globalError]}>{error}</Text>}
-
-              <View style={styles.actions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
+            {/* Presets */}
+            <View style={styles.presetRow}>
+              {BOTTLE_SIZE_PRESETS.map((ml) => (
                 <TouchableOpacity
-                  style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-                  onPress={handleSubmit}
-                  disabled={submitting}
+                  key={ml}
+                  style={[styles.presetBtn, unit === 'ml' && sizeInput === String(ml) && styles.presetBtnActive]}
+                  onPress={() => handlePreset(ml)}
                 >
-                  <Text style={styles.submitBtnText}>{submitting ? 'Initializing…' : 'Initialize'}</Text>
+                  <Text style={styles.presetBtnText}>{ml} mL</Text>
                 </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+              ))}
+            </View>
 
+            {/* Seed liquors */}
+            <View style={styles.seedHeader}>
+              <Text style={styles.label}>Seed Liquors (optional)</Text>
+              <TouchableOpacity onPress={() => setShowAddLiquor(true)}>
+                <Text style={styles.addSeedBtn}>+ Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {seedEntries.length === 0 ? (
+              <Text style={styles.emptySeeds}>No seed liquors added yet.</Text>
+            ) : (
+              seedEntries.map((entry) => (
+                <View key={entry.id} style={styles.seedRow}>
+                  <View style={styles.seedMeta}>
+                    <Text style={styles.seedBrand}>{entry.brand}</Text>
+                    <Text style={styles.seedCategory}>{entry.category.replace(/_/g, ' ')}</Text>
+                  </View>
+                  <View style={styles.row}>
+                    <TextInput
+                      style={[styles.input, styles.amountInput]}
+                      placeholder={entry.unit === 'ml' ? 'mL' : 'oz'}
+                      placeholderTextColor="#666"
+                      value={entry.amountInput}
+                      onChangeText={(v) => handleSeedAmountChange(entry.id, v)}
+                      keyboardType="decimal-pad"
+                    />
+                    <TouchableOpacity style={styles.unitToggleSmall} onPress={() => handleSeedUnitToggle(entry.id)}>
+                      <Text style={styles.unitToggleText}>{entry.unit.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemoveSeed(entry.id)}>
+                      <Text style={styles.removeBtnText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+
+            {error && <Text style={[styles.error, styles.globalError]}>{error}</Text>}
+
+            <View style={styles.actions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+                onPress={handleSubmit}
+                disabled={submitting}
+              >
+                <Text style={styles.submitBtnText}>{submitting ? 'Initializing…' : 'Initialize'}</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Inside this Modal, not beside it. iOS presents a modal from the
+          topmost view controller only, so a second Modal rendered as a
+          sibling while this one is up is silently never shown — "+ Add" did
+          nothing on iPhone. Nested, it presents on top of this one. */}
       {showAddLiquor && (
         <AddLiquorSheet
           onSubmit={handleAddSeed}
           onClose={() => setShowAddLiquor(false)}
         />
       )}
-    </>
+    </Modal>
   );
 }
 

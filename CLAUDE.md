@@ -266,6 +266,25 @@ the `.icon` and those PNGs go stale — re-render them from the new SVG.
 The splash is held by `SplashScreen.preventAutoHideAsync()` in `App.tsx` until
 fonts and bootstrap are done, so the app never paints a blank or spinner frame.
 
+### iOS-only UI rules
+
+Android forgives both of these, so they go unseen until an iOS build.
+
+**Any screen with a text field is rooted in `screens/components/FormScroll`.**
+iOS neither moves content out from under the keyboard nor gives number pads a
+return key. A plain `View` root left the Sign In screen's Register link under
+the keyboard with no way to dismiss it. `FormScroll` is a ScrollView that pads
+itself by the keyboard's height and dismisses on a tap outside a control or on
+a drag. Pass the screen's container style as `contentContainerStyle`, with
+`flexGrow: 1` rather than `flex: 1`, or the content can never scroll.
+
+**Never render a `Modal` beside one that is showing, or open one in the same
+render that closes another.** iOS presents from the topmost view controller
+only, and drops the second one silently: no error, nothing on screen. That is
+why Initialize Grog's "+ Add" did nothing on iPhone. Nest the second `Modal`
+inside the first, as `InitializeGrogSheet` and `InfinityGrogSentenceScreen` now
+do. Sibling sheets on a plain screen, one at a time, are fine.
+
 ### `app/scripts/patch-native-modules.js` — do not delete
 
 React Native sets `ANDROID_STL=c++_shared`, so native modules link against
@@ -440,18 +459,16 @@ removes tokens with its own explicit query instead.
 
 ## Known rough edges
 
-- **iOS has only run as an EAS simulator build, and only as far as Sign In.**
-  `npx eas-cli build --profile simulator --platform ios` builds on EAS and the
-  `.app` runs in the local iOS Simulator — it ships `x86_64` slices, so an Intel
-  Mac can run it. SDK 57 cannot be built locally on an Intel Mac at all:
-  `expo-modules-jsi` needs Xcode 27, which needs macOS 26.6 and Apple silicon.
-  The `simulator` profile is a release build with no dev client, so there is no
-  hot reload. A device build (`npm run build:ios:preview`) has never been run and
-  needs a paid Apple Developer account.
-- **No screen past Sign In has been seen on iOS.** The safe-area work is
-  written correctly — the tab bar grows by `insets.bottom` — but a notched iPhone
-  has very different insets, and the Grog screen's absolutely-positioned drawer
-  tab is the kind of thing that lands wrong there.
+- **iOS is on TestFlight, but only lightly exercised.** Production builds go
+  through `npx eas-cli build --platform ios --profile production --auto-submit`,
+  which needs nothing local beyond Node, so it runs from Windows. SDK 57 cannot
+  be built locally on an Intel Mac at all: `expo-modules-jsi` needs Xcode 27,
+  which needs macOS 26.6 and Apple silicon. The `simulator` profile still works
+  for a quick look (`x86_64` slices, release build, no hot reload).
+- **iOS layout is barely tested on a notched iPhone.** The safe-area work is
+  written correctly — the tab bar grows by `insets.bottom` — but the first
+  TestFlight build turned up two iOS-only bugs straight away (see *iOS-only
+  UI rules*), and more are likely.
 - **No test covers the display-name path, the seed script, or notifications.**
   The vitest tests predate all three and exercise domain logic only.
 - **No push notification has been delivered to a real device yet.** The whole

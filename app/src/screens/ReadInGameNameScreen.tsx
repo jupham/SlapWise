@@ -5,11 +5,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ReadInService } from '../services/ReadInService';
 import type { GroupStackParamList } from '../navigation/types';
+import FormScroll from './components/FormScroll';
 import { color, radius } from '../theme';
 
 
@@ -46,7 +46,7 @@ export default function ReadInGameNameScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <FormScroll contentContainerStyle={styles.container}>
       <Text style={styles.label}>Read In Game Name</Text>
       <TextInput
         style={styles.input}
@@ -69,12 +69,12 @@ export default function ReadInGameNameScreen({ route, navigation }: Props) {
           : <Text style={styles.submitBtnText}>Save</Text>
         }
       </TouchableOpacity>
-    </View>
+    </FormScroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bg, padding: 24 },
+  container: { flexGrow: 1, backgroundColor: color.bg, padding: 24 },
   label: { fontSize: 16, fontWeight: '600', color: color.text, marginBottom: 8 },
   input: {
     borderWidth: 1, borderColor: color.border, borderRadius: 8,
