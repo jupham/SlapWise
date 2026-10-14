@@ -168,7 +168,21 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
 
       case 'manchester_resolved': {
         if (!entry.debtorId || !entry.punishment) return entry.summary;
-        const verdict = `${subjectFor(entry.debtorId)} didn't follow through`;
+        // The verdict is always about the statement maker, whichever way it
+        // went. Blaming the debtor read wrongly when the call backfired: a
+        // caller punished because the statement maker *did* follow through
+        // was told they "didn't follow through", when they had nothing to do.
+        // Entries without `outcome` fall back to who ended up paying, since
+        // the challenger is the debtor only when the statement maker delivered.
+        const statementMaker = entry.statementMakerId ?? null;
+        const followedThrough = entry.outcome
+          ? entry.outcome === 'followed_through'
+          : !!entry.challengerId && entry.debtorId === entry.challengerId;
+        const verdict = !statementMaker
+          ? `${subjectFor(entry.debtorId)} lost the Manchester`
+          : followedThrough
+            ? `${subjectFor(statementMaker)} followed through`
+            : `${subjectFor(statementMaker)} didn't follow through`;
         return `${verdict} — ${punishmentPhrase({
           punishment: entry.punishment,
           debtor: nameFor(entry.debtorId),
