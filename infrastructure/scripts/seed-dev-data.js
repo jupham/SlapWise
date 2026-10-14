@@ -17,6 +17,7 @@
  *   node infrastructure/scripts/seed-dev-data.js
  *   node infrastructure/scripts/seed-dev-data.js --wipe-first
  *   node infrastructure/scripts/seed-dev-data.js --wipe-only
+ *   node infrastructure/scripts/seed-dev-data.js --wipe-only --prod
  *
  * --wipe-first deletes the three seed users and empties the table, then seeds.
  * --wipe-only deletes EVERY user in the pool and empties the table, then stops —
@@ -24,6 +25,11 @@
  * user, not just the seed ones: emptying the table also deletes each player's
  * PROFILE row, and post-confirmation only writes that once, at signup. A real
  * account left in Cognito would still sign in, as a player with no profile.
+ *
+ * --prod lets --wipe-only, and nothing else, run against prod: for clearing
+ * test data before a release. cdk-outputs.json must then be for prod (run
+ * deploy:prod first if dev deployed last), and it asks you to type the stage
+ * name before deleting anything. Seeding prod is never allowed.
  *
  * Requires: a completed deploy (reads cdk-outputs.json) and AWS credentials
  * with Cognito admin permissions — e.g. AWS_PROFILE=slapwise.
@@ -74,11 +80,25 @@ const outputs = JSON.parse(fs.readFileSync(outputsPath, 'utf8'));
 // cdk-outputs.json holds whichever stage was deployed last, and --wipe-only
 // deletes every Cognito user in that pool. Refuse anything but dev rather than
 // trust that the last deploy was the one you meant.
-const stages = [...new Set(Object.keys(outputs).map((name) => name.split('-SlapWise')[0]))];
-if (stages.length !== 1 || stages[0] !== 'dev') {
-  console.error(`cdk-outputs.json is for stage "${stages.join(', ')}". Seed and wipe only run against dev — redeploy dev first.`);
+// --prod is the one way past that, and only for --wipe-only.
+const wipeOnly = process.argv.includes('--wipe-only');
+const allowProd = process.argv.includes('--prod');
+if (allowProd && !wipeOnly) {
+  console.error('--prod only works with --wipe-only. Prod is never seeded.');
   process.exit(1);
 }
+const expectedStage = allowProd ? 'prod' : 'dev';
+const stages = [...new Set(Object.keys(outputs).map((name) => name.split('-SlapWise')[0]))];
+if (stages.length !== 1 || stages[0] !== expectedStage) {
+  console.error(
+    `cdk-outputs.json is for stage "${stages.join(', ')}", not ${expectedStage}. ` +
+      (allowProd
+        ? 'Run `npm run deploy:prod` first so it describes prod.'
+        : 'Seed and wipe only run against dev — redeploy dev first.'),
+  );
+  process.exit(1);
+}
+const STAGE = stages[0];
 
 const flat = {};
 for (const stackOutputs of Object.values(outputs)) {
@@ -105,6 +125,18 @@ const TABLE = flat.TableName;
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Resolves once the user types `expected` exactly; exits on anything else. */
+async function confirmTyped(prompt, expected) {
+  const readline = require('readline/promises');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const answer = await rl.question(prompt);
+  rl.close();
+  if (answer.trim() !== expected) {
+    console.log('Aborted. Nothing was deleted.');
+    process.exit(1);
+  }
+}
 
 async function rest(token, method, route, body) {
   const res = await fetch(`${REST}${route}`, {
@@ -335,11 +367,20 @@ async function manchester({ challenger, statementMaker, groupId, statement, stop
 async function main() {
   const wipeFirst = process.argv.includes('--wipe-first');
 
-  if (process.argv.includes('--wipe-only')) {
+  if (wipeOnly) {
+    if (STAGE !== 'dev') {
+      console.log(`\nAbout to delete EVERY user in ${USER_POOL_ID} and every row in ${TABLE}.`);
+      console.log('This is the', STAGE.toUpperCase(), 'stack. It cannot be undone.');
+      await confirmTyped(`Type "${STAGE}" to continue: `, STAGE);
+    }
     console.log('Wiping everything…');
     await deleteAllUsers();
     await wipeTable();
-    console.log('\nDone. Nothing seeded. Run `adb shell pm clear com.slapwise` before opening the app.');
+    // Deleting a Cognito user does not revoke the token already on a phone, so
+    // the app would bootstrap as a player who no longer exists.
+    console.log('\nDone. Nothing seeded. Every phone still holds a token for a deleted user:');
+    console.log('  Android: adb shell pm clear com.slapwise');
+    console.log('  iPhone:  delete the app and reinstall it from TestFlight');
     return;
   }
 
