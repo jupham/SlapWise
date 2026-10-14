@@ -44,6 +44,7 @@ interface Args {
   amountMl?: number;
   debtId?: string;
   addBack?: AddLiquorInput;
+  reason?: string | null;
 }
 
 interface AppSyncCognitoIdentity {
@@ -176,6 +177,17 @@ async function fetchGrog(groupId: string): Promise<GrogItem | null> {
   }));
   if (!result.Item) return null;
   return marshalGrog(result.Item);
+}
+
+async function isMember(groupId: string, playerId: string): Promise<boolean> {
+  const result = await dynamo.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: {
+      PK: { S: `GROUP#${groupId}` },
+      SK: { S: `MEMBER#${playerId}` },
+    },
+  }));
+  return !!result.Item;
 }
 
 async function isAdmin(groupId: string, playerId: string): Promise<boolean> {
@@ -500,6 +512,89 @@ async function takeGrogShot(callerId: string, args: Args): Promise<GrogItem> {
 }
 
 
+/** Longest reason kept for a free shot; it is a caption, not a story. */
+const MAX_REASON_LENGTH = 140;
+
+/**
+ * A shot no Manchester asked for — a lost bet, a birthday, the group's say-so.
+ * The drinker records their own, the same rule takeGrogShot enforces by
+ * requiring the caller to be the debtor, and it earns an add-back like any
+ * other shot so the grog does not just drain.
+ *
+ * With no debt to hang off, the shot mints its own id, `SHOT#<uuid>`, and uses
+ * it everywhere a debt id would go: the history event's sourceDebtId, the
+ * pending add-back's key (so redeemAddBack, adminAddBack and clearAddBack work
+ * on it unchanged) and the feed entry's refId.
+ */
+async function takeFreeGrogShot(callerId: string, args: Args): Promise<GrogItem> {
+  const { groupId } = args;
+  if (!groupId) err('MISSING_GROUP_ID');
+  const reason = (args.reason ?? '').trim().slice(0, MAX_REASON_LENGTH);
+
+  // Lambdas check membership themselves — a group id is not a secret.
+  if (!(await isMember(groupId, callerId))) err('UNAUTHORIZED');
+
+  const grog = await fetchGrog(groupId);
+  if (!grog) err('GROG_NOT_FOUND');
+
+  const now = new Date().toISOString();
+  const shotId = `SHOT#${randomUUID()}`;
+  const [newEntries, newHistory, newPendingAddBacks] = applyTakeGrogShot(
+    grog.entries,
+    grog.history,
+    grog.pendingAddBacks,
+    callerId,
+    shotId,
+    now,
+    randomUUID(),
+  );
+
+  await writeGrog(groupId, newEntries, newHistory, newPendingAddBacks);
+
+  // Best-effort, as for takeGrogShot: the shot happened whether or not the
+  // feed hears about it.
+  try {
+    const feedEntryId = randomUUID();
+    await dynamo.send(new PutItemCommand({
+      TableName: TABLE,
+      Item: {
+        PK: { S: `GROUP#${groupId}` },
+        SK: { S: `FEED#${now}#${feedEntryId}` },
+        entryId: { S: feedEntryId },
+        groupId: { S: groupId },
+        type: { S: 'grog_shot' },
+        refId: { S: shotId },
+        actorId: { S: callerId },
+        summary: { S: 'A grog shot was taken' },
+        ...(reason ? { statement: { S: reason } } : {}),
+        debtorId: { S: callerId },
+        punishment: { S: 'infinity_grog' },
+        amountMl: { N: String(SHOT_ML) },
+        readInOnly: { BOOL: false },
+        createdAt: { S: now },
+      },
+    }));
+  } catch (feedErr) {
+    console.error('[grog-resolver] takeFreeGrogShot: failed to write FEED entry:', feedErr);
+  }
+
+  await publishNotification({
+    type: 'grog_shot_taken',
+    groupId,
+    audience: { kind: 'group', excludePlayerIds: [callerId] },
+    actorId: callerId,
+    ...(reason ? { statement: reason } : {}),
+  });
+
+  return {
+    groupId,
+    bottleSize: grog.bottleSize,
+    entries: newEntries,
+    history: newHistory,
+    pendingAddBacks: newPendingAddBacks,
+  };
+}
+
 async function redeemAddBack(callerId: string, args: Args): Promise<GrogItem> {
   const { groupId, debtId, category, brand } = args;
   if (!groupId) err('MISSING_GROUP_ID');
@@ -610,6 +705,8 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
         return await adjustGrogEntry(callerId, args);
       case 'takeGrogShot':
         return await takeGrogShot(callerId, args);
+      case 'takeFreeGrogShot':
+        return await takeFreeGrogShot(callerId, args);
       case 'redeemAddBack':
         return await redeemAddBack(callerId, args);
       case 'clearAddBack':

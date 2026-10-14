@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { GroupStackParamList } from '../navigation/types';
 import { GrogService } from '../services/GrogService';
 import { GroupService } from '../services/GroupService';
 import { useStore } from '../store';
@@ -93,7 +95,9 @@ function formatDate(iso: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function InfinityGrogReviewScreen() {
+type Props = NativeStackScreenProps<GroupStackParamList, 'GroupTabs'>;
+
+export default function InfinityGrogReviewScreen({ navigation }: { navigation: Props['navigation'] }) {
   // Tab screen — group comes from the store, not route params.
   const activeGroup = useStore((s) => s.activeGroup);
   const groupId = activeGroup?.groupId ?? '';
@@ -457,6 +461,22 @@ export default function InfinityGrogReviewScreen() {
             />
           </View>
 
+          {/* Any member, any reason: a shot that no Manchester asked for. It
+              opens the same screen a Manchester shot does, minus the debt. */}
+          {grog !== null && !manageMode && (
+            <TouchableOpacity
+              style={styles.takeShotBtn}
+              onPress={() =>
+                navigation.navigate('InfinityGrogSentence', {
+                  groupId,
+                  groupName: activeGroup?.groupName ?? '',
+                })
+              }
+            >
+              <Text style={styles.takeShotBtnText}>Take a Shot</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Contents. Replaces the slide-in drawer, which covered the skull it
               was describing and put its toggle on top of the Manage button.
               Manage lives here because managing the grog *is* editing contents. */}
@@ -620,6 +640,14 @@ const styles = StyleSheet.create({
     color: color.text,
     fontSize: 15,
     fontWeight: '700',
+  },
+  takeShotBtn: {
+    borderWidth: 1, borderColor: color.accent, borderRadius: 8,
+    paddingVertical: 12, alignItems: 'center', marginBottom: 20,
+  },
+  takeShotBtnText: {
+    color: color.accent, fontSize: 15, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase',
   },
   addBtn: {
     alignSelf: 'flex-start',

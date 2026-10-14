@@ -38,7 +38,8 @@ export type GroupStackParamList = {
   ReadIn: { groupId: string; groupName: string };
   ReadInPlayers: { groupId: string; groupName: string };
   ReadInGameName: { groupId: string; groupName: string };
-  InfinityGrogSentence: { debtId: string; groupId: string; groupName: string };
+  /** Without a debtId it is a free shot: no Manchester, an optional reason. */
+  InfinityGrogSentence: { debtId?: string; groupId: string; groupName: string };
   CreateGroup: undefined;
   JoinGroup: undefined;
 };

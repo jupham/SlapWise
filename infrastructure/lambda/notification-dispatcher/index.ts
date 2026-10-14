@@ -257,7 +257,10 @@ function render(
     case 'grog_shot_taken':
       return {
         title: 'The grog claims another',
-        body: `${nameOf(event.actorId)} took a shot from the Infinity Grog.`,
+        // A free shot carries the drinker's reason as `statement`; a
+        // Manchester shot's statement is the claim it settled, so only the
+        // free one (no debtId) quotes it.
+        body: `${nameOf(event.actorId)} took a shot from the Infinity Grog${event.debtId ? '.' : quoted || '.'}`,
       };
 
     case 'member_joined':

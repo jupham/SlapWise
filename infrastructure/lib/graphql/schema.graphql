@@ -177,6 +177,9 @@ enum FeedEntryType {
   member_joined
   game_called
   game_settled
+  # A shot from the grog that no Manchester asked for. refId is the shot's own
+  # id, so it threads alone; statement carries the drinker's reason, if any.
+  grog_shot
 }
 
 enum LiquorCategory {
@@ -264,6 +267,7 @@ type Mutation {
   removeLiquorFromGrog(groupId: ID!, entryId: ID!): Grog!
   adjustGrogEntry(groupId: ID!, entryId: ID!, amountMl: Float!): Grog!
   takeGrogShot(groupId: ID!, debtId: ID!): Grog!
+  takeFreeGrogShot(groupId: ID!, reason: String): Grog!
   redeemAddBack(groupId: ID!, debtId: ID!, category: LiquorCategory!, brand: String!): Grog!
   clearAddBack(groupId: ID!, debtId: ID!): Grog!
   adminAddBack(groupId: ID!, debtId: ID!, category: LiquorCategory!, brand: String!): Grog!

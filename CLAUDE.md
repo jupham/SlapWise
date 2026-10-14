@@ -158,6 +158,14 @@ ids against the group's member list at render time. Every field is nullable and
 the row falls back to `summary`, which is all that entries written before this
 carry.
 
+`grog_shot` is a shot no Manchester asked for, recorded from the Grog tab's
+Take a Shot. It has no debt, so `takeFreeGrogShot` mints `SHOT#<uuid>` and uses
+it wherever a debt id would go: the feed entry's `refId` (so it threads alone),
+the history event's `sourceDebtId`, and the pending add-back's key, which is why
+`redeemAddBack` and friends handle it unchanged. Only the drinker can record
+one, and it earns an add-back like any other shot. The optional reason rides in
+`statement`.
+
 `member_joined` is in the `FeedEntryType` enum but **nothing writes it**, and
 `chug_event` rows were written by the retired `recordGameCall` — old data only.
 
@@ -337,9 +345,11 @@ needs to know whose turn it is has to read the debt, not the feed.
 alias, so Cognito's own username is a generated UUID. Read `preferred_username`
 from the user attributes instead — see `AuthService.currentPlayer`.
 
-**Every grog mutation is admin-gated**, including adding liquor. `isAdmin` is
-checked in the grog resolver, so non-admin members get `UNAUTHORIZED` on writes
-that look innocuous.
+**Every grog mutation that edits the contents is admin-gated**, including
+adding liquor. `isAdmin` is checked in the grog resolver, so non-admin members
+get `UNAUTHORIZED` on writes that look innocuous. The exceptions are drinking
+and paying it back: `takeGrogShot` and `redeemAddBack` need the caller to be the
+debtor, and `takeFreeGrogShot` needs only membership.
 
 **The grog never drops an entry, and that is the point.** A shot shaves a
 proportion off every entry, so an entry approaches zero without reaching it —
