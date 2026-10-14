@@ -94,6 +94,13 @@ After a wipe, run `adb shell pm clear com.slapwise`. JWTs are stateless, so
 deleting the Cognito user does not invalidate the token already on the device:
 the app bootstraps happily as a player who no longer exists, finds no groups,
 and lands on the welcome screen as though you had never signed up.
+On iOS there is no `pm clear`: delete the app and reinstall it from TestFlight.
+
+`npm --prefix infrastructure run wipe:prod` is the one way to run any of this
+against prod: the wipe only, never the seed, for clearing test data before a
+release. It needs `cdk-outputs.json` to describe prod, so run `deploy:prod`
+first if dev deployed last, and it asks you to type `prod` before it deletes
+anything.
 
 ### Naming
 
