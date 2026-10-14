@@ -59,6 +59,14 @@ const TAKE_GROG_SHOT = /* GraphQL */ `
   }
 `;
 
+const TAKE_FREE_GROG_SHOT = /* GraphQL */ `
+  mutation TakeFreeGrogShot($groupId: ID!, $reason: String) {
+    takeFreeGrogShot(groupId: $groupId, reason: $reason) {
+      ${GROG_FIELDS}
+    }
+  }
+`;
+
 const REDEEM_ADD_BACK = /* GraphQL */ `
   mutation RedeemAddBack($groupId: ID!, $debtId: ID!, $category: LiquorCategory!, $brand: String!) {
     redeemAddBack(groupId: $groupId, debtId: $debtId, category: $category, brand: $brand) {
@@ -134,6 +142,15 @@ export const GrogService = {
       variables: { groupId, debtId },
     });
     return (result as { data: { takeGrogShot: Grog } }).data.takeGrogShot;
+  },
+
+  /** A shot with no Manchester behind it. Earns an add-back like any other. */
+  async takeFreeGrogShot(groupId: string, reason?: string): Promise<Grog> {
+    const result = await getClient().graphql({
+      query: TAKE_FREE_GROG_SHOT,
+      variables: { groupId, reason: reason?.trim() || null },
+    });
+    return (result as { data: { takeFreeGrogShot: Grog } }).data.takeFreeGrogShot;
   },
 
   async redeemAddBack(groupId: string, debtId: string, category: LiquorCategory, brand: string): Promise<Grog> {

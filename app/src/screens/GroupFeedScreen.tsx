@@ -200,6 +200,12 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
         if (!entry.chuggerIds) return entry.summary;
         return chugLine(entry.chuggerIds.map((id) => ({ name: nameFor(id), isYou: isYou(id) })));
 
+      // A free shot, owed to nobody. Not punishmentPhrase: "took their shot"
+      // reads as settling a debt, and there is none.
+      case 'grog_shot':
+        if (!entry.debtorId) return entry.summary;
+        return `${subjectFor(entry.debtorId)} took a shot from the grog`;
+
       case 'slap_delivered':
         if (!entry.debtorId || !entry.punishment) return entry.summary;
         return punishmentPhrase({
@@ -246,6 +252,8 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
       const waiting = call.calledPlayerIds.filter((id) => !answered.has(id));
       return { text: `${game} · waiting on ${joinNames(waiting.map(objectFor))}`, urgent: false };
     }
+
+    if (last.type === 'grog_shot') return { text: 'Grog shot', urgent: false };
 
     if (last.type === 'slap_delivered') {
       return {
@@ -313,6 +321,8 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
       navigation.navigate('GameCall', { groupId, groupName, callId: thread.refId });
     } else if (DETAIL_TYPES.has(first.type)) {
       navigation.navigate('ResolutionConfirmation', { debtId: thread.refId, groupId, groupName });
+    } else if (first.type === 'grog_shot') {
+      navigation.navigate('GroupTabs', { screen: 'Grog' });
     }
   };
 
@@ -355,7 +365,8 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
           }
 
           const lastType = thread.steps[thread.steps.length - 1].type;
-          const settled = lastType === 'slap_delivered' || lastType === 'game_settled';
+          const settled =
+            lastType === 'slap_delivered' || lastType === 'game_settled' || lastType === 'grog_shot';
           const mine = threadIsMine(thread);
           const statement = thread.steps.find((s) => s.statement)?.statement;
           const status = threadStatus(thread);
@@ -405,7 +416,7 @@ export default function GroupFeedScreen({ navigation }: { navigation: Props['nav
                         {step.type === 'manchester_resolved' && step.challengerId && step.statementMakerId
                           ? ` · agreed by ${nameFor(step.challengerId)} and ${objectFor(step.statementMakerId)}`
                           : ''}
-                        {step.type === 'slap_delivered' && step.amountMl
+                        {(step.type === 'slap_delivered' || step.type === 'grog_shot') && step.amountMl
                           ? ` · ${step.amountMl.toFixed(1)} mL`
                           : ''}
                       </Text>

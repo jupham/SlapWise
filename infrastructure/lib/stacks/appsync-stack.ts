@@ -509,6 +509,14 @@ $util.toJson($ctx.result)
       responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
     });
 
+    // takeFreeGrogShot: Lambda — a shot with no Manchester behind it
+    grogResolverDs.createResolver('TakeFreeGrogShotResolver', {
+      typeName: 'Mutation',
+      fieldName: 'takeFreeGrogShot',
+      requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+    });
+
     // redeemAddBack: Lambda
     grogResolverDs.createResolver('RedeemAddBackResolver', {
       typeName: 'Mutation',

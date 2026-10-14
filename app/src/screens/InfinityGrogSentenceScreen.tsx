@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -17,6 +18,7 @@ import { GroupService } from '../services/GroupService';
 import type { Grog, LiquorCategory } from '../types';
 import GrogSkull from './components/GrogSkull';
 import AddLiquorSheet from './components/AddLiquorSheet';
+import FormScroll from './components/FormScroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CATEGORY_COLORS } from '../constants/grog';
@@ -29,6 +31,13 @@ const OZ_PER_ML = 1 / 29.5735;
 
 export default function InfinityGrogSentenceScreen({ route, navigation }: Props) {
   const { debtId, groupId, groupName } = route.params;
+  // No debt means a free shot: nothing owed, taken for whatever reason the
+  // group has, with that reason optionally on the record.
+  const isFree = !debtId;
+  const [reason, setReason] = useState('');
+  // The key the add-back is filed under: the debt for a Manchester shot, the
+  // id the server mints for a free one, known only once the shot is recorded.
+  const [addBackKey, setAddBackKey] = useState<string | null>(debtId ?? null);
   const insets = useSafeAreaInsets();
 
   const [grog, setGrog] = useState<Grog | null>(null);
@@ -77,7 +86,14 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
     setTaking(true);
     setError(null);
     try {
-      await GrogService.takeGrogShot(groupId, debtId);
+      if (debtId) {
+        await GrogService.takeGrogShot(groupId, debtId);
+      } else {
+        const updated = await GrogService.takeFreeGrogShot(groupId, reason);
+        // The server appends the shot last, so the newest history event is it.
+        const shot = updated.history[updated.history.length - 1];
+        setAddBackKey(shot?.type === 'shot_taken' ? shot.sourceDebtId : null);
+      }
       setShotTaken(true);
       setShowPostShotDialog(true);
     } catch (err) {
@@ -94,7 +110,8 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
     setRedeeming(true);
     setError(null);
     try {
-      await GrogService.redeemAddBack(groupId, debtId, category, brand);
+      if (!addBackKey) throw new Error('No add-back to redeem');
+      await GrogService.redeemAddBack(groupId, addBackKey, category, brand);
       navigation.goBack();
     } catch (err) {
       console.error('[InfinityGrogSentenceScreen] redeemAddBack:', err);
@@ -146,17 +163,33 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
   return (
     <>
       <View style={styles.root}>
-        <ScrollView
+        <FormScroll
           style={styles.container}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.groupName}>{groupName}</Text>
-          <Text style={styles.heading}>Your Sentence</Text>
-          <Text style={styles.subheading}>You must take a shot from the Grog.</Text>
+          <Text style={styles.heading}>{isFree ? 'Take a Shot' : 'Your Sentence'}</Text>
+          <Text style={styles.subheading}>
+            {isFree
+              ? 'No Manchester needed. You owe one back afterwards, like any shot.'
+              : 'You must take a shot from the Grog.'}
+          </Text>
           <View style={styles.skullContainer}>
             <GrogSkull entries={entries} bottleSize={bottleSize} animate={true} />
           </View>
+          {isFree && (
+            <TextInput
+              style={styles.reasonInput}
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Why? (optional)"
+              placeholderTextColor={color.textDim}
+              maxLength={140}
+              editable={!taking && !shotTaken}
+              returnKeyType="done"
+            />
+          )}
           {error != null && <Text style={styles.inlineError}>{error}</Text>}
           <TouchableOpacity
             style={[styles.shotBtn, (taking || shotTaken) && styles.shotBtnDisabled]}
@@ -174,9 +207,9 @@ export default function InfinityGrogSentenceScreen({ route, navigation }: Props)
             disabled={taking}
             activeOpacity={0.7}
           >
-            <Text style={styles.takeLaterBtnText}>Take Later</Text>
+            <Text style={styles.takeLaterBtnText}>{isFree ? 'Cancel' : 'Take Later'}</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </FormScroll>
 
         {/* Drawer tab */}
         {entries.length > 0 && (
@@ -278,6 +311,12 @@ const styles = StyleSheet.create({
   heading: { fontSize: 32, fontWeight: '800', color: color.text, textAlign: 'center', marginBottom: 8 },
   subheading: { fontSize: 16, color: color.textMuted, textAlign: 'center', marginBottom: 32 },
   skullContainer: { alignItems: 'center', marginBottom: 40 },
+  reasonInput: {
+    alignSelf: 'stretch', backgroundColor: color.surface,
+    borderWidth: 1, borderColor: color.border, borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 12, marginBottom: 20,
+    fontSize: 15, color: color.text,
+  },
   shotBtn: {
     backgroundColor: color.accent, paddingVertical: 18, paddingHorizontal: 48,
     borderRadius: 12, alignItems: 'center', marginBottom: 16,

@@ -107,7 +107,9 @@ export type FeedEntryType =
   | 'chug_event'
   | 'member_joined'
   | 'game_called'
-  | 'game_settled';
+  | 'game_settled'
+  /** A grog shot no Manchester asked for. Threads alone; statement is the reason. */
+  | 'grog_shot';
 
 export interface FeedEntry {
   entryId: string;
