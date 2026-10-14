@@ -23,5 +23,13 @@ export const stackScreenOptions: NativeStackNavigationOptions = {
     color: color.text,
   },
   headerShadowVisible: false,
+  // Chevron only. iOS labels the back button with the previous screen's
+  // title, and the tabs have none, so it fell back to the route name and
+  // read "GroupTabs". Elsewhere the label was a long title like "Ledger —
+  // Clemson Boys", which iOS lays out in full and then shrinks to "Back" or
+  // drops once it collides with this screen's title: the back button
+  // visibly grew, flickered and vanished on every push. Android shows no
+  // label either way.
+  headerBackButtonDisplayMode: 'minimal',
   contentStyle: { backgroundColor: color.bg },
 };
