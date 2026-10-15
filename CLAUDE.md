@@ -401,6 +401,16 @@ on `$ctx.identity.sub` (`getGroups`, `getMyDebts`), need no gate. A new
 resolver that skips this reopens the hole that `getGroupMembers`, `getDebts`,
 `getGrog`, `get-group` and `createChallenge` all had.
 
+**No apostrophes in `schema.graphql` comments.** AppSync does not skip a `#`
+comment the way the GraphQL spec says. A two-line comment in the
+`FeedEntryType` enum with an apostrophe on each line ("the shot's own id",
+"the drinker's reason") failed with "non unique enum value 'the'": the text
+was read as enum values. The two older comments with a single apostrophe
+deploy fine, so the exact rule is unclear; leave apostrophes out of new ones. CloudFormation reports only "GraphQLSchema did not stabilize" and
+the rollback overwrites the reason, so to see it run
+`aws appsync start-schema-creation` against the **dev** API and then
+`get-schema-creation-status`. Standard GraphQL validators pass the schema.
+
 **Removing a Lambda that AppSync uses takes two deploys.** AppSync imports each
 function's ARN as a cross-stack export, and CDK deploys `LambdaStack` before
 `AppSyncStack`. Delete the function in one go and `LambdaStack` tries to drop an

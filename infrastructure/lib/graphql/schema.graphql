@@ -177,8 +177,6 @@ enum FeedEntryType {
   member_joined
   game_called
   game_settled
-  # A shot from the grog that no Manchester asked for. refId is the shot's own
-  # id, so it threads alone; statement carries the drinker's reason, if any.
   grog_shot
 }
 
