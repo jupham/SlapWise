@@ -306,13 +306,15 @@ why Initialize Grog's "+ Add" did nothing on iPhone. Nest the second `Modal`
 inside the first, as `InitializeGrogSheet` and `InfinityGrogSentenceScreen` now
 do. Sibling sheets on a plain screen, one at a time, are fine.
 
-**The app is dark-only, so `app.json` says so: `userInterfaceStyle: "dark"`.**
-It said `"automatic"`, so on a phone in light mode iOS drew its own chrome
-light: the iOS 26 Liquid Glass back button flickered light grey to dark on
-every push as it re-adapted to the dark header, and the white window behind
-the screens showed at the rounded corners of each transition. The top-level
-`backgroundColor` (applied by `expo-system-ui`) is the dark ground behind
-everything.
+**The window behind every screen must be dark, not just the screens.**
+Without `expo-system-ui` an Expo app's root background is white, whatever the
+phone's appearance. It showed at the rounded corners of each push and pop, and
+the iOS 26 Liquid Glass back button, which tints itself from what is behind
+it, sampled that white mid-transition and flickered light grey to dark on
+every push, even with the phone in dark mode. The top-level `backgroundColor`
+in `app.json` (applied by `expo-system-ui`) sets that ground.
+`userInterfaceStyle` is `"dark"` rather than `"automatic"` so that a phone in
+light mode does not get a white keyboard and white alerts over a dark app.
 
 ### `app/scripts/patch-native-modules.js` — do not delete
 
