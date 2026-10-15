@@ -51,7 +51,13 @@ ships inside the binary — so commit the one a deploy rewrites.
 
 `src/config/amplify.ts` picks one by `EXPO_PUBLIC_STAGE`, which each EAS build
 profile sets in `eas.json` (`production` → `prod`, the rest → `dev`); local runs
-default to dev. It was a single gitignored `amplifyconfiguration.json` until
+default to dev. **That inlining needs `babel-preset-expo`.** Until 2026-10-15
+`babel.config.js` used React Native's own preset, which leaves
+`process.env.EXPO_PUBLIC_STAGE` as a runtime read; a phone has no such variable,
+so every build, TestFlight included, silently fell back to dev and prod was never
+used. To check a change to the Babel or env setup, run
+`EXPO_PUBLIC_STAGE=prod npx expo export --platform ios --no-bytecode` and look
+for `var t="prod"` in the bundle. It was a single gitignored `amplifyconfiguration.json` until
 there were two stacks: whichever deployed last silently won, and keeping it out
 of git needed an `.easignore` that turned out never to have worked (EAS reads
 `.easignore` only at the repo root, and it lived in `app/`). There is no

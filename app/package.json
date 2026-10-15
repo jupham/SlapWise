@@ -48,6 +48,7 @@
     "@tsconfig/react-native": "^3.0.9",
     "@types/react": "^19.2.14",
     "@vitest/coverage-v8": "^4.1.0",
+    "babel-preset-expo": "~57.0.14",
     "fast-check": "^4.6.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.0"
