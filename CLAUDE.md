@@ -289,7 +289,7 @@ fonts and bootstrap are done, so the app never paints a blank or spinner frame.
 
 ### iOS-only UI rules
 
-Android forgives both of these, so they go unseen until an iOS build.
+Android forgives these, so they go unseen until an iOS build.
 
 **Any screen with a text field is rooted in `screens/components/FormScroll`.**
 iOS neither moves content out from under the keyboard nor gives number pads a
@@ -305,6 +305,16 @@ only, and drops the second one silently: no error, nothing on screen. That is
 why Initialize Grog's "+ Add" did nothing on iPhone. Nest the second `Modal`
 inside the first, as `InitializeGrogSheet` and `InfinityGrogSentenceScreen` now
 do. Sibling sheets on a plain screen, one at a time, are fine.
+
+**The window behind every screen must be dark, not just the screens.**
+Without `expo-system-ui` an Expo app's root background is white, whatever the
+phone's appearance. It showed at the rounded corners of each push and pop, and
+the iOS 26 Liquid Glass back button, which tints itself from what is behind
+it, sampled that white mid-transition and flickered light grey to dark on
+every push, even with the phone in dark mode. The top-level `backgroundColor`
+in `app.json` (applied by `expo-system-ui`) sets that ground.
+`userInterfaceStyle` is `"dark"` rather than `"automatic"` so that a phone in
+light mode does not get a white keyboard and white alerts over a dark app.
 
 ### `app/scripts/patch-native-modules.js` — do not delete
 
@@ -383,7 +393,10 @@ skull.
 **Tab screens must refetch on focus.** They stay mounted, so a mount-only
 `useEffect` never sees anything that happened while you were on another tab.
 All four use `useFocusEffect`; a new tab screen needs it too, with a
-`hasLoadedRef` guard so the spinner only blocks the first load.
+`hasLoadedRef` guard so the spinner only blocks the first load. Group home and
+My Slate lacked the guard, so coming back from any pushed screen blanked the
+whole tab to a spinner for a moment; theirs is keyed on the group id, so
+switching groups still shows it.
 
 **Invite codes do not expire; New Code is how you revoke one.** A code is two
 items: the `INVITE#<code>` / `LOOKUP` row `join-group` reads, and an
