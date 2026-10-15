@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   SectionList,
@@ -52,8 +52,12 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
   const [addBackError, setAddBackError] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
+  // Spinner only for the first load of a group. Tabs refetch on every focus,
+  // so an unconditional setLoading(true) blanked the whole screen to a spinner
+  // each time you came back from a pushed screen.
+  const loadedGroupRef = useRef<string | null>(null);
   const load = useCallback(async () => {
-    setLoading(true);
+    if (loadedGroupRef.current !== groupId) setLoading(true);
     setError(null);
     try {
       // Single GSI4 query — all denormalized fields, no second fetch needed
@@ -72,6 +76,7 @@ export default function MySlateScreen({ navigation }: { navigation: Props['navig
       console.error('[MySlateScreen] load failed:', e);
       setError('Failed to load your slate');
     } finally {
+      loadedGroupRef.current = groupId;
       setLoading(false);
     }
   }, [groupId]);

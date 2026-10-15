@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -36,9 +36,13 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
   const [deleting, setDeleting] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
+  // Spinner only for the first load of a group. Tabs refetch on every focus,
+  // so an unconditional setLoading(true) blanked the whole screen to a spinner
+  // each time you came back from a pushed screen.
+  const loadedGroupRef = useRef<string | null>(null);
   const load = useCallback(async () => {
     if (!groupId) return;
-    setLoading(true);
+    if (loadedGroupRef.current !== groupId) setLoading(true);
     try {
       const [data, groupDetail] = await Promise.all([
         GroupService.getGroupMembers(groupId),
@@ -50,6 +54,7 @@ export default function GroupHomeScreen({ navigation }: { navigation: Props['nav
     } catch (err: unknown) {
       console.error('[GroupHomeScreen] load:', err);
     } finally {
+      loadedGroupRef.current = groupId;
       setLoading(false);
     }
   }, [groupId]);

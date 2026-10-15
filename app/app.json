@@ -4,7 +4,8 @@
     "slug": "slapwise",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0C0E",
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.slapwise",
